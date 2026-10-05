@@ -1,0 +1,37 @@
+import type { Metadata, Viewport } from 'next';
+import '@/styles/globals.css';
+import { MarketplaceProvider } from '@/lib/store';
+import AppHeader from '@/components/AppHeader';
+
+export const metadata: Metadata = {
+  title: 'LocalNest | Hyperlocal Society Services & Recurring Marketplace',
+  description: 'Book, pay, and subscribe to trusted neighborhood laundry, home cleaning, daily tiffin, car wash, and repairs from verified providers in your residential society.',
+  manifest: '/manifest.json',
+  icons: {
+    icon: '/favicon.ico',
+  },
+};
+
+export const viewport: Viewport = {
+  themeColor: '#0d9488',
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+};
+
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html lang="en">
+      <body>
+        <MarketplaceProvider>
+          <AppHeader />
+          {children}
+        </MarketplaceProvider>
+      </body>
+    </html>
+  );
+}

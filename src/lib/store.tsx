@@ -1,0 +1,816 @@
+'use client';
+
+import React, { createContext, useContext, useState, useEffect } from 'react';
+import { 
+  UserRole, Society, Category, Provider, Service, Order, 
+  Subscription, Coupon, CommissionRule, Review, Complaint, 
+  PricingModel, OrderStatus, SubscriptionStatus, ComplaintStatus,
+  UserProfile, SocietyNotice, NoticeType
+} from './types';
+import { 
+  INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS, 
+  INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS, 
+  INITIAL_COUPONS, INITIAL_COMMISSION_RULES, INITIAL_REVIEWS, 
+  INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES 
+} from './mockData';
+
+interface MarketplaceContextType {
+  // Auth & Session
+  currentUser: UserProfile | null;
+  users: UserProfile[];
+  login: (email: string, password?: string) => { success: boolean; message: string; user?: UserProfile };
+  loginWithGoogle: (roleChoice: 'CUSTOMER' | 'PROVIDER', googleEmail?: string, googleName?: string) => { success: boolean; user: UserProfile; needsOnboarding: boolean };
+  register: (params: { email: string; password?: string; fullName: string; role: UserRole; phone?: string }) => { success: boolean; user?: UserProfile; message: string };
+  logout: () => void;
+  completeResidentOnboarding: (data: { societyId: string; towerWing: string; flatNumber: string; phone: string; fullName: string }) => void;
+  completeProviderOnboarding: (data: { 
+    businessName: string; 
+    categoryId: string; 
+    phone: string; 
+    supportedSocieties: string[]; 
+    description: string; 
+    serviceTitle: string; 
+    pricingModel: PricingModel; 
+    basePrice: number; 
+    unitName: string; 
+    documentType: string; 
+    documentName: string; 
+  }) => void;
+
+  // Active Society & Provider
+  selectedSociety: Society;
+  setSelectedSociety: (society: Society) => void;
+  activeProviderId: string;
+  setActiveProviderId: (id: string) => void;
+
+  // Data collections
+  societies: Society[];
+  categories: Category[];
+  providers: Provider[];
+  services: Service[];
+  orders: Order[];
+  subscriptions: Subscription[];
+  coupons: Coupon[];
+  commissionRules: CommissionRule[];
+  reviews: Review[];
+  complaints: Complaint[];
+
+  // Coupon Engine
+  validateCoupon: (code: string, subtotal: number, categoryId?: string) => {
+    valid: boolean;
+    discount: number;
+    message: string;
+    coupon?: Coupon;
+  };
+
+  // Actions: Booking & Orders
+  createOrder: (params: {
+    serviceId: string;
+    scheduledDate: string;
+    scheduledSlot: string;
+    deliveryAddress: string;
+    specialInstructions?: string;
+    pricingModel: PricingModel;
+    itemQuantity: number;
+    subtotal: number;
+    couponCode?: string;
+    isSubscription?: boolean;
+    subscriptionFrequency?: any;
+  }) => { success: boolean; orderId?: string; orderNumber?: string; message: string };
+
+  updateOrderStatus: (orderId: string, newStatus: OrderStatus, notes?: string) => void;
+  cancelOrder: (orderId: string, reason?: string) => void;
+
+  // Actions: Subscriptions
+  updateSubscriptionStatus: (subscriptionId: string, status: SubscriptionStatus) => void;
+
+  // Actions: Reviews
+  submitReview: (orderId: string, providerId: string, rating: number, comment: string) => { success: boolean; message: string };
+
+  // Actions: Support & Complaints
+  createComplaint: (orderId: string, category: string, description: string) => { success: boolean; ticketNumber: string };
+  updateComplaintStatus: (ticketId: string, status: ComplaintStatus, resolution?: string, adminNotes?: string) => void;
+
+  // Actions: Provider Management
+  updateProviderStatus: (providerId: string, status: Provider['status'], reason?: string) => void;
+  addService: (newService: Omit<Service, 'id'>) => void;
+
+  // Actions: Admin & Commission
+  updateCommissionRule: (ruleId: string, percentage: number) => void;
+  createCoupon: (coupon: Omit<Coupon, 'id' | 'currentUsage'>) => void;
+  toggleCouponActive: (couponId: string) => void;
+  addSociety: (society: Omit<Society, 'id'>) => void;
+
+  // Society Notices
+  notices: SocietyNotice[];
+  createNotice: (params: {
+    societyId: string;
+    societyName: string;
+    title: string;
+    content: string;
+    type: NoticeType;
+    priority: 'NORMAL' | 'URGENT';
+    authorName: string;
+  }) => void;
+  deactivateNotice: (noticeId: string) => void;
+
+  // Notifications
+  notifications: string[];
+  dismissNotification: (index: number) => void;
+}
+
+const MarketplaceContext = createContext<MarketplaceContextType | undefined>(undefined);
+
+export function MarketplaceProvider({ children }: { children: React.ReactNode }) {
+  const [users, setUsers] = useState<UserProfile[]>(INITIAL_PROFILES);
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(null);
+
+  const [societies, setSocieties] = useState<Society[]>(INITIAL_SOCIETIES);
+  const [selectedSociety, setSelectedSociety] = useState<Society>(INITIAL_SOCIETIES[0]);
+  const [categories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [providers, setProviders] = useState<Provider[]>(INITIAL_PROVIDERS);
+  const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
+  const [subscriptions, setSubscriptions] = useState<Subscription[]>(INITIAL_SUBSCRIPTIONS);
+  const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
+  const [commissionRules, setCommissionRules] = useState<CommissionRule[]>(INITIAL_COMMISSION_RULES);
+  const [reviews, setReviews] = useState<Review[]>(INITIAL_REVIEWS);
+  const [complaints, setComplaints] = useState<Complaint[]>(INITIAL_COMPLAINTS);
+  const [activeProviderId, setActiveProviderId] = useState<string>('prov-raj-laundry');
+  const [notices, setNotices] = useState<SocietyNotice[]>(INITIAL_NOTICES);
+  const [notifications, setNotifications] = useState<string[]>([
+    'Welcome to Greenfield Heights pilot marketplace! Secure logins for Residents, Providers, and Administrators.'
+  ]);
+
+  // Load from local storage on client if available
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('hg_user');
+      if (savedUser) {
+        const u: UserProfile = JSON.parse(savedUser);
+        setCurrentUser(u);
+        if (u.providerId) setActiveProviderId(u.providerId);
+        if (u.societyId) {
+          const s = INITIAL_SOCIETIES.find(soc => soc.id === u.societyId);
+          if (s) setSelectedSociety(s);
+        }
+      }
+
+      const savedUsers = localStorage.getItem('hg_all_users');
+      if (savedUsers) setUsers(JSON.parse(savedUsers));
+
+      const savedOrders = localStorage.getItem('hg_orders');
+      if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+      const savedSubs = localStorage.getItem('hg_subs');
+      if (savedSubs) setSubscriptions(JSON.parse(savedSubs));
+
+      const savedProviders = localStorage.getItem('hg_providers');
+      if (savedProviders) setProviders(JSON.parse(savedProviders));
+
+      const savedServices = localStorage.getItem('hg_services');
+      if (savedServices) setServices(JSON.parse(savedServices));
+    } catch {
+      // fallback to initial
+    }
+  }, []);
+
+  // Sync to local storage
+  useEffect(() => {
+    try {
+      if (currentUser) {
+        localStorage.setItem('hg_user', JSON.stringify(currentUser));
+      } else {
+        localStorage.removeItem('hg_user');
+      }
+      localStorage.setItem('hg_all_users', JSON.stringify(users));
+      localStorage.setItem('hg_orders', JSON.stringify(orders));
+      localStorage.setItem('hg_subs', JSON.stringify(subscriptions));
+      localStorage.setItem('hg_providers', JSON.stringify(providers));
+      localStorage.setItem('hg_services', JSON.stringify(services));
+    } catch {
+      // ignore
+    }
+  }, [currentUser, users, orders, subscriptions, providers, services]);
+
+  const addNotification = (msg: string) => {
+    setNotifications(prev => [msg, ...prev.slice(0, 4)]);
+  };
+
+  const dismissNotification = (index: number) => {
+    setNotifications(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // --------------------------------------------------------------------------
+  // AUTHENTICATION LOGIC
+  // --------------------------------------------------------------------------
+  const login = (email: string, password?: string) => {
+    const cleanEmail = email.trim().toLowerCase();
+    const user = users.find(u => u.email.toLowerCase() === cleanEmail);
+
+    if (!user) {
+      return { success: false, message: 'No account found with this email. Please check or register.' };
+    }
+
+    if (password && user.password && user.password !== password) {
+      return { success: false, message: 'Invalid password. Please try again or use the test credentials.' };
+    }
+
+    setCurrentUser(user);
+    if (user.providerId) {
+      setActiveProviderId(user.providerId);
+    }
+    if (user.societyId) {
+      const s = societies.find(soc => soc.id === user.societyId);
+      if (s) setSelectedSociety(s);
+    }
+
+    addNotification(`Signed in successfully as ${user.fullName} (${user.role}).`);
+    return { success: true, message: 'Login successful.', user };
+  };
+
+  const loginWithGoogle = (roleChoice: 'CUSTOMER' | 'PROVIDER', googleEmail?: string, googleName?: string) => {
+    const email = (googleEmail || (roleChoice === 'CUSTOMER' ? 'rahul.google@gmail.com' : 'rajesh.google@gmail.com')).toLowerCase();
+    const name = googleName || (roleChoice === 'CUSTOMER' ? 'Rahul Sharma' : 'Rajesh Kumar');
+
+    // Check if user already exists
+    const existing = users.find(u => u.email.toLowerCase() === email);
+    if (existing) {
+      setCurrentUser(existing);
+      if (existing.providerId) setActiveProviderId(existing.providerId);
+      if (existing.societyId) {
+        const s = societies.find(soc => soc.id === existing.societyId);
+        if (s) setSelectedSociety(s);
+      }
+      addNotification(`Signed in with Google as ${existing.fullName}.`);
+      return { success: true, user: existing, needsOnboarding: !existing.isOnboarded };
+    }
+
+    // Create new user profile requiring onboarding
+    const newUser: UserProfile = {
+      id: `usr-g-${Date.now()}`,
+      email,
+      fullName: name,
+      phone: '',
+      role: roleChoice,
+      societyId: selectedSociety.id,
+      flatNumber: '',
+      avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
+      isOnboarded: false,
+    };
+
+    setUsers(prev => [newUser, ...prev]);
+    setCurrentUser(newUser);
+    addNotification(`Google verification confirmed. Please complete the quick onboarding details.`);
+    return { success: true, user: newUser, needsOnboarding: true };
+  };
+
+  const register = (params: { email: string; password?: string; fullName: string; role: UserRole; phone?: string }) => {
+    const cleanEmail = params.email.trim().toLowerCase();
+    const existing = users.find(u => u.email.toLowerCase() === cleanEmail);
+    if (existing) {
+      return { success: false, message: 'An account with this email already exists. Please log in.' };
+    }
+
+    const newUser: UserProfile = {
+      id: `usr-${Date.now()}`,
+      email: cleanEmail,
+      password: params.password || 'password123',
+      fullName: params.fullName,
+      phone: params.phone || '',
+      role: params.role,
+      societyId: selectedSociety.id,
+      flatNumber: '',
+      isOnboarded: false,
+    };
+
+    setUsers(prev => [newUser, ...prev]);
+    setCurrentUser(newUser);
+    addNotification(`Account registered! Please complete your society profile.`);
+    return { success: true, user: newUser, message: 'Registration successful.' };
+  };
+
+  const logout = () => {
+    setCurrentUser(null);
+    addNotification('You have been signed out.');
+  };
+
+  // --------------------------------------------------------------------------
+  // ONBOARDING LOGIC
+  // --------------------------------------------------------------------------
+  const completeResidentOnboarding = (data: { societyId: string; towerWing: string; flatNumber: string; phone: string; fullName: string }) => {
+    if (!currentUser) return;
+    const soc = societies.find(s => s.id === data.societyId) || selectedSociety;
+    const flatCombined = `${data.towerWing} - ${data.flatNumber}`;
+
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      fullName: data.fullName || currentUser.fullName,
+      phone: data.phone,
+      societyId: data.societyId,
+      flatNumber: flatCombined,
+      isOnboarded: true,
+    };
+
+    setCurrentUser(updatedUser);
+    setSelectedSociety(soc);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+    addNotification(`Welcome to ${soc.name}! Welcome coupon WELCOME100 is ready to use on your first booking.`);
+  };
+
+  const completeProviderOnboarding = (data: { 
+    businessName: string; 
+    categoryId: string; 
+    phone: string; 
+    supportedSocieties: string[]; 
+    description: string; 
+    serviceTitle: string; 
+    pricingModel: PricingModel; 
+    basePrice: number; 
+    unitName: string; 
+    documentType: string; 
+    documentName: string; 
+  }) => {
+    if (!currentUser) return;
+
+    const newProviderId = `prov-${Date.now()}`;
+    const cat = categories.find(c => c.id === data.categoryId);
+
+    const newProv: Provider = {
+      id: newProviderId,
+      userId: currentUser.id,
+      businessName: data.businessName,
+      categoryId: data.categoryId,
+      categoryName: cat?.name || 'Home Services',
+      description: data.description,
+      phone: data.phone,
+      status: 'PENDING', // starts pending admin verification
+      rating: 0,
+      reviewCount: 0,
+      completedOrders: 0,
+      onTimeRate: 100,
+      supportedSocieties: data.supportedSocieties.length > 0 ? data.supportedSocieties : [selectedSociety.id],
+      startingPrice: data.basePrice,
+      startingPriceUnit: data.unitName,
+      documents: [
+        { type: data.documentType, url: data.documentName, verified: false }
+      ],
+      avatarUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&auto=format&fit=crop&q=80',
+    };
+
+    const newSrv: Service = {
+      id: `srv-${Date.now()}`,
+      providerId: newProviderId,
+      categoryId: data.categoryId,
+      name: data.serviceTitle,
+      description: data.description,
+      pricingModel: data.pricingModel,
+      basePrice: data.basePrice,
+      unitName: data.unitName,
+      isSubscriptionSupported: data.pricingModel === 'SUBSCRIPTION',
+      isActive: true,
+    };
+
+    const updatedUser: UserProfile = {
+      ...currentUser,
+      phone: data.phone,
+      providerId: newProviderId,
+      isOnboarded: true,
+    };
+
+    setProviders(prev => [newProv, ...prev]);
+    setServices(prev => [newSrv, ...prev]);
+    setActiveProviderId(newProviderId);
+    setCurrentUser(updatedUser);
+    setUsers(prev => prev.map(u => u.id === currentUser.id ? updatedUser : u));
+
+    addNotification(`Provider profile created for ${data.businessName}. Your account is under verification by the society operations desk.`);
+  };
+
+  // Helper to determine commission rate for an order
+  const getCommissionRate = (categoryId?: string, providerId?: string): number => {
+    const providerRule = commissionRules.find(r => r.ruleType === 'PROVIDER' && r.targetId === providerId && r.isActive);
+    if (providerRule) return providerRule.commissionPercentage;
+
+    const catRule = commissionRules.find(r => r.ruleType === 'CATEGORY' && r.targetId === categoryId && r.isActive);
+    if (catRule) return catRule.commissionPercentage;
+
+    const defaultRule = commissionRules.find(r => r.ruleType === 'DEFAULT' && r.isActive);
+    return defaultRule ? defaultRule.commissionPercentage : 10.0;
+  };
+
+  // Coupon Validation Engine
+  const validateCoupon = (code: string, subtotal: number, categoryId?: string) => {
+    const cleanCode = code.trim().toUpperCase();
+    const coupon = coupons.find(c => c.code.toUpperCase() === cleanCode);
+
+    if (!coupon) {
+      return { valid: false, discount: 0, message: 'Invalid coupon code.' };
+    }
+    if (!coupon.isActive) {
+      return { valid: false, discount: 0, message: 'This coupon is no longer active.' };
+    }
+    if (coupon.societyId && coupon.societyId !== selectedSociety.id) {
+      return { valid: false, discount: 0, message: 'This offer is not valid in your society.' };
+    }
+    if (coupon.categoryId && categoryId && coupon.categoryId !== categoryId) {
+      return { valid: false, discount: 0, message: 'Coupon only applies to selected service categories.' };
+    }
+    if (subtotal < coupon.minOrderValue) {
+      return { 
+        valid: false, 
+        discount: 0, 
+        message: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon.` 
+      };
+    }
+    if (coupon.usageLimit && coupon.currentUsage >= coupon.usageLimit) {
+      return { valid: false, discount: 0, message: 'This coupon has reached its total usage limit.' };
+    }
+
+    let discount = 0;
+    if (coupon.discountType === 'FLAT' || coupon.discountType === 'FIRST_ORDER') {
+      discount = coupon.discountValue;
+    } else if (coupon.discountType === 'PERCENTAGE' || coupon.discountType === 'SUBSCRIPTION') {
+      discount = Math.round((subtotal * coupon.discountValue) / 100);
+      if (coupon.maxDiscount && discount > coupon.maxDiscount) {
+        discount = coupon.maxDiscount;
+      }
+    }
+
+    return {
+      valid: true,
+      discount,
+      message: `Coupon "${coupon.code}" applied! You save ₹${discount}.`,
+      coupon,
+    };
+  };
+
+  // Create Order & Booking
+  const createOrder = (params: {
+    serviceId: string;
+    scheduledDate: string;
+    scheduledSlot: string;
+    deliveryAddress: string;
+    specialInstructions?: string;
+    pricingModel: PricingModel;
+    itemQuantity: number;
+    subtotal: number;
+    couponCode?: string;
+    isSubscription?: boolean;
+    subscriptionFrequency?: any;
+  }) => {
+    const service = services.find(s => s.id === params.serviceId);
+    if (!service) return { success: false, message: 'Service not found.' };
+
+    const provider = providers.find(p => p.id === service.providerId);
+    if (!provider) return { success: false, message: 'Provider not found.' };
+
+    const platformFee = 20;
+    let discountAmount = 0;
+    let couponApplied: Coupon | undefined;
+
+    if (params.couponCode) {
+      const val = validateCoupon(params.couponCode, params.subtotal, service.categoryId);
+      if (val.valid && val.coupon) {
+        discountAmount = val.discount;
+        couponApplied = val.coupon;
+        setCoupons(prev => prev.map(c => c.id === couponApplied?.id ? { ...c, currentUsage: c.currentUsage + 1 } : c));
+      }
+    }
+
+    const totalAmount = Math.max(0, params.subtotal + platformFee - discountAmount);
+    const commRate = getCommissionRate(service.categoryId, provider.id);
+    const platformCommission = Math.round((params.subtotal * commRate) / 100);
+    const providerEarnings = params.subtotal - platformCommission;
+
+    const orderNumber = `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newOrderId = `ord-${Date.now()}`;
+
+    const custName = currentUser?.fullName || 'Rahul Sharma';
+    const custPhone = currentUser?.phone || '+91 98765 43210';
+    const custFlat = currentUser?.flatNumber || 'Tower A - 402';
+    const custId = currentUser?.id || 'usr-customer-1';
+
+    const newOrder: Order = {
+      id: newOrderId,
+      orderNumber,
+      customerId: custId,
+      customerName: custName,
+      customerPhone: custPhone,
+      customerFlat: custFlat,
+      providerId: provider.id,
+      providerName: provider.businessName,
+      serviceId: service.id,
+      serviceName: service.name,
+      categoryName: provider.categoryName || 'Home Services',
+      societyId: selectedSociety.id,
+      societyName: selectedSociety.name,
+      status: 'PENDING',
+      scheduledDate: params.scheduledDate,
+      scheduledSlot: params.scheduledSlot,
+      deliveryAddress: params.deliveryAddress || `${custFlat}, ${selectedSociety.name}`,
+      specialInstructions: params.specialInstructions,
+      pricingModel: params.pricingModel,
+      itemQuantity: params.itemQuantity,
+      subtotal: params.subtotal,
+      platformFee,
+      couponCode: couponApplied?.code,
+      discountAmount,
+      discountSource: 'PLATFORM',
+      totalAmount,
+      commissionPercentage: commRate,
+      platformCommission,
+      providerEarnings,
+      paymentStatus: 'PAID',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    setOrders(prev => [newOrder, ...prev]);
+
+    if (params.isSubscription) {
+      const newSub: Subscription = {
+        id: `sub-${Date.now()}`,
+        customerId: custId,
+        customerName: custName,
+        customerFlat: custFlat,
+        providerId: provider.id,
+        providerName: provider.businessName,
+        serviceId: service.id,
+        serviceName: service.name,
+        categoryName: provider.categoryName || 'Recurring Service',
+        societyId: selectedSociety.id,
+        status: 'ACTIVE',
+        frequency: params.subscriptionFrequency || 'DAILY',
+        scheduledTimeSlot: params.scheduledSlot,
+        startDate: params.scheduledDate,
+        nextServiceDate: params.scheduledDate,
+        renewalDate: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
+        monthlyPrice: params.subtotal,
+        autoRenew: true,
+        createdAt: new Date().toISOString(),
+      };
+      setSubscriptions(prev => [newSub, ...prev]);
+      addNotification(`New subscription started with ${provider.businessName}! Delivery begins ${params.scheduledDate}.`);
+    } else {
+      addNotification(`Booking confirmed! Order #${orderNumber} sent to ${provider.businessName}.`);
+    }
+
+    return {
+      success: true,
+      orderId: newOrderId,
+      orderNumber,
+      message: 'Booking successfully placed with secure Razorpay payment!',
+    };
+  };
+
+  const updateOrderStatus = (orderId: string, newStatus: OrderStatus, notes?: string) => {
+    setOrders(prev => prev.map(ord => {
+      if (ord.id === orderId) {
+        if (newStatus === 'COMPLETED' && ord.status !== 'COMPLETED') {
+          setProviders(pList => pList.map(p => 
+            p.id === ord.providerId ? { ...p, completedOrders: p.completedOrders + 1 } : p
+          ));
+        }
+        return {
+          ...ord,
+          status: newStatus,
+          updatedAt: new Date().toISOString(),
+        };
+      }
+      return ord;
+    }));
+    addNotification(`Order status updated to ${newStatus.replace('_', ' ')}.`);
+  };
+
+  const cancelOrder = (orderId: string, reason?: string) => {
+    setOrders(prev => prev.map(ord => {
+      if (ord.id === orderId) {
+        return {
+          ...ord,
+          status: 'CANCELLED',
+          updatedAt: new Date().toISOString(),
+          specialInstructions: reason ? `${ord.specialInstructions || ''} [Cancellation: ${reason}]` : ord.specialInstructions,
+        };
+      }
+      return ord;
+    }));
+    addNotification('Order has been cancelled. Any eligible refund will be credited to source.');
+  };
+
+  const updateSubscriptionStatus = (subscriptionId: string, status: SubscriptionStatus) => {
+    setSubscriptions(prev => prev.map(sub => 
+      sub.id === subscriptionId ? { ...sub, status } : sub
+    ));
+    addNotification(`Subscription status updated to ${status}.`);
+  };
+
+  const submitReview = (orderId: string, providerId: string, rating: number, comment: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order || order.status !== 'COMPLETED') {
+      return { success: false, message: 'Reviews can only be submitted for completed orders.' };
+    }
+    const alreadyReviewed = reviews.some(r => r.orderId === orderId);
+    if (alreadyReviewed) {
+      return { success: false, message: 'You have already submitted a review for this order.' };
+    }
+
+    const newReview: Review = {
+      id: `rev-${Date.now()}`,
+      orderId,
+      customerId: order.customerId,
+      customerName: `${order.customerName} (${order.customerFlat})`,
+      providerId,
+      rating,
+      comment,
+      isVerifiedPurchase: true,
+      createdAt: new Date().toISOString(),
+    };
+
+    setReviews(prev => [newReview, ...prev]);
+
+    setProviders(prev => prev.map(p => {
+      if (p.id === providerId) {
+        const provReviews = [...reviews.filter(r => r.providerId === providerId), newReview];
+        const avg = provReviews.reduce((sum, r) => sum + r.rating, 0) / provReviews.length;
+        return {
+          ...p,
+          rating: Number(avg.toFixed(2)),
+          reviewCount: provReviews.length,
+        };
+      }
+      return p;
+    }));
+
+    addNotification('Thank you for your rating! Your verified review has been posted.');
+    return { success: true, message: 'Review successfully recorded.' };
+  };
+
+  const createComplaint = (orderId: string, category: string, description: string) => {
+    const order = orders.find(o => o.id === orderId);
+    const ticketNumber = `TKT-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    const newComp: Complaint = {
+      id: `comp-${Date.now()}`,
+      ticketNumber,
+      customerId: order?.customerId || currentUser?.id || 'usr-customer-1',
+      customerName: order?.customerName || currentUser?.fullName || 'Resident',
+      providerId: order?.providerId || 'prov-raj-laundry',
+      providerName: order?.providerName || 'Local Provider',
+      orderId,
+      orderNumber: order?.orderNumber || 'ORD-N/A',
+      category,
+      description,
+      status: 'OPEN',
+      createdAt: new Date().toISOString(),
+    };
+
+    setComplaints(prev => [newComp, ...prev]);
+    if (order && order.status !== 'COMPLETED') {
+      updateOrderStatus(orderId, 'DISPUTED');
+    }
+    addNotification(`Support ticket #${ticketNumber} created. Our team will review within 2 hours.`);
+    return { success: true, ticketNumber };
+  };
+
+  const updateComplaintStatus = (ticketId: string, status: ComplaintStatus, resolution?: string, adminNotes?: string) => {
+    setComplaints(prev => prev.map(c => 
+      c.id === ticketId ? { 
+        ...c, 
+        status, 
+        resolution: resolution || c.resolution,
+        adminNotes: adminNotes || c.adminNotes,
+      } : c
+    ));
+    addNotification(`Support ticket ${status.toLowerCase()}.`);
+  };
+
+  const updateProviderStatus = (providerId: string, status: Provider['status'], reason?: string) => {
+    setProviders(prev => prev.map(p => 
+      p.id === providerId ? {
+        ...p,
+        status,
+        verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : p.verifiedAt,
+      } : p
+    ));
+    addNotification(`Provider verification status updated to ${status}.`);
+  };
+
+  const addService = (newService: Omit<Service, 'id'>) => {
+    const id = `srv-${Date.now()}`;
+    setServices(prev => [...prev, { ...newService, id }]);
+    addNotification(`Service "${newService.name}" created successfully.`);
+  };
+
+  const updateCommissionRule = (ruleId: string, percentage: number) => {
+    setCommissionRules(prev => prev.map(r => 
+      r.id === ruleId ? { ...r, commissionPercentage: percentage } : r
+    ));
+    addNotification(`Commission rate updated to ${percentage}%.`);
+  };
+
+  const createCoupon = (coupon: Omit<Coupon, 'id' | 'currentUsage'>) => {
+    const id = `cpn-${Date.now()}`;
+    setCoupons(prev => [...prev, { ...coupon, id, currentUsage: 0 }]);
+    addNotification(`Coupon code "${coupon.code}" created.`);
+  };
+
+  const toggleCouponActive = (couponId: string) => {
+    setCoupons(prev => prev.map(c => 
+      c.id === couponId ? { ...c, isActive: !c.isActive } : c
+    ));
+  };
+
+  const addSociety = (society: Omit<Society, 'id'>) => {
+    const id = `soc-${Date.now()}`;
+    setSocieties(prev => [...prev, { ...society, id }]);
+    addNotification(`Society "${society.name}" registered to platform.`);
+  };
+
+  const createNotice = (params: {
+    societyId: string;
+    societyName: string;
+    title: string;
+    content: string;
+    type: NoticeType;
+    priority: 'NORMAL' | 'URGENT';
+    authorName: string;
+  }) => {
+    const newNotice: SocietyNotice = {
+      id: `notif-${Date.now()}`,
+      societyId: params.societyId,
+      societyName: params.societyName,
+      title: params.title,
+      content: params.content,
+      type: params.type,
+      priority: params.priority,
+      authorName: params.authorName,
+      createdAt: new Date().toISOString(),
+      isActive: true,
+    };
+    setNotices(prev => [newNotice, ...prev]);
+    const audience = params.societyId === 'ALL' ? 'All Societies' : params.societyName;
+    addNotification(`Notice "${params.title}" posted to ${audience}.`);
+  };
+
+  const deactivateNotice = (noticeId: string) => {
+    setNotices(prev => prev.map(n => n.id === noticeId ? { ...n, isActive: false } : n));
+    addNotification('Notice has been deactivated.');
+  };
+
+  return (
+    <MarketplaceContext.Provider value={{
+      currentUser,
+      users,
+      login,
+      loginWithGoogle,
+      register,
+      logout,
+      completeResidentOnboarding,
+      completeProviderOnboarding,
+      selectedSociety,
+      setSelectedSociety,
+      activeProviderId,
+      setActiveProviderId,
+      societies,
+      categories,
+      providers,
+      services,
+      orders,
+      subscriptions,
+      coupons,
+      commissionRules,
+      reviews,
+      complaints,
+      validateCoupon,
+      createOrder,
+      updateOrderStatus,
+      cancelOrder,
+      updateSubscriptionStatus,
+      submitReview,
+      createComplaint,
+      updateComplaintStatus,
+      updateProviderStatus,
+      addService,
+      updateCommissionRule,
+      createCoupon,
+      toggleCouponActive,
+      addSociety,
+      notices,
+      createNotice,
+      deactivateNotice,
+      notifications,
+      dismissNotification,
+    }}>
+      {children}
+    </MarketplaceContext.Provider>
+  );
+}
+
+export function useMarketplace() {
+  const context = useContext(MarketplaceContext);
+  if (!context) {
+    throw new Error('useMarketplace must be used within a MarketplaceProvider');
+  }
+  return context;
+}

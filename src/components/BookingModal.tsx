@@ -1,0 +1,537 @@
+'use client';
+
+import React, { useState } from 'react';
+import { useMarketplace } from '@/lib/store';
+import { Service, Provider, PricingModel } from '@/lib/types';
+import { 
+  X, CheckCircle, ShieldCheck, Tag, 
+  Calendar, Clock, CreditCard, AlertCircle, ArrowRight 
+} from 'lucide-react';
+
+interface BookingModalProps {
+  service: Service;
+  provider: Provider;
+  onClose: () => void;
+  onSuccess: (orderNumber: string) => void;
+}
+
+export default function BookingModal({ service, provider, onClose, onSuccess }: BookingModalProps) {
+  const { createOrder, validateCoupon, selectedSociety } = useMarketplace();
+
+  // Booking Parameters
+  const [scheduledDate, setScheduledDate] = useState<string>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().split('T')[0];
+  });
+  const [scheduledSlot, setScheduledSlot] = useState<string>('10:00 AM - 12:00 PM');
+  const [deliveryAddress, setDeliveryAddress] = useState<string>('Tower A - 402, ' + selectedSociety.name);
+  const [specialInstructions, setSpecialInstructions] = useState<string>('');
+
+  // Dynamic Pricing State
+  const [itemQuantity, setItemQuantity] = useState<number>(1);
+  const [hours, setHours] = useState<number>(1);
+  // For per-item services: map item name to qty
+  const [itemQuantities, setItemQuantities] = useState<Record<string, number>>(() => {
+    if (service.pricingModel === 'PER_ITEM' && service.pricingItems) {
+      const init: Record<string, number> = {};
+      service.pricingItems.forEach(item => {
+        init[item.name] = 0;
+      });
+      // set first item to 2
+      if (service.pricingItems.length > 0) {
+        init[service.pricingItems[0].name] = 2;
+      }
+      return init;
+    }
+    return {};
+  });
+
+  // Subscription frequency
+  const [subscriptionFrequency, setSubscriptionFrequency] = useState<'DAILY' | 'MON_TO_SAT' | 'WEEKLY'>('MON_TO_SAT');
+
+  // Coupon Engine
+  const [couponCodeInput, setCouponCodeInput] = useState<string>('');
+  const [appliedCoupon, setAppliedCoupon] = useState<string | null>(null);
+  const [couponFeedback, setCouponFeedback] = useState<{ valid: boolean; message: string; discount: number } | null>(null);
+
+  // Razorpay Checkout Simulation Step
+  const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
+  const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
+
+  // Calculate Subtotal dynamically based on model
+  const calculateSubtotal = (): number => {
+    switch (service.pricingModel) {
+      case 'FIXED':
+        return service.basePrice * Math.max(1, itemQuantity);
+      case 'HOURLY':
+        return service.basePrice * Math.max(1, hours);
+      case 'PER_ITEM': {
+        if (!service.pricingItems) return service.basePrice * itemQuantity;
+        let sum = 0;
+        service.pricingItems.forEach(item => {
+          sum += (itemQuantities[item.name] || 0) * item.price;
+        });
+        return Math.max(sum, service.basePrice);
+      }
+      case 'SUBSCRIPTION':
+        return service.basePrice;
+      case 'INSPECTION_VARIABLE':
+        return service.basePrice; // ₹299 inspection
+      case 'CUSTOM_QUOTATION':
+        return 0; // Free visit
+      default:
+        return service.basePrice;
+    }
+  };
+
+  const subtotal = calculateSubtotal();
+  const platformFee = 20;
+
+  // Live discount
+  const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
+  const totalPayable = Math.max(0, subtotal + platformFee - discountAmount);
+
+  const handleApplyCoupon = (codeToApply?: string) => {
+    const code = codeToApply || couponCodeInput;
+    if (!code.trim()) return;
+    const res = validateCoupon(code, subtotal, service.categoryId);
+    setCouponFeedback(res);
+    if (res.valid) {
+      setAppliedCoupon(code.toUpperCase());
+    } else {
+      setAppliedCoupon(null);
+    }
+  };
+
+  const handleProcessOrder = () => {
+    setIsProcessingPayment(true);
+
+    // Simulate Razorpay Gateway Interaction
+    setTimeout(() => {
+      const isSub = service.pricingModel === 'SUBSCRIPTION';
+      const totalItemsCount = service.pricingModel === 'PER_ITEM' 
+        ? Object.values(itemQuantities).reduce((a, b) => a + b, 0) || 1
+        : itemQuantity;
+
+      const res = createOrder({
+        serviceId: service.id,
+        scheduledDate,
+        scheduledSlot,
+        deliveryAddress,
+        specialInstructions,
+        pricingModel: service.pricingModel,
+        itemQuantity: totalItemsCount,
+        subtotal,
+        couponCode: appliedCoupon || undefined,
+        isSubscription: isSub,
+        subscriptionFrequency,
+      });
+
+      setIsProcessingPayment(false);
+      if (res.success && res.orderNumber) {
+        setPaymentSuccess(true);
+        setTimeout(() => {
+          onSuccess(res.orderNumber!);
+        }, 1200);
+      }
+    }, 1000);
+  };
+
+  return (
+    <div className="modal-overlay" onClick={onClose}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+        
+        {/* Header */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                {service.pricingModel.replace('_', ' ')}
+              </span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                Provided by {provider.businessName}
+              </span>
+            </div>
+            <h2 style={{ fontSize: '1.25rem', marginTop: '4px' }}>
+              {service.name}
+            </h2>
+          </div>
+          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '4px' }}>
+            <X size={20} />
+          </button>
+        </div>
+
+        {paymentSuccess ? (
+          <div style={{ textAlign: 'center', padding: '36px 16px' }}>
+            <div style={{ 
+              width: '64px', 
+              height: '64px', 
+              borderRadius: '50%', 
+              background: 'var(--accent-emerald-light)', 
+              color: 'var(--accent-emerald)',
+              display: 'flex', 
+              alignItems: 'center', 
+              justifyContent: 'center',
+              margin: '0 auto 16px'
+            }}>
+              <CheckCircle size={36} />
+            </div>
+            <h3 style={{ fontSize: '1.3rem', marginBottom: '8px' }}>Payment Confirmed!</h3>
+            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', marginBottom: '16px' }}>
+              Razorpay transaction successful. Your service request has been transmitted directly to {provider.businessName}.
+            </p>
+            <div className="skeleton" style={{ height: '4px', width: '60%', margin: '0 auto' }}></div>
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            
+            {/* Dynamic Pricing Selector */}
+            <div style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)' }}>
+              
+              {/* FIXED MODEL */}
+              {service.pricingModel === 'FIXED' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Service Base Price</span>
+                    <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>
+                      ₹{service.basePrice}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <label className="form-label" style={{ margin: 0 }}>Number of units / rooms:</label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <button 
+                        type="button"
+                        onClick={() => setItemQuantity(Math.max(1, itemQuantity - 1))}
+                        className="btn btn-secondary btn-sm"
+                        style={{ width: '32px', height: '32px', padding: 0 }}
+                      >
+                        -
+                      </button>
+                      <span style={{ fontWeight: 700, minWidth: '24px', textAlign: 'center' }}>{itemQuantity}</span>
+                      <button 
+                        type="button"
+                        onClick={() => setItemQuantity(itemQuantity + 1)}
+                        className="btn btn-secondary btn-sm"
+                        style={{ width: '32px', height: '32px', padding: 0 }}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* HOURLY MODEL */}
+              {service.pricingModel === 'HOURLY' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Diagnostic & Repair Rate</span>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{service.basePrice} for initial hour</p>
+                    </div>
+                    <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>
+                      ₹{service.basePrice * hours}
+                    </span>
+                  </div>
+                  <label className="form-label">Estimated Service Duration:</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    {[1, 2, 3, 4].map(h => (
+                      <button
+                        key={h}
+                        type="button"
+                        onClick={() => setHours(h)}
+                        className={`btn btn-sm ${hours === h ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ flex: 1 }}
+                      >
+                        {h} {h === 1 ? 'Hour' : 'Hours'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* PER_ITEM MODEL (e.g. Laundry) */}
+              {service.pricingModel === 'PER_ITEM' && service.pricingItems && (
+                <div>
+                  <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>
+                    Select Garments / Items:
+                  </span>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                    {service.pricingItems.map(item => {
+                      const qty = itemQuantities[item.name] || 0;
+                      return (
+                        <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '6px 12px', borderRadius: '8px' }}>
+                          <div>
+                            <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.name}</div>
+                            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.price} / {item.unit}</div>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                            <button
+                              type="button"
+                              onClick={() => setItemQuantities({ ...itemQuantities, [item.name]: Math.max(0, qty - 1) })}
+                              className="btn btn-secondary btn-sm"
+                              style={{ width: '28px', height: '28px', padding: 0 }}
+                            >
+                              -
+                            </button>
+                            <span style={{ fontWeight: 700, minWidth: '20px', textAlign: 'center', fontSize: '0.85rem' }}>{qty}</span>
+                            <button
+                              type="button"
+                              onClick={() => setItemQuantities({ ...itemQuantities, [item.name]: qty + 1 })}
+                              className="btn btn-secondary btn-sm"
+                              style={{ width: '28px', height: '28px', padding: 0 }}
+                            >
+                              +
+                            </button>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+              {/* SUBSCRIPTION MODEL (Tiffin, Car wash) */}
+              {service.pricingModel === 'SUBSCRIPTION' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
+                    <div>
+                      <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>Monthly Recurring Plan</span>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Cancel or pause anytime with zero penalty</p>
+                    </div>
+                    <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)' }}>
+                      ₹{service.basePrice}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mo</span>
+                    </span>
+                  </div>
+                  <label className="form-label">Delivery Schedule:</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setSubscriptionFrequency('MON_TO_SAT')}
+                      className={`btn btn-sm ${subscriptionFrequency === 'MON_TO_SAT' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1 }}
+                    >
+                      Mon – Sat
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setSubscriptionFrequency('DAILY')}
+                      className={`btn btn-sm ${subscriptionFrequency === 'DAILY' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ flex: 1 }}
+                    >
+                      All 7 Days
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* INSPECTION VARIABLE (AC Repair) */}
+              {service.pricingModel === 'INSPECTION_VARIABLE' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Inspection & Diagnosis Fee</span>
+                    <span style={{ fontWeight: 700, fontSize: '1.1rem', color: 'var(--primary)' }}>
+                      ₹{service.basePrice}
+                    </span>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    ✓ Fee covers 100% on-site leak testing, electrical probe, and indoor filter deep clean. Any replacement components or gas refill will be quoted with fixed society rates before beginning work.
+                  </p>
+                </div>
+              )}
+
+              {/* CUSTOM QUOTATION */}
+              {service.pricingModel === 'CUSTOM_QUOTATION' && (
+                <div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                    <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>Doorstep Measurement Visit</span>
+                    <span className="badge badge-emerald">FREE VISIT</span>
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                    Provider visits your flat, inspects work requirements, and provides an itemized quotation before commencing work.
+                  </p>
+                </div>
+              )}
+
+            </div>
+
+            {/* Date & Slot Picker */}
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Calendar size={14} /> Service Date
+                </label>
+                <input 
+                  type="date" 
+                  value={scheduledDate}
+                  min={new Date().toISOString().split('T')[0]}
+                  onChange={(e) => setScheduledDate(e.target.value)}
+                  className="form-input"
+                  style={{ padding: '8px 12px' }}
+                />
+              </div>
+              <div>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <Clock size={14} /> Preferred Slot
+                </label>
+                <select
+                  value={scheduledSlot}
+                  onChange={(e) => setScheduledSlot(e.target.value)}
+                  className="form-input"
+                  style={{ padding: '8px 12px' }}
+                >
+                  <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Early)</option>
+                  <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM (Morning)</option>
+                  <option value="12:30 PM - 02:00 PM">12:30 PM - 02:00 PM (Lunch)</option>
+                  <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM (Afternoon)</option>
+                  <option value="05:00 PM - 07:00 PM">05:00 PM - 07:00 PM (Evening)</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Address & Instructions */}
+            <div>
+              <label className="form-label">Society Flat Address</label>
+              <input
+                type="text"
+                value={deliveryAddress}
+                onChange={(e) => setDeliveryAddress(e.target.value)}
+                placeholder="e.g. Tower A - 402, Greenfield Heights"
+                className="form-input"
+              />
+            </div>
+
+            <div>
+              <label className="form-label">Special Instructions (Optional)</label>
+              <input
+                type="text"
+                value={specialInstructions}
+                onChange={(e) => setSpecialInstructions(e.target.value)}
+                placeholder="e.g. Ring bell twice, clothes hanger preference..."
+                className="form-input"
+              />
+            </div>
+
+            {/* Coupon Code Section */}
+            <div>
+              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <Tag size={14} /> Apply Society Coupon / Offer
+              </label>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="text"
+                  placeholder="e.g. WELCOME100, FIRST50"
+                  value={couponCodeInput}
+                  onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
+                  className="form-input"
+                  style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}
+                />
+                <button
+                  type="button"
+                  onClick={() => handleApplyCoupon()}
+                  className="btn btn-secondary"
+                  style={{ whiteSpace: 'nowrap' }}
+                >
+                  Apply
+                </button>
+              </div>
+
+              {couponFeedback && (
+                <div style={{ 
+                  marginTop: '6px', 
+                  fontSize: '0.8rem', 
+                  color: couponFeedback.valid ? 'var(--accent-emerald)' : 'var(--accent-rose)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px'
+                }}>
+                  {couponFeedback.valid ? <CheckCircle size={14} /> : <AlertCircle size={14} />}
+                  {couponFeedback.message}
+                </div>
+              )}
+
+              {/* Quick Coupon Chips */}
+              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Popular:</span>
+                {['WELCOME100', 'FIRST50', 'LAUNDRY10'].map(code => (
+                  <button
+                    key={code}
+                    type="button"
+                    onClick={() => {
+                      setCouponCodeInput(code);
+                      handleApplyCoupon(code);
+                    }}
+                    style={{ 
+                      fontSize: '0.7rem', 
+                      padding: '2px 8px', 
+                      borderRadius: '4px', 
+                      background: 'var(--bg-subtle)',
+                      border: '1px dashed var(--border-light)',
+                      color: 'var(--primary)',
+                      fontWeight: 600
+                    }}
+                  >
+                    {code}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Order Price Breakdown (Transparent) */}
+            <div style={{ borderTop: '1px dashed var(--border-light)', paddingTop: '12px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Service Subtotal</span>
+                <span>₹{subtotal.toFixed(2)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Hyperlocal Society Platform Fee</span>
+                <span>₹{platformFee.toFixed(2)}</span>
+              </div>
+              {discountAmount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--accent-emerald)' }}>
+                  <span>Discount ({appliedCoupon})</span>
+                  <span>-₹{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-light)' }}>
+                <span>Total Payable</span>
+                <span style={{ color: 'var(--primary)' }}>₹{totalPayable.toFixed(2)}</span>
+              </div>
+            </div>
+
+            {/* Action Button: Razorpay Checkout */}
+            <button
+              type="button"
+              disabled={isProcessingPayment || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
+              onClick={handleProcessOrder}
+              className="btn btn-primary btn-lg btn-full"
+              style={{ marginTop: '8px' }}
+            >
+              {isProcessingPayment ? (
+                <>
+                  <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }}></div>
+                  Opening Secure Razorpay Gateway...
+                </>
+              ) : (
+                <>
+                  <CreditCard size={18} />
+                  Pay ₹{totalPayable.toFixed(2)} & Confirm
+                  <ArrowRight size={18} />
+                </>
+              )}
+            </button>
+
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+              <ShieldCheck size={14} color="var(--accent-emerald)" />
+              Protected by Razorpay & LocalNest Hyperlocal Trust Guarantee
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}

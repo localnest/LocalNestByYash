@@ -1,0 +1,260 @@
+export type UserRole = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
+
+export type ProviderStatus = 
+  | 'PENDING'
+  | 'UNDER_REVIEW'
+  | 'VERIFIED'
+  | 'REJECTED'
+  | 'SUSPENDED';
+
+export type PricingModel = 
+  | 'FIXED'
+  | 'HOURLY'
+  | 'PER_ITEM'
+  | 'SUBSCRIPTION'
+  | 'INSPECTION_VARIABLE'
+  | 'CUSTOM_QUOTATION';
+
+export type OrderStatus = 
+  | 'PENDING'
+  | 'ACCEPTED'
+  | 'SCHEDULED'
+  | 'IN_PROGRESS'
+  | 'COMPLETED'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'DISPUTED'
+  | 'REFUNDED';
+
+export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'EXPIRED';
+
+export type SubscriptionFrequency = 
+  | 'DAILY'
+  | 'MON_TO_SAT'
+  | 'WEEKLY'
+  | 'ALTERNATE_DAYS'
+  | 'MONTHLY';
+
+export type DiscountType = 'PERCENTAGE' | 'FLAT' | 'FIRST_ORDER' | 'SUBSCRIPTION';
+
+export type ComplaintStatus = 'OPEN' | 'UNDER_REVIEW' | 'RESOLVED' | 'REJECTED';
+
+export type NoticeType = 'ANNOUNCEMENT' | 'MAINTENANCE' | 'ALERT' | 'SERVICE_UPDATE';
+export type NoticePriority = 'NORMAL' | 'URGENT';
+
+export interface SocietyNotice {
+  id: string;
+  societyId: string; // specific society.id or 'ALL'
+  societyName: string;
+  title: string;
+  content: string;
+  type: NoticeType;
+  priority: NoticePriority;
+  authorName: string;
+  createdAt: string;
+  isActive: boolean;
+}
+
+export interface Society {
+  id: string;
+  communityId: string;
+  name: string;
+  addressLine: string;
+  city: string;
+  pincode: string;
+  totalFlats: number;
+  isActive: boolean;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  password?: string;
+  fullName: string;
+  phone: string;
+  role: UserRole;
+  societyId: string;
+  flatNumber: string;
+  avatarUrl?: string;
+  isOnboarded?: boolean;
+  providerId?: string;
+}
+
+export interface Provider {
+  id: string;
+  userId?: string;
+  businessName: string;
+  categoryId: string;
+  categoryName?: string;
+  description: string;
+  avatarUrl?: string;
+  phone: string;
+  status: ProviderStatus;
+  verifiedAt?: string;
+  rating: number;
+  reviewCount: number;
+  completedOrders: number;
+  onTimeRate: number;
+  supportedSocieties: string[]; // Society IDs
+  startingPrice: number;
+  startingPriceUnit: string;
+  documents?: {
+    type: string;
+    url: string;
+    verified: boolean;
+  }[];
+}
+
+export interface Category {
+  id: string;
+  name: string;
+  slug: string;
+  icon: string;
+  description: string;
+  sortOrder: number;
+}
+
+export interface Service {
+  id: string;
+  providerId: string;
+  categoryId: string;
+  name: string;
+  description: string;
+  pricingModel: PricingModel;
+  basePrice: number;
+  unitName: string;
+  isSubscriptionSupported: boolean;
+  pricingItems?: {
+    name: string;
+    price: number;
+    unit: string;
+  }[];
+  isActive: boolean;
+}
+
+export interface Order {
+  id: string;
+  orderNumber: string;
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  customerFlat: string;
+  providerId: string;
+  providerName: string;
+  serviceId: string;
+  serviceName: string;
+  categoryName: string;
+  societyId: string;
+  societyName: string;
+  status: OrderStatus;
+  scheduledDate: string;
+  scheduledSlot: string;
+  deliveryAddress: string;
+  specialInstructions?: string;
+  pricingModel: PricingModel;
+  itemQuantity: number;
+  subtotal: number;
+  platformFee: number;
+  couponCode?: string;
+  discountAmount: number;
+  discountSource: 'PLATFORM' | 'PROVIDER';
+  totalAmount: number;
+  commissionPercentage: number;
+  platformCommission: number;
+  providerEarnings: number;
+  paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED';
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface Subscription {
+  id: string;
+  customerId: string;
+  customerName: string;
+  customerFlat: string;
+  providerId: string;
+  providerName: string;
+  serviceId: string;
+  serviceName: string;
+  categoryName: string;
+  societyId: string;
+  status: SubscriptionStatus;
+  frequency: SubscriptionFrequency;
+  scheduledTimeSlot: string;
+  startDate: string;
+  nextServiceDate: string;
+  renewalDate: string;
+  monthlyPrice: number;
+  autoRenew: boolean;
+  createdAt: string;
+}
+
+export interface Coupon {
+  id: string;
+  code: string;
+  title: string;
+  description: string;
+  discountType: DiscountType;
+  discountValue: number;
+  minOrderValue: number;
+  maxDiscount?: number;
+  usageLimit?: number;
+  perUserLimit: number;
+  currentUsage: number;
+  categoryId?: string;
+  societyId?: string;
+  isActive: boolean;
+}
+
+export interface CommissionRule {
+  id: string;
+  ruleType: 'DEFAULT' | 'CATEGORY' | 'SERVICE' | 'PROVIDER';
+  targetId?: string;
+  targetName?: string;
+  commissionPercentage: number;
+  notes: string;
+  isActive: boolean;
+}
+
+export interface Review {
+  id: string;
+  orderId: string;
+  customerId: string;
+  customerName: string;
+  providerId: string;
+  rating: number;
+  comment: string;
+  isVerifiedPurchase: boolean;
+  createdAt: string;
+}
+
+export interface Complaint {
+  id: string;
+  ticketNumber: string;
+  customerId: string;
+  customerName: string;
+  providerId: string;
+  providerName: string;
+  orderId: string;
+  orderNumber: string;
+  category: string;
+  description: string;
+  status: ComplaintStatus;
+  adminNotes?: string;
+  resolution?: string;
+  createdAt: string;
+}
+
+export interface MarketplaceAnalytics {
+  totalGmv: number;
+  monthlyRecurringGmv: number;
+  platformCommissionRevenue: number;
+  providerNetEarnings: number;
+  totalOrders: number;
+  completedOrders: number;
+  activeSubscriptions: number;
+  activeCustomers: number;
+  activeProviders: number;
+  disputeRatePct: number;
+  repeatOrderRatePct: number;
+}
