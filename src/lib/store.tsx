@@ -5,14 +5,20 @@ import {
   UserRole, Society, Category, Provider, Service, Order, 
   Subscription, Coupon, CommissionRule, Review, Complaint, 
   PricingModel, OrderStatus, SubscriptionStatus, ComplaintStatus,
-  UserProfile, SocietyNotice, NoticeType, PayoutRecord
+  UserProfile, SocietyNotice, NoticeType, PayoutRecord,
+  WalletTransaction, ChatMessage, PlatformFeeRules, CommissionReason
 } from './types';
 import { 
   INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS, 
   INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS, 
   INITIAL_COUPONS, INITIAL_COMMISSION_RULES, INITIAL_REVIEWS, 
-  INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES, INITIAL_PAYOUTS 
+  INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES, INITIAL_PAYOUTS,
+  INITIAL_WALLET_TRANSACTIONS, INITIAL_CHAT_MESSAGES, INITIAL_PLATFORM_FEE_RULES
 } from './mockData';
+import { PLATFORM_CONFIG } from './config';
+
+import { filterContactDetails, resolveCommissionRate } from './retentionUtils';
+export { filterContactDetails };
 
 interface MarketplaceContextType {
   // Auth & Session
@@ -34,7 +40,8 @@ interface MarketplaceContextType {
     basePrice: number; 
     unitName: string; 
     documentType: string; 
-    documentName: string; 
+    documentName: string;
+    acceptedTerms: boolean;
   }) => void;
 
   // Active Society & Provider
@@ -55,6 +62,9 @@ interface MarketplaceContextType {
   reviews: Review[];
   complaints: Complaint[];
   payouts: PayoutRecord[];
+  walletTransactions: WalletTransaction[];
+  chatMessages: ChatMessage[];
+  platformFeeRules: PlatformFeeRules;
 
   // Coupon Engine
   validateCoupon: (code: string, subtotal: number, categoryId?: string) => {
@@ -75,6 +85,7 @@ interface MarketplaceContextType {
     itemQuantity: number;
     subtotal: number;
     couponCode?: string;
+    walletAmountToUse?: number;
     isSubscription?: boolean;
     subscriptionFrequency?: any;
   }) => { success: boolean; orderId?: string; orderNumber?: string; message: string };
@@ -84,6 +95,9 @@ interface MarketplaceContextType {
 
   // Actions: Subscriptions
   updateSubscriptionStatus: (subscriptionId: string, status: SubscriptionStatus) => void;
+  pauseSubscription: (subscriptionId: string, pausedUntil: string) => void;
+  resumeSubscription: (subscriptionId: string) => void;
+  skipNextDelivery: (subscriptionId: string, dateToSkip: string) => void;
 
   // Actions: Reviews
   submitReview: (orderId: string, providerId: string, rating: number, comment: string) => { success: boolean; message: string };
@@ -120,6 +134,16 @@ interface MarketplaceContextType {
   createCoupon: (coupon: Omit<Coupon, 'id' | 'currentUsage'>) => void;
   toggleCouponActive: (couponId: string) => void;
   addSociety: (society: Omit<Society, 'id'>) => void;
+  updatePlatformFeeRules: (rules: PlatformFeeRules) => void;
+
+  // Wallet
+  getWalletBalance: (userId: string) => number;
+  getWalletStreak: (userId: string) => { completedCount: number; nextStreakAt: number; remaining: number };
+
+  // Chat
+  sendChatMessage: (orderId: string, text: string) => { success: boolean; blocked?: boolean; message: string };
+  getOrderMessages: (orderId: string) => ChatMessage[];
+  markFlaggedReviewed: (messageId: string) => void;
 
   // Society Notices
   notices: SocietyNotice[];
@@ -159,6 +183,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [activeProviderId, setActiveProviderId] = useState<string>('prov-raj-laundry');
   const [notices, setNotices] = useState<SocietyNotice[]>(INITIAL_NOTICES);
   const [payouts, setPayouts] = useState<PayoutRecord[]>(INITIAL_PAYOUTS);
+  const [walletTransactions, setWalletTransactions] = useState<WalletTransaction[]>(INITIAL_WALLET_TRANSACTIONS);
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>(INITIAL_CHAT_MESSAGES);
+  const [platformFeeRules, setPlatformFeeRules] = useState<PlatformFeeRules>(INITIAL_PLATFORM_FEE_RULES);
   const [notifications, setNotifications] = useState<string[]>([
     'Welcome to Greenfield Heights pilot marketplace! Secure logins for Residents, Providers, and Administrators.'
   ]);
@@ -191,6 +218,15 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
       const savedServices = localStorage.getItem('hg_services');
       if (savedServices) setServices(JSON.parse(savedServices));
+
+      const savedWallet = localStorage.getItem('hg_wallet_txns');
+      if (savedWallet) setWalletTransactions(JSON.parse(savedWallet));
+
+      const savedChat = localStorage.getItem('hg_chat_messages');
+      if (savedChat) setChatMessages(JSON.parse(savedChat));
+
+      const savedFeeRules = localStorage.getItem('hg_fee_rules');
+      if (savedFeeRules) setPlatformFeeRules(JSON.parse(savedFeeRules));
     } catch {
       // fallback to initial
     }
@@ -209,10 +245,13 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hg_subs', JSON.stringify(subscriptions));
       localStorage.setItem('hg_providers', JSON.stringify(providers));
       localStorage.setItem('hg_services', JSON.stringify(services));
+      localStorage.setItem('hg_wallet_txns', JSON.stringify(walletTransactions));
+      localStorage.setItem('hg_chat_messages', JSON.stringify(chatMessages));
+      localStorage.setItem('hg_fee_rules', JSON.stringify(platformFeeRules));
     } catch {
       // ignore
     }
-  }, [currentUser, users, orders, subscriptions, providers, services]);
+  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules]);
 
   const addNotification = (msg: string) => {
     setNotifications(prev => [msg, ...prev.slice(0, 4)]);
@@ -220,6 +259,116 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
   const dismissNotification = (index: number) => {
     setNotifications(prev => prev.filter((_, i) => i !== index));
+  };
+
+  // --------------------------------------------------------------------------
+  // WALLET HELPERS
+  // --------------------------------------------------------------------------
+  const getWalletBalance = (userId: string): number => {
+    return walletTransactions
+      .filter(t => t.userId === userId)
+      .reduce((sum, t) => {
+        if (t.type === 'EARNED' || t.type === 'ADJUSTMENT') return sum + t.amount;
+        if (t.type === 'REDEEMED' || t.type === 'EXPIRED') return sum - t.amount;
+        return sum;
+      }, 0);
+  };
+
+  const getWalletStreak = (userId: string) => {
+    const completedCount = orders.filter(o => o.customerId === userId && o.status === 'COMPLETED').length;
+    const nextStreakAt = (Math.floor(completedCount / PLATFORM_CONFIG.LOYALTY_STREAK_INTERVAL) + 1) * PLATFORM_CONFIG.LOYALTY_STREAK_INTERVAL;
+    const remaining = nextStreakAt - completedCount;
+    return { completedCount, nextStreakAt, remaining };
+  };
+
+  const addWalletTransaction = (txn: Omit<WalletTransaction, 'id' | 'createdAt'>) => {
+    const newTxn: WalletTransaction = {
+      ...txn,
+      id: `wt-${Date.now()}`,
+      createdAt: new Date().toISOString(),
+    };
+    setWalletTransactions(prev => [newTxn, ...prev]);
+    // Also update user's walletBalance for currentUser (denormalized convenience)
+    if (currentUser && currentUser.id === txn.userId) {
+      const delta = (txn.type === 'EARNED' || txn.type === 'ADJUSTMENT') ? txn.amount : -txn.amount;
+      const updated = { ...currentUser, walletBalance: Math.max(0, currentUser.walletBalance + delta) };
+      setCurrentUser(updated);
+      setUsers(prev => prev.map(u => u.id === currentUser.id ? updated : u));
+    }
+    return newTxn;
+  };
+
+  // --------------------------------------------------------------------------
+  // CHAT
+  // --------------------------------------------------------------------------
+  const sendChatMessage = (orderId: string, text: string): { success: boolean; blocked?: boolean; message: string } => {
+    if (!currentUser) return { success: false, message: 'Not logged in.' };
+
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return { success: false, message: 'Order not found.' };
+
+    // Check if chat is allowed
+    const allowedStatuses: OrderStatus[] = ['PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED', 'DISPUTED'];
+    if (!allowedStatuses.includes(order.status)) {
+      return { success: false, message: 'Chat is not available for this order status.' };
+    }
+
+    // Check read-only window after completion
+    if (order.status === 'COMPLETED') {
+      const completedAt = new Date(order.updatedAt).getTime();
+      const daysSinceCompletion = (Date.now() - completedAt) / (1000 * 60 * 60 * 24);
+      if (daysSinceCompletion > PLATFORM_CONFIG.CHAT_READ_ONLY_DAYS_AFTER_COMPLETION) {
+        return { success: false, message: 'Chat is read-only. The order was completed more than 7 days ago.' };
+      }
+    }
+
+    // Filter for contact details
+    const filterResult = filterContactDetails(text);
+    if (filterResult.blocked) {
+      // Save flagged attempt (not delivered to other party)
+      const flaggedMsg: ChatMessage = {
+        id: `chat-${Date.now()}`,
+        orderId,
+        senderId: currentUser.id,
+        senderRole: currentUser.role,
+        text: '[BLOCKED]',
+        createdAt: new Date().toISOString(),
+        isFlagged: true,
+        flaggedReason: text, // store original text for admin
+      };
+      setChatMessages(prev => [...prev, flaggedMsg]);
+      return { 
+        success: false, 
+        blocked: true, 
+        message: 'For your safety and to keep your booking protected, please keep contact details inside LocalNest.' 
+      };
+    }
+
+    const newMsg: ChatMessage = {
+      id: `chat-${Date.now()}`,
+      orderId,
+      senderId: currentUser.id,
+      senderRole: currentUser.role,
+      text,
+      createdAt: new Date().toISOString(),
+      isFlagged: false,
+    };
+    setChatMessages(prev => [...prev, newMsg]);
+    return { success: true, message: 'Message sent.' };
+  };
+
+  const getOrderMessages = (orderId: string): ChatMessage[] => {
+    // Non-admins see only unflagged messages for their order
+    if (currentUser?.role === 'ADMIN') {
+      return chatMessages.filter(m => m.orderId === orderId);
+    }
+    return chatMessages.filter(m => m.orderId === orderId && !m.isFlagged);
+  };
+
+  const markFlaggedReviewed = (messageId: string) => {
+    setChatMessages(prev => prev.map(m => 
+      m.id === messageId ? { ...m, flaggedReason: `[REVIEWED] ${m.flaggedReason}` } : m
+    ));
   };
 
   // --------------------------------------------------------------------------
@@ -254,7 +403,6 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const email = (googleEmail || (roleChoice === 'CUSTOMER' ? 'rahul.google@gmail.com' : 'rajesh.google@gmail.com')).toLowerCase();
     const name = googleName || (roleChoice === 'CUSTOMER' ? 'Rahul Sharma' : 'Rajesh Kumar');
 
-    // Check if user already exists
     const existing = users.find(u => u.email.toLowerCase() === email);
     if (existing) {
       setCurrentUser(existing);
@@ -267,7 +415,6 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       return { success: true, user: existing, needsOnboarding: !existing.isOnboarded };
     }
 
-    // Create new user profile requiring onboarding
     const newUser: UserProfile = {
       id: `usr-g-${Date.now()}`,
       email,
@@ -278,6 +425,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       flatNumber: '',
       avatarUrl: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
       isOnboarded: false,
+      walletBalance: 0,
     };
 
     setUsers(prev => [newUser, ...prev]);
@@ -303,6 +451,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       societyId: selectedSociety.id,
       flatNumber: '',
       isOnboarded: false,
+      walletBalance: 0,
     };
 
     setUsers(prev => [newUser, ...prev]);
@@ -350,12 +499,15 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     basePrice: number; 
     unitName: string; 
     documentType: string; 
-    documentName: string; 
+    documentName: string;
+    acceptedTerms: boolean;
   }) => {
     if (!currentUser) return;
 
     const newProviderId = `prov-${Date.now()}`;
     const cat = categories.find(c => c.id === data.categoryId);
+    const now = new Date().toISOString();
+    const promoEndsAt = new Date(Date.now() + PLATFORM_CONFIG.NEW_PROVIDER_PROMO_DAYS * 24 * 3600 * 1000).toISOString();
 
     const newProv: Provider = {
       id: newProviderId,
@@ -365,7 +517,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       categoryName: cat?.name || 'Home Services',
       description: data.description,
       phone: data.phone,
-      status: 'PENDING', // starts pending admin verification
+      status: 'PENDING',
       rating: 0,
       reviewCount: 0,
       completedOrders: 0,
@@ -373,6 +525,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       supportedSocieties: data.supportedSocieties.length > 0 ? data.supportedSocieties : [selectedSociety.id],
       startingPrice: data.basePrice,
       startingPriceUnit: data.unitName,
+      promoEndsAt,
+      acceptedTermsAt: data.acceptedTerms ? now : undefined,
       documents: [
         { type: data.documentType, url: data.documentName, verified: false }
       ],
@@ -408,16 +562,25 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification(`Provider profile created for ${data.businessName}. Your account is under verification by the society operations desk.`);
   };
 
-  // Helper to determine commission rate for an order
-  const getCommissionRate = (categoryId?: string, providerId?: string): number => {
-    const providerRule = commissionRules.find(r => r.ruleType === 'PROVIDER' && r.targetId === providerId && r.isActive);
-    if (providerRule) return providerRule.commissionPercentage;
-
-    const catRule = commissionRules.find(r => r.ruleType === 'CATEGORY' && r.targetId === categoryId && r.isActive);
-    if (catRule) return catRule.commissionPercentage;
-
-    const defaultRule = commissionRules.find(r => r.ruleType === 'DEFAULT' && r.isActive);
-    return defaultRule ? defaultRule.commissionPercentage : 10.0;
+  // --------------------------------------------------------------------------
+  // COMMISSION RESOLUTION (tiered with context)
+  // --------------------------------------------------------------------------
+  const getCommissionRateWithReason = (
+    categoryId: string | undefined,
+    providerId: string | undefined,
+    customerId: string,
+    pricingModel: PricingModel,
+    existingOrders: Order[]
+  ): { rate: number; reason: CommissionReason } => {
+    const provider = providers.find(p => p.id === providerId);
+    return resolveCommissionRate({
+      categoryId,
+      provider,
+      customerId,
+      pricingModel,
+      existingOrders,
+      commissionRules,
+    });
   };
 
   // Coupon Validation Engine
@@ -477,6 +640,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     itemQuantity: number;
     subtotal: number;
     couponCode?: string;
+    walletAmountToUse?: number;
     isSubscription?: boolean;
     subscriptionFrequency?: any;
   }) => {
@@ -486,7 +650,16 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const provider = providers.find(p => p.id === service.providerId);
     if (!provider) return { success: false, message: 'Provider not found.' };
 
-    const platformFee = 20;
+    const custName = currentUser?.fullName || 'Rahul Sharma';
+    const custPhone = currentUser?.phone || '+91 98765 43210';
+    const custFlat = currentUser?.flatNumber || 'Tower A - 402';
+    const custId = currentUser?.id || 'usr-customer-1';
+
+    // Platform fee from configurable rules
+    const platformFee = params.isSubscription 
+      ? platformFeeRules.subscriptionFee 
+      : platformFeeRules.oneTimeFee;
+
     let discountAmount = 0;
     let couponApplied: Coupon | undefined;
 
@@ -499,18 +672,25 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       }
     }
 
-    const totalAmount = Math.max(0, params.subtotal + platformFee - discountAmount);
-    const commRate = getCommissionRate(service.categoryId, provider.id);
+    // Wallet redemption — capped at 20% of subtotal
+    const maxWalletRedemption = Math.floor(params.subtotal * PLATFORM_CONFIG.LOYALTY_REDEMPTION_CAP_RATIO);
+    const walletDiscount = Math.min(params.walletAmountToUse || 0, maxWalletRedemption, getWalletBalance(custId));
+
+    const totalAmount = Math.max(0, params.subtotal + platformFee - discountAmount - walletDiscount);
+
+    // Commission with tiered logic
+    const { rate: commRate, reason: commReason } = getCommissionRateWithReason(
+      service.categoryId,
+      provider.id,
+      custId,
+      params.pricingModel,
+      orders
+    );
     const platformCommission = Math.round((params.subtotal * commRate) / 100);
     const providerEarnings = params.subtotal - platformCommission;
 
     const orderNumber = `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrderId = `ord-${Date.now()}`;
-
-    const custName = currentUser?.fullName || 'Rahul Sharma';
-    const custPhone = currentUser?.phone || '+91 98765 43210';
-    const custFlat = currentUser?.flatNumber || 'Tower A - 402';
-    const custId = currentUser?.id || 'usr-customer-1';
 
     const newOrder: Order = {
       id: newOrderId,
@@ -538,8 +718,10 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       couponCode: couponApplied?.code,
       discountAmount,
       discountSource: 'PLATFORM',
+      walletDiscount: walletDiscount > 0 ? walletDiscount : undefined,
       totalAmount,
       commissionPercentage: commRate,
+      commissionReason: commReason,
       platformCommission,
       providerEarnings,
       paymentStatus: 'PAID',
@@ -548,6 +730,17 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     };
 
     setOrders(prev => [newOrder, ...prev]);
+
+    // Deduct wallet if used
+    if (walletDiscount > 0) {
+      addWalletTransaction({
+        userId: custId,
+        type: 'REDEEMED',
+        amount: walletDiscount,
+        orderId: newOrderId,
+        note: `Credits redeemed on order ${orderNumber}`,
+      });
+    }
 
     if (params.isSubscription) {
       const newSub: Subscription = {
@@ -569,6 +762,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         renewalDate: new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().split('T')[0],
         monthlyPrice: params.subtotal,
         autoRenew: true,
+        skippedDates: [],
         createdAt: new Date().toISOString(),
       };
       setSubscriptions(prev => [newSub, ...prev]);
@@ -592,6 +786,30 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
           setProviders(pList => pList.map(p => 
             p.id === ord.providerId ? { ...p, completedOrders: p.completedOrders + 1 } : p
           ));
+          // Earn wallet credits: 3% of subtotal, rounded down
+          const earnAmount = Math.floor(ord.subtotal * PLATFORM_CONFIG.LOYALTY_EARN_RATE);
+          if (earnAmount > 0) {
+            addWalletTransaction({
+              userId: ord.customerId,
+              type: 'EARNED',
+              amount: earnAmount,
+              orderId: ord.id,
+              note: `${Math.round(PLATFORM_CONFIG.LOYALTY_EARN_RATE * 100)}% loyalty reward on order ${ord.orderNumber}`,
+            });
+          }
+          // Streak bonus: every Nth completed order
+          const prevCompleted = orders.filter(o => o.customerId === ord.customerId && o.status === 'COMPLETED').length;
+          const newCompleted = prevCompleted + 1;
+          if (newCompleted % PLATFORM_CONFIG.LOYALTY_STREAK_INTERVAL === 0) {
+            addWalletTransaction({
+              userId: ord.customerId,
+              type: 'ADJUSTMENT',
+              amount: PLATFORM_CONFIG.LOYALTY_STREAK_BONUS,
+              orderId: ord.id,
+              note: `Streak bonus! ${newCompleted}th completed order milestone`,
+            });
+            addNotification(`🎉 Streak achieved! ₹${PLATFORM_CONFIG.LOYALTY_STREAK_BONUS} LocalNest credits added to your wallet!`);
+          }
         }
         return {
           ...ord,
@@ -631,6 +849,29 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification(`Subscription status updated to ${status}.`);
   };
 
+  const pauseSubscription = (subscriptionId: string, pausedUntil: string) => {
+    setSubscriptions(prev => prev.map(sub =>
+      sub.id === subscriptionId ? { ...sub, status: 'PAUSED' as SubscriptionStatus, pausedUntil } : sub
+    ));
+    addNotification(`Subscription paused until ${new Date(pausedUntil).toLocaleDateString()}.`);
+  };
+
+  const resumeSubscription = (subscriptionId: string) => {
+    setSubscriptions(prev => prev.map(sub =>
+      sub.id === subscriptionId ? { ...sub, status: 'ACTIVE' as SubscriptionStatus, pausedUntil: undefined } : sub
+    ));
+    addNotification('Subscription resumed successfully.');
+  };
+
+  const skipNextDelivery = (subscriptionId: string, dateToSkip: string) => {
+    setSubscriptions(prev => prev.map(sub =>
+      sub.id === subscriptionId 
+        ? { ...sub, skippedDates: [...(sub.skippedDates || []), dateToSkip] } 
+        : sub
+    ));
+    addNotification(`Delivery on ${new Date(dateToSkip).toLocaleDateString()} has been skipped.`);
+  };
+
   const submitReview = (orderId: string, providerId: string, rating: number, comment: string) => {
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status !== 'COMPLETED') {
@@ -644,8 +885,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const newReview: Review = {
       id: `rev-${Date.now()}`,
       orderId,
-      customerId: order.customerId,
-      customerName: `${order.customerName} (${order.customerFlat})`,
+      customerId: currentUser?.id || 'usr-customer-1',
+      customerName: currentUser?.fullName || 'Resident',
       providerId,
       rating,
       comment,
@@ -721,22 +962,37 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       } : c
     ));
 
-    // If full refund, update corresponding order status and payment
+    // If full refund, update corresponding order and reverse wallet credits if any were earned
     if (complaint && (resolutionType === 'FULL_REFUND' || resolutionType === 'PARTIAL_REFUND')) {
       setOrders(prev => prev.map(o => {
         if (o.id === complaint.orderId || o.orderNumber === complaint.orderNumber) {
           return {
             ...o,
             paymentStatus: 'REFUNDED',
-            status: 'REFUNDED',
+            status: 'REFUNDED' as OrderStatus,
             updatedAt: new Date().toISOString(),
           };
         }
         return o;
       }));
-    }
 
-    addNotification(`Support ticket #${complaint?.ticketNumber || ticketId} marked as ${status}.`);
+      // Reverse any wallet credits earned on the refunded order
+      const earnedOnOrder = walletTransactions.filter(
+        t => t.orderId === complaint.orderId && t.type === 'EARNED'
+      );
+      earnedOnOrder.forEach(t => {
+        addWalletTransaction({
+          userId: t.userId,
+          type: 'ADJUSTMENT',
+          amount: -t.amount,
+          orderId: t.orderId,
+          note: `Credits reversed due to refund on ${complaint.orderNumber}`,
+        });
+      });
+
+      addNotification(`Refund of ₹${refundAmount || 'full amount'} approved and processing.`);
+    }
+    addNotification(`Support ticket #${complaint?.ticketNumber} status updated to ${status}.`);
   };
 
   const updateProviderAvailability = (
@@ -745,14 +1001,12 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     isVacationMode: boolean,
     vacationReason?: string
   ) => {
-    setProviders(prev => prev.map(p => 
-      p.id === providerId ? {
-        ...p,
-        workingHours,
-        isVacationMode,
-        vacationReason: vacationReason !== undefined ? vacationReason : p.vacationReason,
-      } : p
-    ));
+    setProviders(prev => prev.map(p => p.id === providerId ? {
+      ...p,
+      workingHours,
+      isVacationMode,
+      vacationReason: vacationReason !== undefined ? vacationReason : p.vacationReason,
+    } : p));
     addNotification(
       isVacationMode 
         ? 'Vacation Mode enabled. New bookings are paused.' 
@@ -789,6 +1043,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         ...p,
         status,
         verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : p.verifiedAt,
+        promoEndsAt: status === 'VERIFIED' && !p.promoEndsAt 
+          ? new Date(Date.now() + PLATFORM_CONFIG.NEW_PROVIDER_PROMO_DAYS * 24 * 3600 * 1000).toISOString()
+          : p.promoEndsAt,
       } : p
     ));
     addNotification(`Provider verification status updated to ${status}.`);
@@ -823,6 +1080,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const id = `soc-${Date.now()}`;
     setSocieties(prev => [...prev, { ...society, id }]);
     addNotification(`Society "${society.name}" registered to platform.`);
+  };
+
+  const updatePlatformFeeRules = (rules: PlatformFeeRules) => {
+    setPlatformFeeRules(rules);
+    addNotification(`Platform fee rules updated: One-time ₹${rules.oneTimeFee}, Subscription ₹${rules.subscriptionFee}.`);
   };
 
   const createNotice = (params: {
@@ -881,11 +1143,17 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       reviews,
       complaints,
       payouts,
+      walletTransactions,
+      chatMessages,
+      platformFeeRules,
       validateCoupon,
       createOrder,
       updateOrderStatus,
       cancelOrder,
       updateSubscriptionStatus,
+      pauseSubscription,
+      resumeSubscription,
+      skipNextDelivery,
       submitReview,
       createComplaint,
       updateComplaintStatus,
@@ -897,6 +1165,12 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       createCoupon,
       toggleCouponActive,
       addSociety,
+      updatePlatformFeeRules,
+      getWalletBalance,
+      getWalletStreak,
+      sendChatMessage,
+      getOrderMessages,
+      markFlaggedReviewed,
       notices,
       createNotice,
       deactivateNotice,

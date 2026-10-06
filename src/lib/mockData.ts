@@ -1,6 +1,7 @@
 import { 
   Society, UserProfile, Category, Provider, Service, Order, 
-  Subscription, Coupon, CommissionRule, Review, Complaint, SocietyNotice, PayoutRecord 
+  Subscription, Coupon, CommissionRule, Review, Complaint, SocietyNotice, PayoutRecord,
+  WalletTransaction, ChatMessage, PlatformFeeRules
 } from './types';
 
 export const INITIAL_SOCIETIES: Society[] = [
@@ -99,6 +100,7 @@ export const INITIAL_PROFILES: UserProfile[] = [
     flatNumber: 'Tower A - 402',
     avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
+    walletBalance: 75,
   },
   {
     id: 'usr-provider-1',
@@ -112,6 +114,7 @@ export const INITIAL_PROFILES: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     providerId: 'prov-raj-laundry',
+    walletBalance: 0,
   },
   {
     id: 'usr-provider-2',
@@ -125,6 +128,7 @@ export const INITIAL_PROFILES: UserProfile[] = [
     avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     providerId: 'prov-freshbite',
+    walletBalance: 0,
   },
   {
     id: 'usr-admin-1',
@@ -137,6 +141,7 @@ export const INITIAL_PROFILES: UserProfile[] = [
     flatNumber: 'HQ Command Suite',
     avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
+    walletBalance: 0,
   },
 ];
 
@@ -777,3 +782,7 @@ export const INITIAL_PAYOUTS: PayoutRecord[] = [
   },
 ];
 
+
+export const INITIAL_PLATFORM_FEE_RULES = { oneTimeFee: 20, subscriptionFee: 0 };
+export const INITIAL_WALLET_TRANSACTIONS = [];
+export const INITIAL_CHAT_MESSAGES = [];

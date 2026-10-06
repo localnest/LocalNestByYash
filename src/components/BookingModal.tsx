@@ -3,9 +3,10 @@
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Service, Provider, PricingModel } from '@/lib/types';
+import { PLATFORM_CONFIG } from '@/lib/config';
 import { 
   X, CheckCircle, ShieldCheck, Tag, 
-  Calendar, Clock, CreditCard, AlertCircle, ArrowRight 
+  Calendar, Clock, CreditCard, AlertCircle, ArrowRight, Wallet 
 } from 'lucide-react';
 
 interface BookingModalProps {
@@ -16,7 +17,8 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ service, provider, onClose, onSuccess }: BookingModalProps) {
-  const { createOrder, validateCoupon, selectedSociety, coupons } = useMarketplace();
+  const { createOrder, validateCoupon, selectedSociety, coupons, currentUser, getWalletBalance, platformFeeRules } = useMarketplace();
+  const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
   // Booking Parameters
@@ -87,11 +89,21 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
   };
 
   const subtotal = calculateSubtotal();
-  const platformFee = 20;
+  const platformFee = service.pricingModel === 'SUBSCRIPTION'
+    ? (platformFeeRules?.subscriptionFee ?? 10)
+    : (platformFeeRules?.oneTimeFee ?? 20);
 
   // Live discount
   const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
-  const totalPayable = Math.max(0, subtotal + platformFee - discountAmount);
+
+  // Wallet redemption (capped at 20% of subtotal)
+  const userWalletBalance = currentUser ? getWalletBalance(currentUser.id) : 0;
+  const maxWalletRedemption = Math.min(
+    userWalletBalance,
+    Math.floor(subtotal * PLATFORM_CONFIG.LOYALTY_REDEMPTION_CAP_RATIO)
+  );
+  const walletDiscount = useWallet ? maxWalletRedemption : 0;
+  const totalPayable = Math.max(0, subtotal + platformFee - discountAmount - walletDiscount);
 
   const handleApplyCoupon = (codeToApply?: string) => {
     const code = codeToApply || couponCodeInput;
@@ -125,6 +137,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
         itemQuantity: totalItemsCount,
         subtotal,
         couponCode: appliedCoupon || undefined,
+        walletAmountToUse: walletDiscount,
         isSubscription: isSub,
         subscriptionFrequency,
       });
@@ -566,6 +579,54 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               )}
             </div>
 
+            {/* Wallet Credits Redemption */}
+              {userWalletBalance > 0 && (
+                <div style={{
+                  padding: '10px 14px',
+                  background: useWallet ? 'rgba(16, 185, 129, 0.08)' : 'var(--bg-subtle)',
+                  borderRadius: 'var(--radius-md)',
+                  border: useWallet ? '1.5px solid var(--accent-emerald)' : '1px solid var(--border-light)',
+                  marginTop: '12px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  gap: '12px'
+                }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <div style={{
+                      width: '28px',
+                      height: '28px',
+                      borderRadius: '6px',
+                      background: 'var(--accent-emerald)',
+                      color: '#fff',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}>
+                      <Wallet size={15} />
+                    </div>
+                    <div>
+                      <div style={{ fontSize: '0.8rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                        Loyalty Wallet Credits
+                      </div>
+                      <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                        ₹{userWalletBalance} balance • Redeem up to ₹{maxWalletRedemption} (20%)
+                      </div>
+                    </div>
+                  </div>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: maxWalletRedemption > 0 ? 'pointer' : 'not-allowed', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-main)' }}>
+                    <input
+                      type="checkbox"
+                      checked={useWallet}
+                      disabled={maxWalletRedemption <= 0}
+                      onChange={(e) => setUseWallet(e.target.checked)}
+                      style={{ accentColor: 'var(--accent-emerald)', cursor: 'pointer' }}
+                    />
+                    {useWallet ? `Applied (-₹${maxWalletRedemption})` : 'Apply'}
+                  </label>
+                </div>
+              )}
+
             {/* Order Price Breakdown (Transparent) */}
             <div style={{ borderTop: '1px dashed var(--border-light)', paddingTop: '12px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
@@ -580,6 +641,12 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--accent-emerald)' }}>
                   <span>Discount ({appliedCoupon})</span>
                   <span>-₹{discountAmount.toFixed(2)}</span>
+                </div>
+              )}
+              {walletDiscount > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--accent-emerald)' }}>
+                  <span>Loyalty Wallet Credits</span>
+                  <span>-₹{walletDiscount.toFixed(2)}</span>
                 </div>
               )}
               <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 800, fontSize: '1.1rem', marginTop: '8px', paddingTop: '8px', borderTop: '1px solid var(--border-light)' }}>

@@ -78,6 +78,43 @@ export interface UserProfile {
   avatarUrl?: string;
   isOnboarded?: boolean;
   providerId?: string;
+  walletBalance: number;
+}
+
+export type WalletTransactionType = 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'ADJUSTMENT';
+
+export interface WalletTransaction {
+  id: string;
+  userId: string;
+  type: WalletTransactionType;
+  amount: number;
+  orderId?: string;
+  note: string;
+  createdAt: string;
+}
+
+export type CommissionReason = 
+  | 'NEW_PROVIDER_PROMO' 
+  | 'REPEAT_CUSTOMER' 
+  | 'SUBSCRIPTION' 
+  | 'PROVIDER_RULE' 
+  | 'CATEGORY_RULE' 
+  | 'DEFAULT';
+
+export interface PlatformFeeRules {
+  oneTimeFee: number;
+  subscriptionFee: number;
+}
+
+export interface ChatMessage {
+  id: string;
+  orderId: string;
+  senderId: string;
+  senderRole: UserRole;
+  text: string;
+  createdAt: string;
+  isFlagged: boolean;
+  flaggedReason?: string;
 }
 
 export interface Provider {
@@ -91,6 +128,8 @@ export interface Provider {
   phone: string;
   status: ProviderStatus;
   verifiedAt?: string;
+  promoEndsAt?: string;
+  acceptedTermsAt?: string;
   rating: number;
   reviewCount: number;
   completedOrders: number;
@@ -167,9 +206,11 @@ export interface Order {
   discountSource: 'PLATFORM' | 'PROVIDER';
   totalAmount: number;
   commissionPercentage: number;
+  commissionReason?: CommissionReason;
   platformCommission: number;
   providerEarnings: number;
   paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED';
+  walletDiscount?: number;
   rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
@@ -194,6 +235,8 @@ export interface Subscription {
   renewalDate: string;
   monthlyPrice: number;
   autoRenew: boolean;
+  pausedUntil?: string;
+  skippedDates?: string[];
   createdAt: string;
 }
 

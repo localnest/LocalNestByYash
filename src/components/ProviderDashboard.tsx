@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Service, PricingModel, OrderStatus, Order } from '@/lib/types';
 import { 
@@ -8,7 +8,7 @@ import {
   Calendar, Check, X, Plus, Clock, 
   MapPin, CheckCircle, ShieldCheck, AlertCircle,
   FileSpreadsheet, Printer, ArrowDownToLine,
-  Sliders, Palmtree, Coffee, CheckCircle2, User, Phone
+  Sliders, Palmtree, Coffee, CheckCircle2, User, MessageCircle, Send
 } from 'lucide-react';
 
 export default function ProviderDashboard() {
@@ -24,8 +24,16 @@ export default function ProviderDashboard() {
     updateProviderAvailability,
     requestPayout,
     addService,
-    selectedSociety 
+    selectedSociety,
+    sendChatMessage,
+    getOrderMessages,
+    currentUser,
   } = useMarketplace();
+
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatError, setChatError] = useState('');
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Find active provider
   const provider = providers.find(p => p.id === activeProviderId) || providers[0];
@@ -456,7 +464,13 @@ export default function ProviderDashboard() {
                         </span>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '4px' }}>
-                        Customer: <strong>{order.customerName}</strong> ({order.customerFlat}) • Phone: <a href={`tel:${order.customerPhone}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>{order.customerPhone}</a>
+                        Customer: <strong>{order.customerName}</strong> ({order.customerFlat})
+                        <button
+                          onClick={() => { setChatOrderId(order.id); setChatInput(''); setChatError(''); }}
+                          style={{ marginLeft: '8px', background: 'none', border: '1px solid var(--primary)', borderRadius: '6px', padding: '2px 8px', fontSize: '0.72rem', color: 'var(--primary)', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
+                        >
+                          <MessageCircle size={12} /> Chat
+                        </button>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         Service: {order.serviceName} • Model: {order.pricingModel} • Qty: {order.itemQuantity}
@@ -631,9 +645,7 @@ export default function ProviderDashboard() {
                         </td>
                         <td style={{ padding: '12px 14px' }}>
                           <div style={{ fontWeight: 600 }}>{item.customerName}</div>
-                          <a href={`tel:${item.customerPhone}`} style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {item.customerPhone}
-                          </a>
+                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Use in-app chat</span>
                         </td>
                         <td style={{ padding: '12px 14px' }}>
                           <div>{item.serviceName}</div>
@@ -1288,6 +1300,68 @@ export default function ProviderDashboard() {
           </div>
         </div>
       )}
+
+
+      {/* In-App Chat Modal */}
+      {chatOrderId && (() => {
+        const chatOrder = orders.find(o => o.id === chatOrderId);
+        const messages = getOrderMessages(chatOrderId);
+        const handleSend = () => {
+          if (!chatInput.trim()) return;
+          const res = sendChatMessage(chatOrderId, chatInput.trim());
+          if (res.blocked || !res.success) { setChatError(res.message); } else { setChatError(''); }
+          setChatInput('');
+        };
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '16px', width: '480px', maxWidth: '95vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>Chat — {chatOrder?.customerName}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Order {chatOrder?.orderNumber}</div>
+                </div>
+                <button onClick={() => setChatOrderId(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}>{'x'}</button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '200px' }}>
+                {messages.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '32px' }}>No messages yet. Start the conversation safely inside LocalNest.</div>
+                )}
+                {messages.map(m => {
+                  const isMe = m.senderId === currentUser?.id;
+                  return (
+                    <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ maxWidth: '72%', background: isMe ? 'var(--primary)' : 'var(--card-hover)', color: isMe ? '#fff' : 'var(--text-main)', borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px', padding: '8px 14px', fontSize: '0.85rem' }}>
+                        {m.text}
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {chatError && (
+                <div style={{ padding: '6px 16px', background: '#fff3cd', color: '#856404', fontSize: '0.78rem' }}>
+                  🛡️ {chatError}
+                </div>
+              )}
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
+                <input
+                  value={chatInput}
+                  onChange={e => { setChatInput(e.target.value); setChatError(''); }}
+                  onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }}
+                  placeholder="Type a message..."
+                  style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border)', padding: '8px 12px', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '0.87rem' }}
+                />
+                <button onClick={handleSend} style={{ background: 'var(--primary)', border: 'none', borderRadius: '8px', padding: '8px 14px', color: '#fff', cursor: 'pointer' }}>
+                  <Send size={15} />
+                </button>
+              </div>
+              <div style={{ padding: '6px 16px 10px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                🔒 Keep all communication inside LocalNest. Sharing contact details is not allowed.
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
     </div>
   );

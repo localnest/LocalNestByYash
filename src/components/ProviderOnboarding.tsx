@@ -27,10 +27,9 @@ export default function ProviderOnboarding() {
   const [basePrice, setBasePrice] = useState<number>(300);
   const [unitName, setUnitName] = useState<string>('per service');
 
-  // Documents
   const [documentType, setDocumentType] = useState<string>('Aadhaar / National ID');
   const [documentName, setDocumentName] = useState<string>('aadhaar_card_doc.pdf');
-  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(true);
+  const [acceptedTerms, setAcceptedTerms] = useState<boolean>(false);
 
   const toggleSociety = (socId: string) => {
     if (supportedSocieties.includes(socId)) {
@@ -60,6 +59,7 @@ export default function ProviderOnboarding() {
         unitName,
         documentType,
         documentName,
+        acceptedTerms,
       });
     }
   };
@@ -305,14 +305,17 @@ export default function ProviderOnboarding() {
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '6px' }}>
+            <label style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '6px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: '8px', border: '1px solid var(--border)' }}>
               <input
                 type="checkbox"
                 checked={acceptedTerms}
                 onChange={(e) => setAcceptedTerms(e.target.checked)}
                 required
+                style={{ marginTop: '2px', flexShrink: 0 }}
               />
-              <span>I agree to the platform partnership terms, 10% take-rate, and society gate rules.</span>
+              <span>
+                I agree to the <strong>Platform Partnership Terms</strong>: (1) 10% commission with 0% for the first 60 days; (2) all resident payments collected exclusively through LocalNest — off-platform payments are grounds for immediate suspension; (3) customer contact details are masked and must not be requested via chat; (4) society gate rules and service quality standards apply.
+              </span>
             </label>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>

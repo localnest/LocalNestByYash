@@ -12,7 +12,7 @@ import {
   Calendar, Check, AlertCircle, Sparkles, Shirt, 
   UtensilsCrossed, Car, Zap, Snowflake, ArrowRight, 
   ChevronRight, Pause, Play, CheckCircle2, Phone,
-  Bell, Megaphone, Wrench, X
+  Bell, Megaphone, Wrench, X, Wallet, MessageCircle, Send, Gift, TrendingUp
 } from 'lucide-react';
 
 export default function CustomerPortal() {
@@ -29,11 +29,23 @@ export default function CustomerPortal() {
     complaints,
     notices,
     updateSubscriptionStatus,
-    cancelOrder 
+    pauseSubscription,
+    resumeSubscription,
+    skipNextDelivery,
+    cancelOrder,
+    getWalletBalance,
+    getWalletStreak,
+    walletTransactions,
+    createOrder,
+    sendChatMessage,
+    getOrderMessages,
   } = useMarketplace();
 
   // Active Tab: 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support'
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support'>('home');
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet'>('home');
+  const [chatOrderId, setChatOrderId] = useState<string | null>(null);
+  const [chatInput, setChatInput] = useState('');
+  const [chatError, setChatError] = useState('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
@@ -169,6 +181,7 @@ export default function CustomerPortal() {
               { id: 'subscriptions', label: `Subscriptions (${subscriptions.filter(s => s.status === 'ACTIVE').length})`, icon: RefreshCw },
               { id: 'offers', label: 'Offers', icon: Tag },
               { id: 'support', label: 'Support & Tickets', icon: HelpCircle },
+              { id: 'wallet', label: 'My Wallet', icon: Wallet },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -872,6 +885,33 @@ export default function CustomerPortal() {
                           Raise Dispute / Support
                         </button>
 
+                        {/* Chat button — available for active/recent orders */}
+                        {['PENDING','ACCEPTED','SCHEDULED','IN_PROGRESS','COMPLETED'].includes(order.status) && (
+                          <button
+                            onClick={() => { setChatOrderId(order.id); setChatInput(''); setChatError(''); }}
+                            className="btn btn-secondary btn-sm"
+                            style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+                          >
+                            <MessageCircle size={13} /> Chat
+                          </button>
+                        )}
+
+                        {/* Book Again — quick re-booking for completed orders */}
+                        {isCompleted && (() => {
+                          const svc = services.find(s => s.id === order.serviceId);
+                          const prov = providers.find(p => p.id === order.providerId);
+                          if (!svc || !prov) return null;
+                          return (
+                            <button
+                              onClick={() => setBookingService({ service: svc, provider: prov })}
+                              className="btn btn-secondary btn-sm"
+                              style={{ display: 'flex', alignItems: 'center', gap: '5px' }}
+                            >
+                              <RefreshCw size={13} /> Book Again
+                            </button>
+                          );
+                        })()}
+
                         {isCompleted && !hasReviewed && (
                           <button
                             onClick={() => setReviewOrder(order)}
@@ -945,25 +985,38 @@ export default function CustomerPortal() {
                     </div>
 
                     {/* Subscription Actions */}
-                    <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '14px' }}>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '14px' }}>
                       {isActive ? (
-                        <button
-                          onClick={() => updateSubscriptionStatus(sub.id, 'PAUSED')}
-                          className="btn btn-secondary btn-sm"
-                          style={{ flex: 1 }}
-                        >
-                          <Pause size={14} /> Pause Delivery
-                        </button>
+                        <>
+                          <button
+                            onClick={() => {
+                              const d = new Date(); d.setDate(d.getDate() + 7);
+                              pauseSubscription(sub.id, d.toISOString().split('T')[0]);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            <Pause size={13} /> Pause 7 Days
+                          </button>
+                          <button
+                            onClick={() => {
+                              const nextDate = sub.nextServiceDate || new Date().toISOString().split('T')[0];
+                              skipNextDelivery(sub.id, nextDate);
+                            }}
+                            className="btn btn-secondary btn-sm"
+                          >
+                            Skip Next
+                          </button>
+                        </>
                       ) : (
                         <button
-                          onClick={() => updateSubscriptionStatus(sub.id, 'ACTIVE')}
+                          onClick={() => resumeSubscription(sub.id)}
                           className="btn btn-primary btn-sm"
                           style={{ flex: 1 }}
                         >
                           <Play size={14} /> Resume Delivery
+                          {sub.pausedUntil && <span style={{ fontSize: '0.7rem', marginLeft: '4px', opacity: 0.8 }}>(paused until {new Date(sub.pausedUntil).toLocaleDateString()})</span>}
                         </button>
                       )}
-
                       <button
                         onClick={() => updateSubscriptionStatus(sub.id, 'CANCELLED')}
                         className="btn btn-secondary btn-sm"
@@ -1169,6 +1222,125 @@ export default function CustomerPortal() {
           </div>
         </div>
       )}
+
+
+      {/* ============================================================== */}
+      {/* TAB: WALLET */}
+      {/* ============================================================== */}
+      {activeTab === 'wallet' && currentUser && (() => {
+        const uid = currentUser.id;
+        const balance = getWalletBalance(uid);
+        const streak = getWalletStreak(uid);
+        const txns = walletTransactions.filter(t => t.userId === uid);
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingBottom: '24px' }}>
+            {/* Balance Hero */}
+            <div style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderRadius: '16px', padding: '28px', color: '#fff', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+              <div>
+                <div style={{ fontSize: '0.82rem', color: '#94a3b8', marginBottom: '4px' }}>LocalNest Credits Balance</div>
+                <div style={{ fontSize: '2.8rem', fontWeight: 900, lineHeight: 1 }}>₹{balance}</div>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8', marginTop: '8px' }}>Use up to 20% of any order subtotal at checkout</div>
+              </div>
+              <div style={{ textAlign: 'right' }}>
+                <div style={{ fontSize: '0.78rem', color: '#94a3b8' }}>Order streak</div>
+                <div style={{ fontSize: '1.8rem', fontWeight: 800 }}>{streak.completedCount}</div>
+                <div style={{ fontSize: '0.72rem', color: '#94a3b8' }}>{streak.remaining} more for ₹50 bonus</div>
+              </div>
+            </div>
+
+            {/* Earn Rate Info */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: '12px' }}>
+              {[
+                { icon: '🎯', title: 'Earn 3%', desc: 'On every completed order' },
+                { icon: '🏆', title: '₹50 Streak', desc: 'Every 5 completed orders' },
+                { icon: '💳', title: 'Redeem 20%', desc: 'Max per order subtotal' },
+              ].map((item, i) => (
+                <div key={i} style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '12px', padding: '14px', textAlign: 'center' }}>
+                  <div style={{ fontSize: '1.6rem', marginBottom: '6px' }}>{item.icon}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.9rem', color: 'var(--text-main)' }}>{item.title}</div>
+                  <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{item.desc}</div>
+                </div>
+              ))}
+            </div>
+
+            {/* Transaction History */}
+            <div>
+              <h3 style={{ fontWeight: 700, marginBottom: '12px', fontSize: '1rem' }}>Transaction History</h3>
+              {txns.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)', fontSize: '0.88rem' }}>
+                  No transactions yet. Complete your first order to earn credits!
+                </div>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {txns.map(t => (
+                    <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: '14px', background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: '10px', padding: '12px 16px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', background: t.type === 'EARNED' || t.type === 'ADJUSTMENT' && t.amount > 0 ? '#dcfce7' : '#fee2e2', flexShrink: 0 }}>
+                        {t.type === 'EARNED' ? '💰' : t.type === 'REDEEMED' ? '🛒' : t.type === 'EXPIRED' ? '⏰' : '✨'}
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', fontWeight: 500 }}>{t.note}</div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{new Date(t.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}</div>
+                      </div>
+                      <div style={{ fontWeight: 700, fontSize: '1rem', color: (t.type === 'EARNED' || (t.type === 'ADJUSTMENT' && t.amount > 0)) ? '#16a34a' : '#dc2626' }}>
+                        {(t.type === 'EARNED' || (t.type === 'ADJUSTMENT' && t.amount > 0)) ? '+' : '-'}₹{Math.abs(t.amount)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      })()}
+
+      {/* ─── Order Chat Modal (Resident Side) ───────────────────────────────── */}
+      {chatOrderId && (() => {
+        const chatOrder = orders.find(o => o.id === chatOrderId);
+        const messages = getOrderMessages(chatOrderId);
+        const handleSend = () => {
+          if (!chatInput.trim()) return;
+          const res = sendChatMessage(chatOrderId, chatInput.trim());
+          if (res.blocked || !res.success) { setChatError(res.message); } else { setChatError(''); }
+          setChatInput('');
+        };
+        return (
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '16px', width: '480px', maxWidth: '95vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
+              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div>
+                  <div style={{ fontWeight: 700 }}>Chat — {chatOrder?.providerName}</div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Order {chatOrder?.orderNumber}</div>
+                </div>
+                <button onClick={() => setChatOrderId(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}>{'x'}</button>
+              </div>
+              <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '200px' }}>
+                {messages.length === 0 && (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.85rem', marginTop: '32px' }}>No messages yet. Ask your provider a question!</div>
+                )}
+                {messages.map(m => {
+                  const isMe = m.senderRole === 'CUSTOMER';
+                  return (
+                    <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
+                      <div style={{ maxWidth: '72%', background: isMe ? 'var(--primary)' : 'var(--card-hover)', color: isMe ? '#fff' : 'var(--text-main)', borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px', padding: '8px 14px', fontSize: '0.85rem' }}>
+                        {m.text}
+                        <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              {chatError && <div style={{ padding: '6px 16px', background: '#fff3cd', color: '#856404', fontSize: '0.78rem' }}>{'🛡️'} {chatError}</div>}
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
+                <input value={chatInput} onChange={e => { setChatInput(e.target.value); setChatError(''); }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Message your provider..." style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border)', padding: '8px 12px', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '0.87rem' }} />
+                <button onClick={handleSend} style={{ background: 'var(--primary)', border: 'none', borderRadius: '8px', padding: '8px 14px', color: '#fff', cursor: 'pointer' }}>
+                  <Send size={15} />
+                </button>
+              </div>
+              <div style={{ padding: '6px 16px 10px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>Keep all communication inside LocalNest.</div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Dynamic Booking Modal */}
       {bookingService && (
