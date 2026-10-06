@@ -1,6 +1,6 @@
 import { 
   Society, UserProfile, Category, Provider, Service, Order, 
-  Subscription, Coupon, CommissionRule, Review, Complaint, SocietyNotice 
+  Subscription, Coupon, CommissionRule, Review, Complaint, SocietyNotice, PayoutRecord 
 } from './types';
 
 export const INITIAL_SOCIETIES: Society[] = [
@@ -159,6 +159,12 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 40,
     startingPriceUnit: 'per item',
+    workingHours: {
+      start: '08:00 AM',
+      end: '08:00 PM',
+      daysOff: ['Sunday'],
+    },
+    isVacationMode: false,
     documents: [
       { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-raj.pdf', verified: true },
       { type: 'Trade License', url: 'trade-lic-raj.pdf', verified: true }
@@ -181,6 +187,12 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 3000,
     startingPriceUnit: 'per month',
+    workingHours: {
+      start: '07:00 AM',
+      end: '08:30 PM',
+      daysOff: [],
+    },
+    isVacationMode: false,
     documents: [
       { type: 'FSSAI License', url: 'fssai-freshbite.pdf', verified: true },
       { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-sunita.pdf', verified: true }
@@ -735,6 +747,33 @@ export const INITIAL_NOTICES: SocietyNotice[] = [
     authorName: 'Marketplace Operations Team',
     createdAt: '2026-10-01T09:00:00Z',
     isActive: true,
+  },
+];
+
+export const INITIAL_PAYOUTS: PayoutRecord[] = [
+  {
+    id: 'pay-001',
+    providerId: 'prov-raj-laundry',
+    providerName: 'Raj Laundry & Dry Cleaners',
+    amount: 3850,
+    method: 'UPI',
+    accountDetails: 'rajlaundry@okhdfcbank',
+    status: 'COMPLETED',
+    requestedAt: '2026-09-30T10:00:00Z',
+    settledAt: '2026-10-01T14:30:00Z',
+    referenceId: 'UPI-REF-9928194821',
+  },
+  {
+    id: 'pay-002',
+    providerId: 'prov-freshbite',
+    providerName: 'FreshBite Tiffin & Home Meals',
+    amount: 8100,
+    method: 'BANK_NEFT',
+    accountDetails: 'HDFC Bank - A/C **4412 (IFSC: HDFC000124)',
+    status: 'COMPLETED',
+    requestedAt: '2026-09-28T09:00:00Z',
+    settledAt: '2026-09-29T11:15:00Z',
+    referenceId: 'NEFT-REF-44910284',
   },
 ];
 

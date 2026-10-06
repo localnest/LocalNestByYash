@@ -16,7 +16,8 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ service, provider, onClose, onSuccess }: BookingModalProps) {
-  const { createOrder, validateCoupon, selectedSociety } = useMarketplace();
+  const { createOrder, validateCoupon, selectedSociety, coupons } = useMarketplace();
+  const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
   // Booking Parameters
   const [scheduledDate, setScheduledDate] = useState<string>(() => {
@@ -186,6 +187,19 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
             
+            {/* Feature 13: Provider Vacation Guard Banner */}
+            {provider.isVacationMode && (
+              <div style={{ background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: 'var(--radius-md)', padding: '14px 16px', display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <AlertCircle size={24} color="#b45309" style={{ flexShrink: 0 }} />
+                <div>
+                  <strong style={{ color: '#92400e', fontSize: '0.9rem' }}>Provider is Currently on Leave / Vacation</strong>
+                  <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: '2px' }}>
+                    "{provider.vacationReason || 'Taking a short break'}" — New bookings are temporarily paused.
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Dynamic Pricing Selector */}
             <div style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)' }}>
               
@@ -358,37 +372,54 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
             </div>
 
             {/* Date & Slot Picker */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-              <div>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Calendar size={14} /> Service Date
-                </label>
-                <input 
-                  type="date" 
-                  value={scheduledDate}
-                  min={new Date().toISOString().split('T')[0]}
-                  onChange={(e) => setScheduledDate(e.target.value)}
-                  className="form-input"
-                  style={{ padding: '8px 12px' }}
-                />
+            <div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Calendar size={14} /> Service Date
+                  </label>
+                  <input 
+                    type="date" 
+                    value={scheduledDate}
+                    min={new Date().toISOString().split('T')[0]}
+                    onChange={(e) => setScheduledDate(e.target.value)}
+                    className="form-input"
+                    style={{ padding: '8px 12px' }}
+                  />
+                </div>
+                <div>
+                  <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Clock size={14} /> Preferred Slot
+                  </label>
+                  <select
+                    value={scheduledSlot}
+                    onChange={(e) => setScheduledSlot(e.target.value)}
+                    className="form-input"
+                    style={{ padding: '8px 12px' }}
+                  >
+                    <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Early)</option>
+                    <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM (Morning)</option>
+                    <option value="12:30 PM - 02:00 PM">12:30 PM - 02:00 PM (Lunch)</option>
+                    <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM (Afternoon)</option>
+                    <option value="05:00 PM - 07:00 PM">05:00 PM - 07:00 PM (Evening)</option>
+                  </select>
+                </div>
               </div>
-              <div>
-                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                  <Clock size={14} /> Preferred Slot
-                </label>
-                <select
-                  value={scheduledSlot}
-                  onChange={(e) => setScheduledSlot(e.target.value)}
-                  className="form-input"
-                  style={{ padding: '8px 12px' }}
-                >
-                  <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Early)</option>
-                  <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM (Morning)</option>
-                  <option value="12:30 PM - 02:00 PM">12:30 PM - 02:00 PM (Lunch)</option>
-                  <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM (Afternoon)</option>
-                  <option value="05:00 PM - 07:00 PM">05:00 PM - 07:00 PM (Evening)</option>
-                </select>
-              </div>
+
+              {/* Weekly Off Day Check */}
+              {(() => {
+                const dayName = new Date(scheduledDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
+                const isOff = provider.workingHours?.daysOff?.includes(dayName);
+                if (isOff) {
+                  return (
+                    <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#b45309', background: '#fef3c7', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
+                      <span>{dayName} is a scheduled off-day for {provider.businessName}. Services will be initiated on the next working morning.</span>
+                    </div>
+                  );
+                }
+                return null;
+              })()}
             </div>
 
             {/* Address & Instructions */}
@@ -414,28 +445,54 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               />
             </div>
 
-            {/* Coupon Code Section */}
+            {/* Feature 3: Interactive Coupon Picker Section */}
             <div>
-              <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <Tag size={14} /> Apply Society Coupon / Offer
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px', margin: 0 }}>
+                  <Tag size={14} /> Society Coupons & Offers
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowAllCoupons(!showAllCoupons)}
+                  style={{ color: 'var(--primary)', fontSize: '0.75rem', fontWeight: 700, cursor: 'pointer', background: 'none', border: 'none' }}
+                >
+                  {showAllCoupons ? 'Hide Coupons ▲' : `View All Coupons (${coupons.filter(c => c.isActive).length}) ▼`}
+                </button>
+              </div>
+
+              {/* Coupon Input Bar */}
               <div style={{ display: 'flex', gap: '8px' }}>
                 <input
                   type="text"
-                  placeholder="e.g. WELCOME100, FIRST50"
+                  placeholder="Enter code (e.g. WELCOME100)"
                   value={couponCodeInput}
                   onChange={(e) => setCouponCodeInput(e.target.value.toUpperCase())}
                   className="form-input"
                   style={{ textTransform: 'uppercase', letterSpacing: '0.04em' }}
                 />
-                <button
-                  type="button"
-                  onClick={() => handleApplyCoupon()}
-                  className="btn btn-secondary"
-                  style={{ whiteSpace: 'nowrap' }}
-                >
-                  Apply
-                </button>
+                {appliedCoupon ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setAppliedCoupon(null);
+                      setCouponFeedback(null);
+                      setCouponCodeInput('');
+                    }}
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap', color: 'var(--accent-rose)' }}
+                  >
+                    Remove
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handleApplyCoupon()}
+                    className="btn btn-secondary"
+                    style={{ whiteSpace: 'nowrap' }}
+                  >
+                    Apply
+                  </button>
+                )}
               </div>
 
               {couponFeedback && (
@@ -452,31 +509,61 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 </div>
               )}
 
-              {/* Quick Coupon Chips */}
-              <div style={{ display: 'flex', gap: '6px', marginTop: '6px', flexWrap: 'wrap' }}>
-                <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', alignSelf: 'center' }}>Popular:</span>
-                {['WELCOME100', 'FIRST50', 'LAUNDRY10'].map(code => (
-                  <button
-                    key={code}
-                    type="button"
-                    onClick={() => {
-                      setCouponCodeInput(code);
-                      handleApplyCoupon(code);
-                    }}
-                    style={{ 
-                      fontSize: '0.7rem', 
-                      padding: '2px 8px', 
-                      borderRadius: '4px', 
-                      background: 'var(--bg-subtle)',
-                      border: '1px dashed var(--border-light)',
-                      color: 'var(--primary)',
-                      fontWeight: 600
-                    }}
-                  >
-                    {code}
-                  </button>
-                ))}
-              </div>
+              {/* Interactive Coupon Picker Drawer */}
+              {showAllCoupons && (
+                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto', padding: '6px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                  {coupons.filter(c => c.isActive).map(c => {
+                    const isApplicable = subtotal >= c.minOrderValue;
+                    const isCurrent = appliedCoupon === c.code;
+                    return (
+                      <div 
+                        key={c.id} 
+                        style={{ 
+                          background: '#fff', 
+                          border: `1.5px ${isCurrent ? 'solid var(--primary)' : 'dashed var(--border-light)'}`,
+                          borderRadius: '8px', 
+                          padding: '10px',
+                          display: 'flex', 
+                          justifyContent: 'space-between', 
+                          alignItems: 'center',
+                          gap: '10px'
+                        }}
+                      >
+                        <div>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <strong style={{ color: 'var(--primary)', letterSpacing: '0.04em', fontSize: '0.85rem' }}>{c.code}</strong>
+                            <span className="badge badge-emerald" style={{ fontSize: '0.62rem' }}>
+                              {c.discountType === 'PERCENTAGE' || c.discountType === 'SUBSCRIPTION' ? `${c.discountValue}% OFF` : `₹${c.discountValue} OFF`}
+                            </span>
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                            {c.description} • Min order: ₹{c.minOrderValue}
+                          </div>
+                        </div>
+
+                        {isCurrent ? (
+                          <span style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--primary)' }}>
+                            Applied ✓
+                          </span>
+                        ) : (
+                          <button
+                            type="button"
+                            disabled={!isApplicable}
+                            onClick={() => {
+                              setCouponCodeInput(c.code);
+                              handleApplyCoupon(c.code);
+                            }}
+                            className={`btn btn-sm ${isApplicable ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: '0.7rem', padding: '3px 8px' }}
+                          >
+                            {isApplicable ? 'Apply' : `Add ₹${c.minOrderValue - subtotal} more`}
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Order Price Breakdown (Transparent) */}
@@ -501,15 +588,21 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               </div>
             </div>
 
-            {/* Action Button: Razorpay Checkout */}
+            {/* Action Button: Razorpay Checkout (Disabled if Provider on Vacation) */}
             <button
               type="button"
-              disabled={isProcessingPayment || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
+              disabled={isProcessingPayment || provider.isVacationMode || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
               onClick={handleProcessOrder}
               className="btn btn-primary btn-lg btn-full"
-              style={{ marginTop: '8px' }}
+              style={{ 
+                marginTop: '8px',
+                opacity: provider.isVacationMode ? 0.6 : 1,
+                cursor: provider.isVacationMode ? 'not-allowed' : 'pointer'
+              }}
             >
-              {isProcessingPayment ? (
+              {provider.isVacationMode ? (
+                'Provider on Vacation (Booking Paused)'
+              ) : isProcessingPayment ? (
                 <>
                   <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }}></div>
                   Opening Secure Razorpay Gateway...

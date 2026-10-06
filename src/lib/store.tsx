@@ -5,13 +5,13 @@ import {
   UserRole, Society, Category, Provider, Service, Order, 
   Subscription, Coupon, CommissionRule, Review, Complaint, 
   PricingModel, OrderStatus, SubscriptionStatus, ComplaintStatus,
-  UserProfile, SocietyNotice, NoticeType
+  UserProfile, SocietyNotice, NoticeType, PayoutRecord
 } from './types';
 import { 
   INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS, 
   INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS, 
   INITIAL_COUPONS, INITIAL_COMMISSION_RULES, INITIAL_REVIEWS, 
-  INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES 
+  INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES, INITIAL_PAYOUTS 
 } from './mockData';
 
 interface MarketplaceContextType {
@@ -54,6 +54,7 @@ interface MarketplaceContextType {
   commissionRules: CommissionRule[];
   reviews: Review[];
   complaints: Complaint[];
+  payouts: PayoutRecord[];
 
   // Coupon Engine
   validateCoupon: (code: string, subtotal: number, categoryId?: string) => {
@@ -78,7 +79,7 @@ interface MarketplaceContextType {
     subscriptionFrequency?: any;
   }) => { success: boolean; orderId?: string; orderNumber?: string; message: string };
 
-  updateOrderStatus: (orderId: string, newStatus: OrderStatus, notes?: string) => void;
+  updateOrderStatus: (orderId: string, newStatus: OrderStatus, notes?: string, rejectionReason?: string) => void;
   cancelOrder: (orderId: string, reason?: string) => void;
 
   // Actions: Subscriptions
@@ -89,11 +90,30 @@ interface MarketplaceContextType {
 
   // Actions: Support & Complaints
   createComplaint: (orderId: string, category: string, description: string) => { success: boolean; ticketNumber: string };
-  updateComplaintStatus: (ticketId: string, status: ComplaintStatus, resolution?: string, adminNotes?: string) => void;
+  updateComplaintStatus: (
+    ticketId: string, 
+    status: ComplaintStatus, 
+    resolution?: string, 
+    adminNotes?: string,
+    resolutionType?: 'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED',
+    refundAmount?: number
+  ) => void;
 
   // Actions: Provider Management
   updateProviderStatus: (providerId: string, status: Provider['status'], reason?: string) => void;
+  updateProviderAvailability: (
+    providerId: string,
+    workingHours: { start: string; end: string; daysOff: string[] },
+    isVacationMode: boolean,
+    vacationReason?: string
+  ) => void;
   addService: (newService: Omit<Service, 'id'>) => void;
+  requestPayout: (
+    providerId: string, 
+    amount: number, 
+    method: 'UPI' | 'BANK_NEFT', 
+    accountDetails: string
+  ) => { success: boolean; message: string };
 
   // Actions: Admin & Commission
   updateCommissionRule: (ruleId: string, percentage: number) => void;
@@ -138,6 +158,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [complaints, setComplaints] = useState<Complaint[]>(INITIAL_COMPLAINTS);
   const [activeProviderId, setActiveProviderId] = useState<string>('prov-raj-laundry');
   const [notices, setNotices] = useState<SocietyNotice[]>(INITIAL_NOTICES);
+  const [payouts, setPayouts] = useState<PayoutRecord[]>(INITIAL_PAYOUTS);
   const [notifications, setNotifications] = useState<string[]>([
     'Welcome to Greenfield Heights pilot marketplace! Secure logins for Residents, Providers, and Administrators.'
   ]);
@@ -564,7 +585,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     };
   };
 
-  const updateOrderStatus = (orderId: string, newStatus: OrderStatus, notes?: string) => {
+  const updateOrderStatus = (orderId: string, newStatus: OrderStatus, notes?: string, rejectionReason?: string) => {
     setOrders(prev => prev.map(ord => {
       if (ord.id === orderId) {
         if (newStatus === 'COMPLETED' && ord.status !== 'COMPLETED') {
@@ -575,12 +596,17 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         return {
           ...ord,
           status: newStatus,
+          rejectionReason: rejectionReason || ord.rejectionReason,
           updatedAt: new Date().toISOString(),
         };
       }
       return ord;
     }));
-    addNotification(`Order status updated to ${newStatus.replace('_', ' ')}.`);
+    if (newStatus === 'REJECTED') {
+      addNotification(`Order request declined${rejectionReason ? `: ${rejectionReason}` : ''}. Resident notified and refund initiated.`);
+    } else {
+      addNotification(`Order status updated to ${newStatus.replace('_', ' ')}.`);
+    }
   };
 
   const cancelOrder = (orderId: string, reason?: string) => {
@@ -673,16 +699,88 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     return { success: true, ticketNumber };
   };
 
-  const updateComplaintStatus = (ticketId: string, status: ComplaintStatus, resolution?: string, adminNotes?: string) => {
+  const updateComplaintStatus = (
+    ticketId: string, 
+    status: ComplaintStatus, 
+    resolution?: string, 
+    adminNotes?: string,
+    resolutionType?: 'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED',
+    refundAmount?: number
+  ) => {
+    const complaint = complaints.find(c => c.id === ticketId);
     setComplaints(prev => prev.map(c => 
       c.id === ticketId ? { 
         ...c, 
         status, 
         resolution: resolution || c.resolution,
         adminNotes: adminNotes || c.adminNotes,
+        resolutionType: resolutionType || c.resolutionType,
+        refundAmount: refundAmount !== undefined ? refundAmount : c.refundAmount,
+        resolvedAt: status === 'RESOLVED' ? new Date().toISOString() : c.resolvedAt,
+        resolvedBy: currentUser?.fullName || 'Marketplace Operations Desk',
       } : c
     ));
-    addNotification(`Support ticket ${status.toLowerCase()}.`);
+
+    // If full refund, update corresponding order status and payment
+    if (complaint && (resolutionType === 'FULL_REFUND' || resolutionType === 'PARTIAL_REFUND')) {
+      setOrders(prev => prev.map(o => {
+        if (o.id === complaint.orderId || o.orderNumber === complaint.orderNumber) {
+          return {
+            ...o,
+            paymentStatus: 'REFUNDED',
+            status: 'REFUNDED',
+            updatedAt: new Date().toISOString(),
+          };
+        }
+        return o;
+      }));
+    }
+
+    addNotification(`Support ticket #${complaint?.ticketNumber || ticketId} marked as ${status}.`);
+  };
+
+  const updateProviderAvailability = (
+    providerId: string,
+    workingHours: { start: string; end: string; daysOff: string[] },
+    isVacationMode: boolean,
+    vacationReason?: string
+  ) => {
+    setProviders(prev => prev.map(p => 
+      p.id === providerId ? {
+        ...p,
+        workingHours,
+        isVacationMode,
+        vacationReason: vacationReason !== undefined ? vacationReason : p.vacationReason,
+      } : p
+    ));
+    addNotification(
+      isVacationMode 
+        ? 'Vacation Mode enabled. New bookings are paused.' 
+        : 'Provider working hours and active schedule updated.'
+    );
+  };
+
+  const requestPayout = (
+    providerId: string, 
+    amount: number, 
+    method: 'UPI' | 'BANK_NEFT', 
+    accountDetails: string
+  ) => {
+    const prov = providers.find(p => p.id === providerId);
+    const newPayout: PayoutRecord = {
+      id: `pay-${Date.now()}`,
+      providerId,
+      providerName: prov?.businessName || 'Provider',
+      amount,
+      method,
+      accountDetails,
+      status: 'PROCESSING',
+      requestedAt: new Date().toISOString(),
+      referenceId: `${method}-${Math.floor(10000000 + Math.random() * 90000000)}`,
+    };
+    setPayouts(prev => [newPayout, ...prev]);
+    addNotification(`Withdrawal request of ₹${amount} initiated! Payout reference: ${newPayout.referenceId}`);
+    return { success: true, message: `Withdrawal initiated for ₹${amount}` };
   };
 
   const updateProviderStatus = (providerId: string, status: Provider['status'], reason?: string) => {
@@ -782,6 +880,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       commissionRules,
       reviews,
       complaints,
+      payouts,
       validateCoupon,
       createOrder,
       updateOrderStatus,
@@ -791,7 +890,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       createComplaint,
       updateComplaintStatus,
       updateProviderStatus,
+      updateProviderAvailability,
       addService,
+      requestPayout,
       updateCommissionRule,
       createCoupon,
       toggleCouponActive,

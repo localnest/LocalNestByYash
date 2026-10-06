@@ -100,8 +100,12 @@ export default function CustomerPortal() {
         return <span className="badge badge-emerald">Completed</span>;
       case 'CANCELLED':
         return <span className="badge badge-slate">Cancelled</span>;
+      case 'REJECTED':
+        return <span className="badge badge-rose">Declined by Provider (Refunded)</span>;
+      case 'REFUNDED':
+        return <span className="badge badge-emerald">Escrow Refunded ✓</span>;
       case 'DISPUTED':
-        return <span className="badge badge-rose">Disputed</span>;
+        return <span className="badge badge-rose">Under Support Mediation</span>;
       default:
         return <span className="badge badge-slate">{status}</span>;
     }
@@ -421,16 +425,19 @@ export default function CustomerPortal() {
                             style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
                           />
                           <div style={{ flex: 1 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                               <h4 style={{ fontSize: '1.05rem', fontWeight: 700 }}>{provider.businessName}</h4>
                               {provider.status === 'VERIFIED' && (
                                 <ShieldCheck size={16} color="var(--accent-emerald)" />
                               )}
+                              {provider.isVacationMode && (
+                                <span className="badge badge-amber" style={{ fontSize: '0.62rem' }}>🏖️ On Vacation</span>
+                              )}
                             </div>
                             <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>{provider.categoryName}</div>
                             
-                            {/* Reliability Metrics */}
-                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.78rem' }}>
+                            {/* Reliability Metrics & Hours */}
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.78rem', flexWrap: 'wrap' }}>
                               <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 700, color: '#f59e0b' }}>
                                 <Star size={14} fill="#f59e0b" color="#f59e0b" />
                                 {provider.rating > 0 ? provider.rating : 'New'}
@@ -441,11 +448,20 @@ export default function CustomerPortal() {
                               <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>
                                 {provider.onTimeRate}% on-time
                               </span>
+                              <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                                🕐 {provider.workingHours?.start || '8 AM'} - {provider.workingHours?.end || '8 PM'}
+                              </span>
                             </div>
                           </div>
                         </div>
 
-                        <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '12px', lineHeight: 1.4 }}>
+                        {provider.isVacationMode && (
+                          <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#b45309', background: '#fef3c7', padding: '6px 10px', borderRadius: '6px' }}>
+                            "{provider.vacationReason || 'Currently taking a break. Resuming orders soon.'}"
+                          </div>
+                        )}
+
+                        <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.4 }}>
                           {provider.description}
                         </p>
 
@@ -474,8 +490,13 @@ export default function CustomerPortal() {
                           <button
                             onClick={() => setBookingService({ service: provServices[0], provider })}
                             className="btn btn-primary btn-full btn-sm"
+                            style={{ 
+                              background: provider.isVacationMode ? 'var(--bg-subtle)' : undefined, 
+                              color: provider.isVacationMode ? 'var(--text-muted)' : '#fff',
+                              border: provider.isVacationMode ? '1px solid var(--border-light)' : undefined,
+                            }}
                           >
-                            Book {provServices[0].name.split('/')[0]} <ArrowRight size={14} />
+                            {provider.isVacationMode ? '🏖️ On Vacation (Booking Paused)' : `Book ${provServices[0].name.split('/')[0]}`} <ArrowRight size={14} />
                           </button>
                         </div>
                       )}
@@ -574,15 +595,18 @@ export default function CustomerPortal() {
                           style={{ width: '64px', height: '64px', borderRadius: '12px', objectFit: 'cover' }}
                         />
                         <div style={{ flex: 1 }}>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
                             <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>{provider.businessName}</h3>
                             {provider.status === 'VERIFIED' && (
                               <ShieldCheck size={18} color="var(--accent-emerald)" />
                             )}
+                            {provider.isVacationMode && (
+                              <span className="badge badge-amber" style={{ fontSize: '0.62rem' }}>🏖️ On Vacation</span>
+                            )}
                           </div>
                           <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{provider.categoryName}</div>
 
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.8rem' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '6px', fontSize: '0.78rem', flexWrap: 'wrap' }}>
                             <span style={{ display: 'flex', alignItems: 'center', gap: '4px', fontWeight: 700, color: '#f59e0b' }}>
                               <Star size={14} fill="#f59e0b" color="#f59e0b" />
                               {provider.rating > 0 ? provider.rating : 'New'}
@@ -592,6 +616,9 @@ export default function CustomerPortal() {
                             </span>
                             <span style={{ color: 'var(--text-muted)' }}>
                               • {provider.completedOrders > 0 ? `${provider.completedOrders} orders` : 'New provider'}
+                            </span>
+                            <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
+                              • 🕐 {provider.workingHours?.start || '8 AM'} - {provider.workingHours?.end || '8 PM'}
                             </span>
                           </div>
                         </div>
@@ -737,46 +764,94 @@ export default function CustomerPortal() {
                         </div>
                       </div>
 
-                      {/* State Machine Visual Progression */}
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '16px 0', position: 'relative' }}>
-                        <div style={{ position: 'absolute', top: '12px', left: '10%', right: '10%', height: '2px', background: 'var(--border-light)', zIndex: 0 }}></div>
-                        {[
-                          { state: 'PENDING', label: 'Requested' },
-                          { state: 'ACCEPTED', label: 'Accepted' },
-                          { state: 'SCHEDULED', label: 'Scheduled' },
-                          { state: 'IN_PROGRESS', label: 'In Progress' },
-                          { state: 'COMPLETED', label: 'Completed' },
-                        ].map((step, idx) => {
-                          const stateOrder = ['PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
-                          const currentIdx = stateOrder.indexOf(order.status);
-                          const stepIdx = stateOrder.indexOf(step.state);
-                          const isDone = currentIdx >= stepIdx && order.status !== 'CANCELLED' && order.status !== 'DISPUTED';
-                          const isCurrent = order.status === step.state;
+                      {/* Feature 2: State Machine Visual Progression */}
+                      {order.status === 'REJECTED' ? (
+                        <div style={{ margin: '14px 0', background: '#fff1f2', border: '1.5px solid #fecdd3', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#be123c', fontWeight: 800, fontSize: '0.925rem' }}>
+                            <AlertCircle size={18} /> Request Declined by Provider
+                          </div>
+                          <div style={{ marginTop: '6px', fontSize: '0.85rem', color: '#9f1239' }}>
+                            <strong>Decline Reason:</strong> "{order.rejectionReason || 'Provider is currently at maximum capacity for today.'}"
+                          </div>
+                          <div style={{ marginTop: '8px', fontSize: '0.78rem', color: '#047857', background: '#ecfdf5', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
+                            <CheckCircle2 size={14} /> 100% Escrow refund of ₹{order.totalAmount} has been returned to your original payment method.
+                          </div>
+                          <div style={{ marginTop: '10px' }}>
+                            <button
+                              onClick={() => {
+                                setSelectedCategorySlug('all');
+                                setActiveTab('explore');
+                              }}
+                              className="btn btn-secondary btn-sm"
+                              style={{ fontSize: '0.75rem', background: '#fff' }}
+                            >
+                              Explore Alternative Providers →
+                            </button>
+                          </div>
+                        </div>
+                      ) : order.status === 'REFUNDED' ? (
+                        <div style={{ margin: '14px 0', background: '#ecfdf5', border: '1.5px solid #a7f3d0', borderRadius: 'var(--radius-md)', padding: '14px 16px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#065f46', fontWeight: 800, fontSize: '0.925rem' }}>
+                            <CheckCircle2 size={18} /> Dispute Mediated — 100% Refund Disbursed
+                          </div>
+                          <div style={{ marginTop: '6px', fontSize: '0.82rem', color: '#047857' }}>
+                            The platform society mediation desk reviewed this ticket. Full order payment of ₹{order.totalAmount} has been returned to your account.
+                          </div>
+                        </div>
+                      ) : (
+                        <div style={{ margin: '18px 0' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                            <div style={{ position: 'absolute', top: '13px', left: '8%', right: '8%', height: '3px', background: 'var(--border-light)', zIndex: 0 }}></div>
+                            {[
+                              { state: 'PENDING', label: '1. Placed', desc: 'Escrow Paid' },
+                              { state: 'ACCEPTED', label: '2. Accepted', desc: 'Provider Ready' },
+                              { state: 'SCHEDULED', label: '3. Gate Pass', desc: 'Security Cleared' },
+                              { state: 'IN_PROGRESS', label: '4. Active', desc: 'Doorstep Service' },
+                              { state: 'COMPLETED', label: '5. Done', desc: 'Signed Off' },
+                            ].map((step, idx) => {
+                              const stateOrder = ['PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'];
+                              const currentIdx = stateOrder.indexOf(order.status);
+                              const stepIdx = stateOrder.indexOf(step.state);
+                              const isDone = currentIdx >= stepIdx && order.status !== 'CANCELLED' && order.status !== 'DISPUTED';
+                              const isCurrent = order.status === step.state;
 
-                          return (
-                            <div key={step.state} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', zIndex: 1, position: 'relative' }}>
-                              <div style={{ 
-                                width: '26px', 
-                                height: '26px', 
-                                borderRadius: '50%', 
-                                background: isDone ? 'var(--primary)' : 'var(--bg-subtle)', 
-                                border: isCurrent ? '2px solid var(--primary-hover)' : '1px solid var(--border-light)',
-                                color: isDone ? '#fff' : 'var(--text-muted)',
-                                display: 'flex', 
-                                alignItems: 'center', 
-                                justifyContent: 'center',
-                                fontSize: '0.75rem',
-                                fontWeight: 700
-                              }}>
-                                {isDone ? '✓' : idx + 1}
-                              </div>
-                              <span style={{ fontSize: '0.68rem', fontWeight: isCurrent ? 700 : 500, color: isCurrent ? 'var(--primary)' : 'var(--text-muted)' }}>
-                                {step.label}
-                              </span>
+                              return (
+                                <div key={step.state} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px', zIndex: 1, position: 'relative' }}>
+                                  <div style={{ 
+                                    width: '28px', 
+                                    height: '28px', 
+                                    borderRadius: '50%', 
+                                    background: isDone ? 'var(--primary)' : 'var(--bg-subtle)', 
+                                    border: isCurrent ? '2.5px solid #0f766e' : '1px solid var(--border-light)',
+                                    boxShadow: isCurrent ? '0 0 10px rgba(13, 148, 136, 0.4)' : undefined,
+                                    color: isDone ? '#fff' : 'var(--text-muted)',
+                                    display: 'flex', 
+                                    alignItems: 'center', 
+                                    justifyContent: 'center',
+                                    fontSize: '0.75rem',
+                                    fontWeight: 800
+                                  }}>
+                                    {isDone ? '✓' : idx + 1}
+                                  </div>
+                                  <span style={{ fontSize: '0.72rem', fontWeight: isCurrent ? 800 : 600, color: isCurrent ? 'var(--primary)' : 'var(--text-main)' }}>
+                                    {step.label}
+                                  </span>
+                                  <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', textAlign: 'center' }}>
+                                    {step.desc}
+                                  </span>
+                                </div>
+                              );
+                            })}
+                          </div>
+
+                          {order.status === 'SCHEDULED' && (
+                            <div style={{ marginTop: '12px', background: 'var(--bg-subtle)', padding: '6px 12px', borderRadius: '6px', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--text-muted)' }}>
+                              <ShieldCheck size={14} color="var(--accent-emerald)" />
+                              <span>Society Gate Pass: <strong>GP-2026-{order.orderNumber.slice(-4)}</strong> generated for delivery personnel.</span>
                             </div>
-                          );
-                        })}
-                      </div>
+                          )}
+                        </div>
+                      )}
 
                       {/* Action Buttons */}
                       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '12px', flexWrap: 'wrap' }}>

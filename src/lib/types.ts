@@ -98,6 +98,13 @@ export interface Provider {
   supportedSocieties: string[]; // Society IDs
   startingPrice: number;
   startingPriceUnit: string;
+  workingHours?: {
+    start: string;
+    end: string;
+    daysOff: string[];
+  };
+  isVacationMode?: boolean;
+  vacationReason?: string;
   documents?: {
     type: string;
     url: string;
@@ -163,6 +170,7 @@ export interface Order {
   platformCommission: number;
   providerEarnings: number;
   paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED';
+  rejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }
@@ -242,7 +250,24 @@ export interface Complaint {
   status: ComplaintStatus;
   adminNotes?: string;
   resolution?: string;
+  resolutionType?: 'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED';
+  refundAmount?: number;
+  resolvedAt?: string;
+  resolvedBy?: string;
   createdAt: string;
+}
+
+export interface PayoutRecord {
+  id: string;
+  providerId: string;
+  providerName: string;
+  amount: number;
+  method: 'UPI' | 'BANK_NEFT';
+  accountDetails: string;
+  status: 'PROCESSING' | 'COMPLETED';
+  requestedAt: string;
+  settledAt?: string;
+  referenceId: string;
 }
 
 export interface MarketplaceAnalytics {

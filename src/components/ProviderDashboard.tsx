@@ -2,11 +2,13 @@
 
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { Service, PricingModel, OrderStatus } from '@/lib/types';
+import { Service, PricingModel, OrderStatus, Order } from '@/lib/types';
 import { 
   DollarSign, PackageCheck, Repeat, Star, 
   Calendar, Check, X, Plus, Clock, 
-  MapPin, CheckCircle, ShieldCheck, AlertCircle 
+  MapPin, CheckCircle, ShieldCheck, AlertCircle,
+  FileSpreadsheet, Printer, ArrowDownToLine,
+  Sliders, Palmtree, Coffee, CheckCircle2, User, Phone
 } from 'lucide-react';
 
 export default function ProviderDashboard() {
@@ -16,8 +18,11 @@ export default function ProviderDashboard() {
     orders, 
     services, 
     subscriptions, 
+    payouts,
     commissionRules,
     updateOrderStatus, 
+    updateProviderAvailability,
+    requestPayout,
     addService,
     selectedSociety 
   } = useMarketplace();
@@ -29,15 +34,18 @@ export default function ProviderDashboard() {
   const providerOrders = orders.filter(o => o.providerId === provider.id);
   const providerSubscriptions = subscriptions.filter(s => s.providerId === provider.id);
   const providerServices = services.filter(s => s.providerId === provider.id);
+  const providerPayouts = payouts.filter(p => p.providerId === provider.id);
 
   // Financial aggregates
   const completedOrders = providerOrders.filter(o => o.status === 'COMPLETED');
   const totalGrossEarnings = completedOrders.reduce((acc, o) => acc + o.subtotal, 0);
   const totalCommissionPaid = completedOrders.reduce((acc, o) => acc + o.platformCommission, 0);
-  const netEarnings = completedOrders.reduce((acc, o) => acc + o.providerEarnings, 0);
+  const totalEarned = completedOrders.reduce((acc, o) => acc + o.providerEarnings, 0);
+  const totalWithdrawn = providerPayouts.reduce((acc, p) => acc + p.amount, 0);
+  const withdrawableBalance = Math.max(0, totalEarned - totalWithdrawn);
 
-  // Tab State: 'overview' | 'orders' | 'subscriptions' | 'services' | 'earnings'
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'subscriptions' | 'services' | 'earnings'>('overview');
+  // Tab State: 'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings'
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings'>('overview');
 
   // New Service Modal State
   const [showAddServiceModal, setShowAddServiceModal] = useState<boolean>(false);
@@ -47,6 +55,67 @@ export default function ProviderDashboard() {
   const [newBasePrice, setNewBasePrice] = useState<number>(350);
   const [newUnitName, setNewUnitName] = useState<string>('per service');
   const [isSubscriptionSupported, setIsSubscriptionSupported] = useState<boolean>(false);
+
+  // Feature 10: Reject Order With Reason Modal State
+  const [orderToReject, setOrderToReject] = useState<Order | null>(null);
+  const [rejectionReasonOption, setRejectionReasonOption] = useState<string>('Capacity full / high booking volume today');
+  const [customRejectionText, setCustomRejectionText] = useState<string>('');
+
+  // Feature 9 & 13: Working Hours & Vacation Mode Modal State
+  const [showAvailabilityModal, setShowAvailabilityModal] = useState<boolean>(false);
+  const [workStart, setWorkStart] = useState<string>(provider.workingHours?.start || '08:00 AM');
+  const [workEnd, setWorkEnd] = useState<string>(provider.workingHours?.end || '08:00 PM');
+  const [selectedDaysOff, setSelectedDaysOff] = useState<string[]>(provider.workingHours?.daysOff || ['Sunday']);
+  const [isVacation, setIsVacation] = useState<boolean>(provider.isVacationMode || false);
+  const [vacationNote, setVacationNote] = useState<string>(provider.vacationReason || 'Taking a short personal break. Resuming orders soon.');
+
+  // Feature 11: Payout Request Modal State
+  const [showPayoutModal, setShowPayoutModal] = useState<boolean>(false);
+  const [payoutAmount, setPayoutAmount] = useState<number>(withdrawableBalance > 0 ? withdrawableBalance : 1000);
+  const [payoutMethod, setPayoutMethod] = useState<'UPI' | 'BANK_NEFT'>('UPI');
+  const [payoutDetails, setPayoutDetails] = useState<string>('provider@okhdfcbank');
+
+  // Feature 12: Delivery Sheet Checked IDs
+  const [checkedManifestIds, setCheckedManifestIds] = useState<string[]>([]);
+
+  // Daily Manifest Items (Scheduled orders + active subscriptions)
+  const scheduledOrdersForManifest = providerOrders
+    .filter(o => o.status === 'SCHEDULED' || o.status === 'IN_PROGRESS' || o.status === 'ACCEPTED')
+    .map(o => ({
+      id: o.id,
+      type: 'ORDER' as const,
+      customerName: o.customerName,
+      customerFlat: o.customerFlat,
+      customerPhone: o.customerPhone,
+      serviceName: o.serviceName,
+      slot: o.scheduledSlot,
+      specialInstructions: o.specialInstructions || '',
+      status: o.status,
+    }));
+
+  const subscriptionsForManifest = providerSubscriptions
+    .filter(s => s.status === 'ACTIVE')
+    .map(s => ({
+      id: s.id,
+      type: 'SUBSCRIPTION' as const,
+      customerName: s.customerName,
+      customerFlat: s.customerFlat,
+      customerPhone: '+91 98765 43210',
+      serviceName: `${s.serviceName} (${s.frequency})`,
+      slot: s.scheduledTimeSlot,
+      specialInstructions: 'Daily recurring doorstep delivery',
+      status: 'SCHEDULED' as OrderStatus,
+    }));
+
+  const allManifestItems = [...scheduledOrdersForManifest, ...subscriptionsForManifest].sort((a, b) => {
+    return a.customerFlat.localeCompare(b.customerFlat);
+  });
+
+  const toggleManifestCheck = (id: string) => {
+    setCheckedManifestIds(prev => 
+      prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+    );
+  };
 
   const handleCreateService = (e: React.FormEvent) => {
     e.preventDefault();
@@ -69,12 +138,56 @@ export default function ProviderDashboard() {
     setNewServiceDesc('');
   };
 
+  // Submit Rejection
+  const handleConfirmRejection = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!orderToReject) return;
+    const finalReason = rejectionReasonOption === 'Other' && customRejectionText.trim()
+      ? customRejectionText.trim()
+      : rejectionReasonOption;
+
+    updateOrderStatus(orderToReject.id, 'REJECTED', undefined, finalReason);
+    setOrderToReject(null);
+    setCustomRejectionText('');
+  };
+
+  // Save Availability & Vacation
+  const handleSaveAvailability = (e: React.FormEvent) => {
+    e.preventDefault();
+    updateProviderAvailability(
+      provider.id,
+      {
+        start: workStart,
+        end: workEnd,
+        daysOff: selectedDaysOff,
+      },
+      isVacation,
+      isVacation ? vacationNote : undefined
+    );
+    setShowAvailabilityModal(false);
+  };
+
+  // Submit Payout Request
+  const handleRequestPayoutSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (payoutAmount <= 0) return;
+    requestPayout(provider.id, Number(payoutAmount), payoutMethod, payoutDetails);
+    setShowPayoutModal(false);
+  };
+
+  const toggleDayOff = (day: string) => {
+    setSelectedDaysOff(prev => 
+      prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+    );
+  };
+
   return (
-    <div style={{ paddingBottom: '60px' }}>
+    <div style={{ paddingBottom: '70px' }}>
       
       {/* Provider Header Banner */}
       <div style={{ background: '#fff', borderBottom: '1px solid var(--border-light)', padding: '20px 0' }}>
         <div className="container" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+          
           <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
             <img 
               src={provider.avatarUrl || 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=120'} 
@@ -82,19 +195,38 @@ export default function ProviderDashboard() {
               style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
             />
             <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '1.35rem', fontWeight: 800 }}>{provider.businessName}</h1>
                 <span className={`badge ${provider.status === 'VERIFIED' ? 'badge-emerald' : 'badge-amber'}`} style={{ fontSize: '0.7rem' }}>
                   {provider.status}
                 </span>
+
+                {/* Feature 9 & 13: Live Vacation & Availability Badge */}
+                {provider.isVacationMode ? (
+                  <span className="badge badge-amber" style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <Palmtree size={12} /> Vacation Mode (Paused)
+                  </span>
+                ) : (
+                  <span className="badge badge-emerald" style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    <CheckCircle2 size={12} /> Open ({provider.workingHours?.start || '8 AM'} - {provider.workingHours?.end || '8 PM'})
+                  </span>
+                )}
               </div>
-              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
+
+              <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                 <span>{provider.categoryName}</span>
                 <span>•</span>
                 <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
                   <MapPin size={13} color="var(--primary)" />
                   Serving {selectedSociety.name}
                 </span>
+                <span>•</span>
+                <button
+                  onClick={() => setShowAvailabilityModal(true)}
+                  style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                >
+                  <Sliders size={13} /> Edit Hours & Vacation
+                </button>
               </div>
             </div>
           </div>
@@ -103,12 +235,14 @@ export default function ProviderDashboard() {
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {[
               { id: 'overview', label: 'Overview' },
-              { id: 'orders', label: `Orders (${providerOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED').length} active)` },
-              { id: 'subscriptions', label: `Recurring Subscriptions (${providerSubscriptions.length})` },
-              { id: 'services', label: `My Services (${providerServices.length})` },
-              { id: 'earnings', label: 'Earnings & Commission' },
+              { id: 'orders', label: `Orders (${providerOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED' && o.status !== 'REJECTED').length} active)` },
+              { id: 'manifest', label: `Delivery Sheet (${allManifestItems.length})`, icon: FileSpreadsheet },
+              { id: 'subscriptions', label: `Subscriptions (${providerSubscriptions.length})` },
+              { id: 'services', label: `Services (${providerServices.length})` },
+              { id: 'earnings', label: `Earnings (₹${withdrawableBalance.toLocaleString()})` },
             ].map(tab => {
               const isActive = activeTab === tab.id;
+              const TabIcon = tab.icon;
               return (
                 <button
                   key={tab.id}
@@ -116,11 +250,13 @@ export default function ProviderDashboard() {
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
                   style={{ borderRadius: '8px', fontSize: '0.8rem' }}
                 >
+                  {TabIcon && <TabIcon size={13} />}
                   {tab.label}
                 </button>
               );
             })}
           </div>
+
         </div>
       </div>
 
@@ -132,18 +268,50 @@ export default function ProviderDashboard() {
         {activeTab === 'overview' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
             
+            {/* Vacation Alert Banner if Active */}
+            {provider.isVacationMode && (
+              <div style={{ background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: 'var(--radius-md)', padding: '16px 20px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '10px', background: '#f59e0b', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Palmtree size={22} />
+                  </div>
+                  <div>
+                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#92400e' }}>
+                      Vacation Mode is Currently ACTIVE
+                    </h3>
+                    <p style={{ fontSize: '0.825rem', color: '#b45309', margin: '2px 0 0' }}>
+                      "{provider.vacationReason || 'Not accepting new orders'}" — Residents are informed and booking is paused.
+                    </p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowAvailabilityModal(true)}
+                  className="btn btn-dark btn-sm"
+                >
+                  Resume Taking Bookings
+                </button>
+              </div>
+            )}
+
             {/* KPI Cards */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
               <div className="card">
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)' }}>
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>NET PAYOUT EARNINGS</span>
+                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>AVAILABLE PAYOUT</span>
                   <DollarSign size={18} color="var(--accent-emerald)" />
                 </div>
                 <div style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '8px', color: 'var(--accent-emerald)' }}>
-                  ₹{netEarnings.toFixed(2)}
+                  ₹{withdrawableBalance.toLocaleString()}
                 </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Gross GMV: ₹{totalGrossEarnings.toFixed(2)} • Take-rate: 10%
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '8px' }}>
+                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Lifetime: ₹{totalEarned.toLocaleString()}</span>
+                  <button 
+                    onClick={() => { setActiveTab('earnings'); setShowPayoutModal(true); }}
+                    className="btn btn-primary btn-sm" 
+                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                  >
+                    Withdraw
+                  </button>
                 </div>
               </div>
 
@@ -169,7 +337,7 @@ export default function ProviderDashboard() {
                   {providerSubscriptions.filter(s => s.status === 'ACTIVE').length}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  Monthly Recurring Revenue: ₹{providerSubscriptions.reduce((acc, s) => acc + s.monthlyPrice, 0).toLocaleString()}
+                  MRR: ₹{providerSubscriptions.reduce((acc, s) => acc + s.monthlyPrice, 0).toLocaleString()} /mo
                 </div>
               </div>
 
@@ -189,12 +357,12 @@ export default function ProviderDashboard() {
 
             {/* Quick Pending Requests Alert */}
             {providerOrders.filter(o => o.status === 'PENDING').length > 0 && (
-              <div style={{ background: 'var(--accent-amber-light)', border: '1px solid var(--accent-amber)', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ background: 'var(--accent-amber-light)', border: '1px solid var(--accent-amber)', padding: '16px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                   <AlertCircle size={22} color="var(--accent-amber)" />
                   <div>
                     <strong>You have {providerOrders.filter(o => o.status === 'PENDING').length} new booking request(s) awaiting your action!</strong>
-                    <div style={{ fontSize: '0.8rem', color: '#78350f' }}>Please accept or schedule promptly to maintain your high reliability score.</div>
+                    <div style={{ fontSize: '0.8rem', color: '#78350f' }}>Please accept or decline promptly with a clear reason to maintain your 98%+ reliability score.</div>
                   </div>
                 </div>
                 <button onClick={() => setActiveTab('orders')} className="btn btn-dark btn-sm">
@@ -203,46 +371,53 @@ export default function ProviderDashboard() {
               </div>
             )}
 
-            {/* Upcoming Schedule Today */}
+            {/* Today's Schedule & Quick Manifest Widget */}
             <div className="card">
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '14px' }}>
-                Today's Fulfillment Schedule in {selectedSociety.name}
-              </h3>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
+                    Today's Fulfillment Schedule in {selectedSociety.name}
+                  </h3>
+                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                    {allManifestItems.length} deliveries & scheduled visits planned
+                  </div>
+                </div>
+                <button
+                  onClick={() => setActiveTab('manifest')}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <FileSpreadsheet size={14} /> Open Full Delivery Sheet
+                </button>
+              </div>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {providerOrders.filter(o => o.status === 'SCHEDULED' || o.status === 'IN_PROGRESS').map(order => (
-                  <div key={order.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)' }}>
+                {allManifestItems.slice(0, 4).map(item => (
+                  <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-subtle)', padding: '12px 16px', borderRadius: 'var(--radius-md)' }}>
                     <div>
-                      <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>{order.customerName} ({order.customerFlat})</div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Slot: {order.scheduledSlot} • Service: {order.serviceName}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>{item.customerFlat}</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>• {item.customerName}</span>
+                        <span className="badge badge-slate" style={{ fontSize: '0.65rem' }}>{item.type}</span>
+                      </div>
+                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                        Slot: <strong>{item.slot}</strong> • Service: {item.serviceName}
                       </div>
                     </div>
 
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      {order.status === 'SCHEDULED' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')}
-                          className="btn btn-secondary btn-sm"
-                        >
-                          Start Service
-                        </button>
-                      )}
-                      {order.status === 'IN_PROGRESS' && (
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'COMPLETED')}
-                          className="btn btn-primary btn-sm"
-                        >
-                          Mark Completed
-                        </button>
-                      )}
-                    </div>
+                    <button
+                      onClick={() => toggleManifestCheck(item.id)}
+                      className={`btn btn-sm ${checkedManifestIds.includes(item.id) ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.75rem', padding: '4px 10px' }}
+                    >
+                      {checkedManifestIds.includes(item.id) ? '✓ Completed' : 'Mark Done'}
+                    </button>
                   </div>
                 ))}
 
-                {providerOrders.filter(o => o.status === 'SCHEDULED' || o.status === 'IN_PROGRESS').length === 0 && (
+                {allManifestItems.length === 0 && (
                   <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '24px 0', fontSize: '0.85rem' }}>
-                    No pending orders scheduled for today. New requests will appear here immediately.
+                    No pending orders or subscriptions scheduled for today. New requests will appear here automatically.
                   </div>
                 )}
               </div>
@@ -260,7 +435,7 @@ export default function ProviderDashboard() {
               <div>
                 <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Orders Pipeline & Management</h2>
                 <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Accept incoming requests, manage scheduling, and mark completed jobs.
+                  Accept incoming requests, provide cancellation/rejection reasons, and confirm fulfillment.
                 </p>
               </div>
             </div>
@@ -272,10 +447,16 @@ export default function ProviderDashboard() {
                     <div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>Order #{order.orderNumber}</span>
-                        <span className="badge badge-blue">{order.status.replace('_', ' ')}</span>
+                        <span className={`badge ${
+                          order.status === 'COMPLETED' ? 'badge-emerald' : 
+                          order.status === 'REJECTED' || order.status === 'CANCELLED' ? 'badge-rose' : 
+                          order.status === 'PENDING' ? 'badge-amber' : 'badge-blue'
+                        }`}>
+                          {order.status.replace('_', ' ')}
+                        </span>
                       </div>
                       <div style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '4px' }}>
-                        Customer: <strong>{order.customerName}</strong> ({order.customerFlat}) • Phone: {order.customerPhone}
+                        Customer: <strong>{order.customerName}</strong> ({order.customerFlat}) • Phone: <a href={`tel:${order.customerPhone}`} style={{ color: 'var(--primary)', fontWeight: 600 }}>{order.customerPhone}</a>
                       </div>
                       <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                         Service: {order.serviceName} • Model: {order.pricingModel} • Qty: {order.itemQuantity}
@@ -287,7 +468,7 @@ export default function ProviderDashboard() {
                         Total: ₹{order.totalAmount}
                       </div>
                       <span style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', fontWeight: 600 }}>
-                        Your Net Payout: ₹{order.providerEarnings}
+                        Your Net Payout: ₹{order.providerEarnings.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -298,16 +479,23 @@ export default function ProviderDashboard() {
                     </div>
                   )}
 
+                  {/* Feature 10: Display Rejection Reason if Rejected */}
+                  {order.status === 'REJECTED' && order.rejectionReason && (
+                    <div style={{ margin: '10px 0', background: '#ffe4e6', border: '1px solid #fecdd3', padding: '8px 12px', borderRadius: '6px', fontSize: '0.8rem', color: '#be123c' }}>
+                      <strong>Decline Reason Provided:</strong> "{order.rejectionReason}" (100% Escrow Refunded to Customer)
+                    </div>
+                  )}
+
                   {/* Provider Order Action Buttons */}
-                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '12px', marginTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '12px', marginTop: '10px', flexWrap: 'wrap' }}>
                     {order.status === 'PENDING' && (
                       <>
                         <button
-                          onClick={() => updateOrderStatus(order.id, 'REJECTED')}
+                          onClick={() => setOrderToReject(order)}
                           className="btn btn-secondary btn-sm"
                           style={{ color: 'var(--accent-rose)' }}
                         >
-                          <X size={14} /> Reject Request
+                          <X size={14} /> Decline with Reason
                         </button>
                         <button
                           onClick={() => updateOrderStatus(order.id, 'ACCEPTED')}
@@ -353,6 +541,123 @@ export default function ProviderDashboard() {
                   </div>
                 </div>
               ))}
+
+              {providerOrders.length === 0 && (
+                <div className="card" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}>
+                  <PackageCheck size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                  <p>No customer orders received yet.</p>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* ============================================================== */}
+        {/* FEATURE 12: BULK DELIVERY SHEET / MANIFEST TAB */}
+        {/* ============================================================== */}
+        {activeTab === 'manifest' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Daily Gate & Tower Delivery Sheet</h2>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Sorted sequentially by Tower & Flat for fast, error-free doorstep fulfillment.
+                </p>
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={() => window.print()}
+                  className="btn btn-secondary btn-sm"
+                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Printer size={14} /> Print Manifest
+                </button>
+              </div>
+            </div>
+
+            {/* Manifest Progress Summary */}
+            <div className="card" style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
+                <div>
+                  <strong style={{ color: 'var(--primary-hover)', fontSize: '0.95rem' }}>
+                    {checkedManifestIds.length} of {allManifestItems.length} Doorsteps Fulfilled Today
+                  </strong>
+                  <div style={{ fontSize: '0.8rem', color: '#115e59' }}>
+                    Greenfield Heights Security Checkpoint Pass Active
+                  </div>
+                </div>
+                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)' }}>
+                  {allManifestItems.length > 0 ? Math.round((checkedManifestIds.length / allManifestItems.length) * 100) : 0}% Done
+                </div>
+              </div>
+            </div>
+
+            {/* Manifest Table */}
+            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                <thead>
+                  <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                    <th style={{ padding: '12px 14px', width: '40px' }}>Done</th>
+                    <th style={{ padding: '12px 14px' }}>Flat / Tower</th>
+                    <th style={{ padding: '12px 14px' }}>Resident Name</th>
+                    <th style={{ padding: '12px 14px' }}>Service & Plan</th>
+                    <th style={{ padding: '12px 14px' }}>Preferred Slot</th>
+                    <th style={{ padding: '12px 14px' }}>Delivery Instructions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {allManifestItems.map(item => {
+                    const isDone = checkedManifestIds.includes(item.id);
+                    return (
+                      <tr 
+                        key={item.id} 
+                        style={{ 
+                          borderBottom: '1px solid var(--border-light)',
+                          background: isDone ? 'rgba(209, 250, 229, 0.3)' : 'transparent',
+                          transition: 'background 0.2s ease'
+                        }}
+                      >
+                        <td style={{ padding: '12px 14px' }}>
+                          <input
+                            type="checkbox"
+                            checked={isDone}
+                            onChange={() => toggleManifestCheck(item.id)}
+                            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                          />
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: 800, color: 'var(--primary)' }}>
+                          {item.customerFlat}
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div style={{ fontWeight: 600 }}>{item.customerName}</div>
+                          <a href={`tel:${item.customerPhone}`} style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {item.customerPhone}
+                          </a>
+                        </td>
+                        <td style={{ padding: '12px 14px' }}>
+                          <div>{item.serviceName}</div>
+                          <span className="badge badge-slate" style={{ fontSize: '0.62rem' }}>{item.type}</span>
+                        </td>
+                        <td style={{ padding: '12px 14px', fontWeight: 600 }}>
+                          {item.slot}
+                        </td>
+                        <td style={{ padding: '12px 14px', fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          {item.specialInstructions || 'Direct doorstep handover'}
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {allManifestItems.length === 0 && (
+                    <tr>
+                      <td colSpan={6} style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}>
+                        No delivery tasks scheduled for today. New orders will automatically populate here.
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
             </div>
           </div>
         )}
@@ -365,7 +670,7 @@ export default function ProviderDashboard() {
             <div>
               <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Recurring Resident Subscriptions</h2>
               <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Society residents subscribed to your recurring delivery or maintenance plans.
+                Society residents subscribed to your recurring daily tiffin, laundry pickup, or car wash plans.
               </p>
             </div>
 
@@ -391,12 +696,23 @@ export default function ProviderDashboard() {
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button className="btn btn-secondary btn-sm" style={{ fontSize: '0.75rem' }}>
-                      Mark Delivered for Today
+                    <button 
+                      onClick={() => toggleManifestCheck(sub.id)}
+                      className={`btn btn-sm ${checkedManifestIds.includes(sub.id) ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.75rem' }}
+                    >
+                      {checkedManifestIds.includes(sub.id) ? '✓ Delivered Today' : 'Mark Delivered for Today'}
                     </button>
                   </div>
                 </div>
               ))}
+
+              {providerSubscriptions.length === 0 && (
+                <div className="card" style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)', gridColumn: '1 / -1' }}>
+                  <Repeat size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
+                  <p>No active subscriptions yet.</p>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -455,62 +771,441 @@ export default function ProviderDashboard() {
         )}
 
         {/* ============================================================== */}
-        {/* EARNINGS & COMMISSION LEDGER */}
+        {/* FEATURE 11: EARNINGS & PAYOUT WITHDRAWAL LEDGER */}
         {/* ============================================================== */}
         {activeTab === 'earnings' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Financial Ledger & Platform Commission</h2>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Transparent transaction records with breakdown of Gross Amount, Platform Commission %, and Net Bank Transfer.
-              </p>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Financial Ledger & Bank Payouts</h2>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Transparent net earnings after 10% platform take-rate with on-demand UPI / NEFT bank withdrawals.
+                </p>
+              </div>
+
+              <button
+                onClick={() => setShowPayoutModal(true)}
+                className="btn btn-primary"
+                disabled={withdrawableBalance <= 0}
+              >
+                <ArrowDownToLine size={16} /> Request Bank Payout (₹{withdrawableBalance.toLocaleString()})
+              </button>
             </div>
 
-            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
-                <thead>
-                  <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '12px 16px' }}>Order #</th>
-                    <th style={{ padding: '12px 16px' }}>Resident Flat</th>
-                    <th style={{ padding: '12px 16px' }}>Gross GMV</th>
-                    <th style={{ padding: '12px 16px' }}>Platform Take Rate</th>
-                    <th style={{ padding: '12px 16px' }}>Net Provider Payout</th>
-                    <th style={{ padding: '12px 16px' }}>Payout Status</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {completedOrders.map(order => (
-                    <tr key={order.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                      <td style={{ padding: '12px 16px', fontWeight: 700 }}>{order.orderNumber}</td>
-                      <td style={{ padding: '12px 16px' }}>{order.customerFlat}</td>
-                      <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{order.subtotal.toFixed(2)}</td>
-                      <td style={{ padding: '12px 16px', color: 'var(--accent-amber)' }}>
-                        {order.commissionPercentage}% (-₹{order.platformCommission.toFixed(2)})
-                      </td>
-                      <td style={{ padding: '12px 16px', fontWeight: 800, color: 'var(--accent-emerald)' }}>
-                        ₹{order.providerEarnings.toFixed(2)}
-                      </td>
-                      <td style={{ padding: '12px 16px' }}>
-                        <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
-                          Settled to Bank
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {completedOrders.length === 0 && (
-                    <tr>
-                      <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
-                        No completed orders yet. Completed orders will appear in your payout ledger.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
+            {/* Payout Summary Cards */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '14px' }}>
+              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>GROSS GMV BILLED</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '4px' }}>₹{totalGrossEarnings.toFixed(2)}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Across {completedOrders.length} completed orders</div>
+              </div>
+
+              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>PLATFORM COMMISSION (10%)</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '4px', color: 'var(--accent-amber)' }}>-₹{totalCommissionPaid.toFixed(2)}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>Includes Razorpay PG & escrow fees</div>
+              </div>
+
+              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>TOTAL WITHDRAWN TO BANK</span>
+                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '4px' }}>₹{totalWithdrawn.toLocaleString()}</div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>{providerPayouts.length} past transfers</div>
+              </div>
+
+              <div className="card" style={{ background: '#ecfdf5', borderColor: 'var(--accent-emerald)' }}>
+                <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 700 }}>AVAILABLE FOR WITHDRAWAL</span>
+                <div style={{ fontSize: '1.5rem', fontWeight: 800, marginTop: '4px', color: 'var(--accent-emerald)' }}>₹{withdrawableBalance.toFixed(2)}</div>
+                <div style={{ fontSize: '0.72rem', color: '#047857', marginTop: '2px' }}>Direct UPI / NEFT transfer</div>
+              </div>
             </div>
+
+            {/* Payout History Ledger */}
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Bank Transfer History</h3>
+              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '12px 16px' }}>Reference #</th>
+                      <th style={{ padding: '12px 16px' }}>Amount</th>
+                      <th style={{ padding: '12px 16px' }}>Method</th>
+                      <th style={{ padding: '12px 16px' }}>Account / UPI Details</th>
+                      <th style={{ padding: '12px 16px' }}>Date</th>
+                      <th style={{ padding: '12px 16px' }}>Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {providerPayouts.map(pay => (
+                      <tr key={pay.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700 }}>{pay.referenceId}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 800, color: 'var(--accent-emerald)' }}>₹{pay.amount.toLocaleString()}</td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span className="badge badge-slate" style={{ fontSize: '0.7rem' }}>{pay.method}</span>
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>{pay.accountDetails}</td>
+                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
+                          {new Date(pay.requestedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                            {pay.status === 'COMPLETED' ? 'Settled to Account' : 'Processing (Within 2 hrs)'}
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {providerPayouts.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                          No past withdrawals yet. When you request a payout, transaction records will appear here.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            {/* Completed Orders Detailed Breakdown */}
+            <div>
+              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Itemized Order Earnings</h3>
+              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '12px 16px' }}>Order #</th>
+                      <th style={{ padding: '12px 16px' }}>Resident Flat</th>
+                      <th style={{ padding: '12px 16px' }}>Gross GMV</th>
+                      <th style={{ padding: '12px 16px' }}>Platform Take Rate</th>
+                      <th style={{ padding: '12px 16px' }}>Net Provider Payout</th>
+                      <th style={{ padding: '12px 16px' }}>Disbursement</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {completedOrders.map(order => (
+                      <tr key={order.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                        <td style={{ padding: '12px 16px', fontWeight: 700 }}>{order.orderNumber}</td>
+                        <td style={{ padding: '12px 16px' }}>{order.customerFlat}</td>
+                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>₹{order.subtotal.toFixed(2)}</td>
+                        <td style={{ padding: '12px 16px', color: 'var(--accent-amber)' }}>
+                          {order.commissionPercentage}% (-₹{order.platformCommission.toFixed(2)})
+                        </td>
+                        <td style={{ padding: '12px 16px', fontWeight: 800, color: 'var(--accent-emerald)' }}>
+                          ₹{order.providerEarnings.toFixed(2)}
+                        </td>
+                        <td style={{ padding: '12px 16px' }}>
+                          <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                            Settled in Escrow
+                          </span>
+                        </td>
+                      </tr>
+                    ))}
+                    {completedOrders.length === 0 && (
+                      <tr>
+                        <td colSpan={6} style={{ textAlign: 'center', padding: '24px', color: 'var(--text-muted)' }}>
+                          No completed orders yet.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
           </div>
         )}
 
       </div>
+
+      {/* Feature 10: Decline Order Modal */}
+      {orderToReject && (
+        <div className="modal-overlay" onClick={() => setOrderToReject(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-rose)' }}>Decline Booking Request</h3>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Order #{orderToReject.orderNumber} • {orderToReject.customerName} ({orderToReject.customerFlat})
+                </div>
+              </div>
+              <button onClick={() => setOrderToReject(null)} style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
+              Please provide a clear reason. The resident will be notified immediately and their payment escrow will be 100% refunded.
+            </p>
+
+            <form onSubmit={handleConfirmRejection} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="form-label">Select Reason for Declining</label>
+                <select
+                  value={rejectionReasonOption}
+                  onChange={(e) => setRejectionReasonOption(e.target.value)}
+                  className="form-input"
+                >
+                  <option value="Capacity full / high booking volume today">Capacity full / high booking volume today</option>
+                  <option value="Equipment or machinery under scheduled maintenance">Equipment or machinery under scheduled maintenance</option>
+                  <option value="Requested time slot is outside our operational hours">Requested time slot is outside our operational hours</option>
+                  <option value="Resident flat address inaccessible or outside service wing">Resident flat address inaccessible or outside service wing</option>
+                  <option value="On emergency leave / holiday">On emergency leave / holiday</option>
+                  <option value="Other">Other reason (describe below)...</option>
+                </select>
+              </div>
+
+              {rejectionReasonOption === 'Other' && (
+                <div>
+                  <label className="form-label">Describe Specific Reason</label>
+                  <textarea
+                    rows={3}
+                    placeholder="e.g. Our delivery van had a flat tire this afternoon..."
+                    value={customRejectionText}
+                    onChange={(e) => setCustomRejectionText(e.target.value)}
+                    className="form-input"
+                    required
+                  />
+                </div>
+              )}
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setOrderToReject(null)}
+                  className="btn btn-secondary btn-full"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                  style={{ background: 'var(--accent-rose)', borderColor: 'var(--accent-rose)' }}
+                >
+                  Confirm Decline
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 9 & 13: Availability & Vacation Mode Modal */}
+      {showAvailabilityModal && (
+        <div className="modal-overlay" onClick={() => setShowAvailabilityModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Operating Hours & Vacation Mode</h3>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Control when society residents can book your services
+                </div>
+              </div>
+              <button onClick={() => setShowAvailabilityModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleSaveAvailability} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
+              
+              {/* Vacation Mode Toggle */}
+              <div style={{ background: isVacation ? '#fef3c7' : 'var(--bg-subtle)', border: `1.5px solid ${isVacation ? '#f59e0b' : 'var(--border-light)'}`, borderRadius: 'var(--radius-md)', padding: '16px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Palmtree size={22} color={isVacation ? '#b45309' : 'var(--text-muted)'} />
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: '0.95rem', color: isVacation ? '#92400e' : 'var(--text-main)' }}>
+                        Vacation / Pause Mode
+                      </div>
+                      <div style={{ fontSize: '0.78rem', color: isVacation ? '#b45309' : 'var(--text-muted)' }}>
+                        Temporarily pause new customer bookings without cancelling recurring subscriptions.
+                      </div>
+                    </div>
+                  </div>
+                  <input
+                    type="checkbox"
+                    checked={isVacation}
+                    onChange={(e) => setIsVacation(e.target.checked)}
+                    style={{ width: '22px', height: '22px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                  />
+                </div>
+
+                {isVacation && (
+                  <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid #fde68a' }}>
+                    <label className="form-label" style={{ color: '#92400e' }}>Customer Notice</label>
+                    <input
+                      type="text"
+                      value={vacationNote}
+                      onChange={(e) => setVacationNote(e.target.value)}
+                      placeholder="e.g. Taking leave for Diwali holidays. Reopening on Tuesday."
+                      className="form-input"
+                      style={{ background: '#fff' }}
+                      required={isVacation}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Working Hours Settings */}
+              <div>
+                <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px' }}>Daily Working Hours</h4>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                  <div>
+                    <label className="form-label">Opening Time</label>
+                    <select
+                      value={workStart}
+                      onChange={(e) => setWorkStart(e.target.value)}
+                      className="form-input"
+                    >
+                      <option value="06:00 AM">06:00 AM (Early)</option>
+                      <option value="07:00 AM">07:00 AM</option>
+                      <option value="08:00 AM">08:00 AM</option>
+                      <option value="09:00 AM">09:00 AM</option>
+                      <option value="10:00 AM">10:00 AM</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="form-label">Closing Time</label>
+                    <select
+                      value={workEnd}
+                      onChange={(e) => setWorkEnd(e.target.value)}
+                      className="form-input"
+                    >
+                      <option value="06:00 PM">06:00 PM</option>
+                      <option value="07:00 PM">07:00 PM</option>
+                      <option value="08:00 PM">08:00 PM</option>
+                      <option value="09:00 PM">09:00 PM</option>
+                      <option value="10:00 PM">10:00 PM</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Weekly Off Days */}
+              <div>
+                <label className="form-label">Designated Weekly Off Days</label>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                  {['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'].map(day => {
+                    const isOff = selectedDaysOff.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        onClick={() => toggleDayOff(day)}
+                        className={`btn btn-sm ${isOff ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{ fontSize: '0.75rem', padding: '6px 10px', borderRadius: '20px' }}
+                      >
+                        {day} {isOff ? '✓ Off' : ''}
+                      </button>
+                    );
+                  })}
+                </div>
+                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                  Residents will not be able to book service slots on designated off days.
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowAvailabilityModal(false)}
+                  className="btn btn-secondary btn-full"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                >
+                  Save Schedule
+                </button>
+              </div>
+
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Feature 11: Request Payout Withdrawal Modal */}
+      {showPayoutModal && (
+        <div className="modal-overlay" onClick={() => setShowPayoutModal(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Request Bank Payout</h3>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
+                  Direct transfer from platform escrow to your account
+                </div>
+              </div>
+              <button onClick={() => setShowPayoutModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+            </div>
+
+            <form onSubmit={handleRequestPayoutSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div style={{ background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Available Balance:</span>
+                <span style={{ fontSize: '1.2rem', fontWeight: 800, color: 'var(--accent-emerald)' }}>₹{withdrawableBalance.toLocaleString()}</span>
+              </div>
+
+              <div>
+                <label className="form-label">Withdrawal Amount (₹)</label>
+                <input
+                  type="number"
+                  min={100}
+                  max={withdrawableBalance}
+                  value={payoutAmount}
+                  onChange={(e) => setPayoutAmount(Number(e.target.value))}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Payout Method</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button
+                    type="button"
+                    onClick={() => { setPayoutMethod('UPI'); setPayoutDetails('provider@okhdfcbank'); }}
+                    className={`btn btn-sm ${payoutMethod === 'UPI' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1 }}
+                  >
+                    UPI Transfer (Instant)
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setPayoutMethod('BANK_NEFT'); setPayoutDetails('HDFC Bank - A/C 9928192849 (IFSC: HDFC000124)'); }}
+                    className={`btn btn-sm ${payoutMethod === 'BANK_NEFT' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1 }}
+                  >
+                    NEFT / IMPS Bank
+                  </button>
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label">{payoutMethod === 'UPI' ? 'UPI ID (VPA)' : 'Bank Account Details & IFSC'}</label>
+                <input
+                  type="text"
+                  value={payoutDetails}
+                  onChange={(e) => setPayoutDetails(e.target.value)}
+                  placeholder={payoutMethod === 'UPI' ? 'e.g. mobile@upi or name@okaxis' : 'e.g. A/C 123456789, IFSC: SBIN0001234'}
+                  className="form-input"
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                <button
+                  type="button"
+                  onClick={() => setShowPayoutModal(false)}
+                  className="btn btn-secondary btn-full"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="btn btn-primary btn-full"
+                >
+                  Confirm & Transfer ₹{payoutAmount.toLocaleString()}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Service Modal */}
       {showAddServiceModal && (
