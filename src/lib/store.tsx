@@ -6,8 +6,11 @@ import {
   Subscription, Coupon, CommissionRule, Review, Complaint, 
   PricingModel, OrderStatus, SubscriptionStatus, ComplaintStatus,
   UserProfile, SocietyNotice, NoticeType, PayoutRecord,
-  WalletTransaction, ChatMessage, PlatformFeeRules, CommissionReason
+  WalletTransaction, ChatMessage, PlatformFeeRules, CommissionReason,
+  ProviderLocation, CoverageMode, SocietyServiceRequest
 } from './types';
+import { isSocietyCovered, calculateTravelCharge, calculateHaversineDistance } from './geo';
+export { isSocietyCovered, calculateTravelCharge, calculateHaversineDistance };
 import { 
   INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS, 
   INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS, 
@@ -42,6 +45,14 @@ interface MarketplaceContextType {
     documentType: string; 
     documentName: string;
     acceptedTerms: boolean;
+    baseLocation?: ProviderLocation;
+    maxServiceDistanceKm?: number;
+    coverageMode?: CoverageMode;
+    excludedSocietyIds?: string[];
+    maxOrdersPerDay?: number;
+    freeServiceRadiusKm?: number;
+    travelChargePerKm?: number;
+    maxTravelCharge?: number;
   }) => void;
 
   // Active Society & Provider
@@ -86,6 +97,7 @@ interface MarketplaceContextType {
     subtotal: number;
     couponCode?: string;
     walletAmountToUse?: number;
+    travelCharge?: number;
     isSubscription?: boolean;
     subscriptionFrequency?: any;
   }) => { success: boolean; orderId?: string; orderNumber?: string; message: string };
@@ -121,6 +133,22 @@ interface MarketplaceContextType {
     isVacationMode: boolean,
     vacationReason?: string
   ) => void;
+  updateProviderServiceArea: (
+    providerId: string,
+    data: {
+      baseLocation?: ProviderLocation;
+      maxServiceDistanceKm?: number;
+      coverageMode?: CoverageMode;
+      supportedSocieties?: string[];
+      excludedSocietyIds?: string[];
+      maxOrdersPerDay?: number;
+      freeServiceRadiusKm?: number;
+      travelChargePerKm?: number;
+      maxTravelCharge?: number;
+    }
+  ) => void;
+  serviceRequests: SocietyServiceRequest[];
+  createServiceRequest: (params: { societyId: string; societyName: string; categoryId: string; categoryName: string; notes?: string }) => { success: boolean; message: string };
   addService: (newService: Omit<Service, 'id'>) => void;
   requestPayout: (
     providerId: string, 
@@ -173,6 +201,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [selectedSociety, setSelectedSociety] = useState<Society>(INITIAL_SOCIETIES[0]);
   const [categories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [providers, setProviders] = useState<Provider[]>(INITIAL_PROVIDERS);
+  const [serviceRequests, setServiceRequests] = useState<SocietyServiceRequest[]>([]);
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(INITIAL_SUBSCRIPTIONS);
@@ -214,7 +243,31 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       if (savedSubs) setSubscriptions(JSON.parse(savedSubs));
 
       const savedProviders = localStorage.getItem('hg_providers');
-      if (savedProviders) setProviders(JSON.parse(savedProviders));
+      if (savedProviders) {
+        const parsed = JSON.parse(savedProviders);
+        const merged = parsed.map((p: any) => {
+          const init = INITIAL_PROVIDERS.find(ip => ip.id === p.id);
+          if (init && !p.baseLocation) {
+            return {
+              ...init,
+              ...p,
+              baseLocation: init.baseLocation,
+              maxServiceDistanceKm: init.maxServiceDistanceKm,
+              coverageMode: init.coverageMode,
+              excludedSocietyIds: init.excludedSocietyIds || [],
+              maxOrdersPerDay: init.maxOrdersPerDay,
+              freeServiceRadiusKm: init.freeServiceRadiusKm,
+              travelChargePerKm: init.travelChargePerKm,
+              maxTravelCharge: init.maxTravelCharge
+            };
+          }
+          return p;
+        });
+        setProviders(merged);
+      }
+
+      const savedRequests = localStorage.getItem('hg_service_requests');
+      if (savedRequests) setServiceRequests(JSON.parse(savedRequests));
 
       const savedServices = localStorage.getItem('hg_services');
       if (savedServices) setServices(JSON.parse(savedServices));
@@ -248,10 +301,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hg_wallet_txns', JSON.stringify(walletTransactions));
       localStorage.setItem('hg_chat_messages', JSON.stringify(chatMessages));
       localStorage.setItem('hg_fee_rules', JSON.stringify(platformFeeRules));
+      localStorage.setItem('hg_service_requests', JSON.stringify(serviceRequests));
     } catch {
       // ignore
     }
-  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules]);
+  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules, serviceRequests]);
 
   const addNotification = (msg: string) => {
     setNotifications(prev => [msg, ...prev.slice(0, 4)]);
@@ -501,6 +555,14 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     documentType: string; 
     documentName: string;
     acceptedTerms: boolean;
+    baseLocation?: ProviderLocation;
+    maxServiceDistanceKm?: number;
+    coverageMode?: CoverageMode;
+    excludedSocietyIds?: string[];
+    maxOrdersPerDay?: number;
+    freeServiceRadiusKm?: number;
+    travelChargePerKm?: number;
+    maxTravelCharge?: number;
   }) => {
     if (!currentUser) return;
 
@@ -527,6 +589,14 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       startingPriceUnit: data.unitName,
       promoEndsAt,
       acceptedTermsAt: data.acceptedTerms ? now : undefined,
+      baseLocation: data.baseLocation,
+      maxServiceDistanceKm: data.maxServiceDistanceKm ?? 10,
+      coverageMode: data.coverageMode || 'RADIUS',
+      excludedSocietyIds: data.excludedSocietyIds || [],
+      maxOrdersPerDay: data.maxOrdersPerDay,
+      freeServiceRadiusKm: data.freeServiceRadiusKm,
+      travelChargePerKm: data.travelChargePerKm,
+      maxTravelCharge: data.maxTravelCharge,
       documents: [
         { type: data.documentType, url: data.documentName, verified: false }
       ],
@@ -641,6 +711,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     subtotal: number;
     couponCode?: string;
     walletAmountToUse?: number;
+    travelCharge?: number;
     isSubscription?: boolean;
     subscriptionFrequency?: any;
   }) => {
@@ -660,6 +731,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       ? platformFeeRules.subscriptionFee 
       : platformFeeRules.oneTimeFee;
 
+    const travelCharge = params.travelCharge || 0;
+
     let discountAmount = 0;
     let couponApplied: Coupon | undefined;
 
@@ -676,9 +749,10 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const maxWalletRedemption = Math.floor(params.subtotal * PLATFORM_CONFIG.LOYALTY_REDEMPTION_CAP_RATIO);
     const walletDiscount = Math.min(params.walletAmountToUse || 0, maxWalletRedemption, getWalletBalance(custId));
 
-    const totalAmount = Math.max(0, params.subtotal + platformFee - discountAmount - walletDiscount);
+    // Total includes travelCharge
+    const totalAmount = Math.max(0, params.subtotal + platformFee + travelCharge - discountAmount - walletDiscount);
 
-    // Commission with tiered logic
+    // Commission with tiered logic - COMMISSION ONLY APPLIES TO SUBTOTAL, NOT TRAVEL CHARGE
     const { rate: commRate, reason: commReason } = getCommissionRateWithReason(
       service.categoryId,
       provider.id,
@@ -687,7 +761,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       orders
     );
     const platformCommission = Math.round((params.subtotal * commRate) / 100);
-    const providerEarnings = params.subtotal - platformCommission;
+    // Provider keeps 100% of travelCharge
+    const providerEarnings = params.subtotal - platformCommission + travelCharge;
 
     const orderNumber = `ORD-2026-${Math.floor(1000 + Math.random() * 9000)}`;
     const newOrderId = `ord-${Date.now()}`;
@@ -715,6 +790,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       itemQuantity: params.itemQuantity,
       subtotal: params.subtotal,
       platformFee,
+      travelCharge: travelCharge > 0 ? travelCharge : undefined,
       couponCode: couponApplied?.code,
       discountAmount,
       discountSource: 'PLATFORM',
@@ -995,6 +1071,56 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification(`Support ticket #${complaint?.ticketNumber} status updated to ${status}.`);
   };
 
+  const updateProviderServiceArea = (
+    providerId: string,
+    data: {
+      baseLocation?: ProviderLocation;
+      maxServiceDistanceKm?: number;
+      coverageMode?: CoverageMode;
+      supportedSocieties?: string[];
+      excludedSocietyIds?: string[];
+      maxOrdersPerDay?: number;
+      freeServiceRadiusKm?: number;
+      travelChargePerKm?: number;
+      maxTravelCharge?: number;
+    }
+  ) => {
+    setProviders(prev => prev.map(p => {
+      if (p.id === providerId) {
+        return {
+          ...p,
+          ...data,
+          supportedSocieties: data.supportedSocieties || p.supportedSocieties,
+        };
+      }
+      return p;
+    }));
+    addNotification('Service area and travel distance settings updated.');
+  };
+
+  const createServiceRequest = (params: {
+    societyId: string;
+    societyName: string;
+    categoryId: string;
+    categoryName: string;
+    notes?: string;
+  }) => {
+    const newReq: SocietyServiceRequest = {
+      id: `req-${Date.now()}`,
+      societyId: params.societyId,
+      societyName: params.societyName,
+      categoryId: params.categoryId,
+      categoryName: params.categoryName,
+      userId: currentUser?.id || 'usr-guest',
+      userName: currentUser?.fullName || 'Resident',
+      createdAt: new Date().toISOString(),
+      notes: params.notes,
+    };
+    setServiceRequests(prev => [newReq, ...prev]);
+    addNotification(`Demand registered for ${params.categoryName} in ${params.societyName}. Operations desk will recruit providers for your cluster.`);
+    return { success: true, message: 'Request submitted successfully' };
+  };
+
   const updateProviderAvailability = (
     providerId: string,
     workingHours: { start: string; end: string; daysOff: string[] },
@@ -1159,6 +1285,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       updateComplaintStatus,
       updateProviderStatus,
       updateProviderAvailability,
+      updateProviderServiceArea,
+      serviceRequests,
+      createServiceRequest,
       addService,
       requestPayout,
       updateCommissionRule,

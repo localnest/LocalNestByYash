@@ -60,8 +60,11 @@ export interface Society {
   communityId: string;
   name: string;
   addressLine: string;
+  locality?: string;
   city: string;
   pincode: string;
+  latitude: number;
+  longitude: number;
   totalFlats: number;
   isActive: boolean;
 }
@@ -117,6 +120,15 @@ export interface ChatMessage {
   flaggedReason?: string;
 }
 
+export interface ProviderLocation {
+  label: string;
+  pincode: string;
+  latitude: number;
+  longitude: number;
+}
+
+export type CoverageMode = 'RADIUS' | 'SELECTED_SOCIETIES';
+
 export interface Provider {
   id: string;
   userId?: string;
@@ -137,6 +149,14 @@ export interface Provider {
   supportedSocieties: string[]; // Society IDs
   startingPrice: number;
   startingPriceUnit: string;
+  baseLocation?: ProviderLocation;
+  maxServiceDistanceKm?: number;
+  coverageMode?: CoverageMode;
+  excludedSocietyIds?: string[];
+  maxOrdersPerDay?: number;
+  freeServiceRadiusKm?: number;
+  travelChargePerKm?: number;
+  maxTravelCharge?: number;
   workingHours?: {
     start: string;
     end: string;
@@ -201,6 +221,7 @@ export interface Order {
   itemQuantity: number;
   subtotal: number;
   platformFee: number;
+  travelCharge?: number;
   couponCode?: string;
   discountAmount: number;
   discountSource: 'PLATFORM' | 'PROVIDER';
@@ -325,4 +346,16 @@ export interface MarketplaceAnalytics {
   activeProviders: number;
   disputeRatePct: number;
   repeatOrderRatePct: number;
+}
+
+export interface SocietyServiceRequest {
+  id: string;
+  societyId: string;
+  societyName: string;
+  categoryId: string;
+  categoryName: string;
+  userId: string;
+  userName: string;
+  createdAt: string;
+  notes?: string;
 }

@@ -110,7 +110,10 @@ CREATE TABLE societies (
   name VARCHAR(255) NOT NULL,
   address_line VARCHAR(255) NOT NULL,
   city VARCHAR(100) NOT NULL,
+  locality VARCHAR(100),
   pincode VARCHAR(20) NOT NULL,
+  latitude NUMERIC(9, 6),
+  longitude NUMERIC(9, 6),
   total_flats INT DEFAULT 0, -- e.g., 1790 in pilot, never hardcoded
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
@@ -178,6 +181,7 @@ CREATE TABLE providers (
   review_count INT DEFAULT 0,
   completed_orders INT DEFAULT 0,
   on_time_rate NUMERIC(5, 2) DEFAULT 98.00,
+  max_orders_per_day INT DEFAULT 10,
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -196,8 +200,20 @@ CREATE TABLE provider_service_areas (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   provider_id UUID REFERENCES providers(id) ON DELETE CASCADE,
   society_id UUID REFERENCES societies(id) ON DELETE CASCADE,
+  -- Service Area, Radius & Travel Charge Settings
+  base_label VARCHAR(255),
+  base_pincode VARCHAR(20),
+  base_latitude NUMERIC(9, 6),
+  base_longitude NUMERIC(9, 6),
+  max_distance_km NUMERIC(5, 2) DEFAULT 10.00,
+  coverage_mode VARCHAR(50) DEFAULT 'RADIUS', -- 'RADIUS' | 'SELECTED_SOCIETIES'
+  excluded_society_ids UUID[] DEFAULT '{}',
+  free_service_radius_km NUMERIC(5, 2) DEFAULT 0.00,
+  travel_charge_per_km NUMERIC(6, 2) DEFAULT 0.00,
+  max_travel_charge NUMERIC(6, 2),
   is_active BOOLEAN DEFAULT TRUE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW(),
   UNIQUE(provider_id, society_id)
 );
 
@@ -306,6 +322,7 @@ CREATE TABLE orders (
   pricing_model pricing_model_type NOT NULL,
   item_quantity INT DEFAULT 1,
   subtotal NUMERIC(10, 2) NOT NULL,
+  travel_charge NUMERIC(10, 2) DEFAULT 0.00,
   platform_fee NUMERIC(10, 2) DEFAULT 20.00,
   coupon_id UUID REFERENCES coupons(id) ON DELETE SET NULL,
   discount_amount NUMERIC(10, 2) DEFAULT 0.00,
@@ -496,5 +513,88 @@ CREATE POLICY "Customer and Provider can view subscriptions" ON subscriptions
 CREATE POLICY "Customer view own complaints" ON complaints
   FOR SELECT USING (auth.uid() = customer_id OR is_admin());
 
+
 CREATE POLICY "Customer insert complaints" ON complaints
   FOR INSERT WITH CHECK (auth.uid() = customer_id);
+
+-- ----------------------------------------------------------------------------
+-- 17. PROVIDER SERVICE AREA RLS
+-- ----------------------------------------------------------------------------
+ALTER TABLE provider_service_areas ENABLE ROW LEVEL SECURITY;
+
+-- Anyone can view service areas (needed for provider discovery)
+CREATE POLICY "Anyone can view service areas" ON provider_service_areas
+  FOR SELECT USING (TRUE);
+
+-- Providers can insert their own service area
+CREATE POLICY "Provider can insert own service area" ON provider_service_areas
+  FOR INSERT WITH CHECK (
+    auth.uid() IN (SELECT user_id FROM providers WHERE id = provider_service_areas.provider_id)
+  );
+
+-- Providers can update only their own service area; admins can update any
+CREATE POLICY "Provider or Admin can update service area" ON provider_service_areas
+  FOR UPDATE USING (
+    auth.uid() IN (SELECT user_id FROM providers WHERE id = provider_service_areas.provider_id)
+    OR is_admin()
+  );
+
+-- Providers can delete only their own service area
+CREATE POLICY "Provider can delete own service area" ON provider_service_areas
+  FOR DELETE USING (
+    auth.uid() IN (SELECT user_id FROM providers WHERE id = provider_service_areas.provider_id)
+    OR is_admin()
+  );
+
+-- ----------------------------------------------------------------------------
+-- 18. SOCIETY SERVICE REQUESTS (Demand signals when no provider covers area)
+-- ----------------------------------------------------------------------------
+CREATE TABLE society_service_requests (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  customer_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  society_id UUID REFERENCES societies(id) ON DELETE CASCADE,
+  category_id UUID REFERENCES categories(id) ON DELETE SET NULL,
+  notes TEXT,
+  notify_email BOOLEAN DEFAULT TRUE,
+  created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+ALTER TABLE society_service_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Customer can insert service request" ON society_service_requests
+  FOR INSERT WITH CHECK (auth.uid() = customer_id);
+
+CREATE POLICY "Customer or Admin can view service requests" ON society_service_requests
+  FOR SELECT USING (auth.uid() = customer_id OR is_admin());
+
+-- ----------------------------------------------------------------------------
+-- 19. HAVERSINE DISTANCE FUNCTION
+-- Returns the great-circle distance in kilometres between two lat/lng points.
+-- Uses the Haversine formula. Does NOT require PostGIS.
+-- ----------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION haversine_distance_km(
+  lat1 NUMERIC,
+  lon1 NUMERIC,
+  lat2 NUMERIC,
+  lon2 NUMERIC
+)
+RETURNS NUMERIC AS $$
+DECLARE
+  R  NUMERIC := 6371.0;  -- Earth radius in km
+  d_lat NUMERIC;
+  d_lon NUMERIC;
+  a  NUMERIC;
+  c  NUMERIC;
+BEGIN
+  d_lat := RADIANS(lat2 - lat1);
+  d_lon := RADIANS(lon2 - lon1);
+  a := SIN(d_lat / 2) ^ 2
+       + COS(RADIANS(lat1)) * COS(RADIANS(lat2)) * SIN(d_lon / 2) ^ 2;
+  c := 2 * ATAN2(SQRT(a), SQRT(1 - a));
+  RETURN ROUND((R * c)::NUMERIC, 3);
+END;
+$$ LANGUAGE plpgsql IMMUTABLE STRICT;
+
+-- Index to support distance-based lookups on societies
+CREATE INDEX idx_societies_coordinates ON societies (latitude, longitude)
+  WHERE latitude IS NOT NULL AND longitude IS NOT NULL;

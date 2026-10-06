@@ -2,12 +2,13 @@
 
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { ProviderStatus, DiscountType, NoticeType } from '@/lib/types';
+import { ProviderStatus, DiscountType, NoticeType, CoverageMode, Provider } from '@/lib/types';
+import { getCoveredSocieties, isSocietyCovered, calculateHaversineDistance, BENGALURU_LOCALITIES } from '@/lib/geo';
 import { 
   BarChart3, ShieldCheck, Percent, Tag, 
   AlertTriangle, Building, Check, 
   X, Plus, FileText, RefreshCw, DollarSign, 
-  Users, CheckCircle2, Sliders, Bell, Megaphone, Wrench, AlertCircle, Eye, EyeOff
+  Users, CheckCircle2, Sliders, Bell, Megaphone, Wrench, AlertCircle, Eye, EyeOff, MapPin, Navigation, Compass
 } from 'lucide-react';
 
 export default function AdminPanel() {
@@ -30,13 +31,16 @@ export default function AdminPanel() {
     deactivateNotice,
     currentUser,
     chatMessages,
+    updateProviderServiceArea,
+    serviceRequests,
+    categories,
     markFlaggedReviewed,
     platformFeeRules,
     updatePlatformFeeRules,
   } = useMarketplace();
 
   // Navigation Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'commission' | 'coupons' | 'disputes' | 'societies' | 'notices' | 'leakage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'commission' | 'coupons' | 'disputes' | 'societies' | 'notices' | 'leakage' | 'coverage'>('overview');
   const [oneTimeFeeInput, setOneTimeFeeInput] = useState<number>(platformFeeRules?.oneTimeFee ?? 20);
   const [subFeeInput, setSubFeeInput] = useState<number>(platformFeeRules?.subscriptionFee ?? 10);
   const [feeSaveSuccess, setFeeSaveSuccess] = useState<string>('');
@@ -69,6 +73,12 @@ export default function AdminPanel() {
   const [noticeSuccess, setNoticeSuccess] = useState<string>('');
 
   // Feature 16: Dispute Resolution State
+  // Admin Provider Coverage Override State
+  const [editingCoverageProv, setEditingCoverageProv] = useState<Provider | null>(null);
+  const [overrideRadius, setOverrideRadius] = useState<number>(10);
+  const [overrideMode, setOverrideMode] = useState<CoverageMode>('RADIUS');
+  const [overrideDailyCap, setOverrideDailyCap] = useState<number>(10);
+
   const [mediatingComplaint, setMediatingComplaint] = useState<any | null>(null);
   const [mediationResolutionType, setMediationResolutionType] = useState<'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED'>('FULL_REFUND');
   const [customResolutionText, setCustomResolutionText] = useState<string>('Full refund approved from platform escrow.');
@@ -143,6 +153,8 @@ export default function AdminPanel() {
       addressLine: newSocAddress,
       city: newSocCity,
       pincode: newSocPincode,
+      latitude: 12.9716,
+      longitude: 77.5946,
       totalFlats: Number(newSocFlats),
       isActive: true,
     });
@@ -225,6 +237,7 @@ export default function AdminPanel() {
               { id: 'societies', label: 'Societies & Expansion', icon: Building },
               { id: 'notices', label: `Notices (${notices.filter(n => n.isActive).length})`, icon: Megaphone },
               { id: 'leakage', label: `Leakage Alerts (${chatMessages.filter(m => m.isFlagged && !m.flaggedReason?.startsWith('[REVIEWED]')).length})`, icon: AlertCircle },
+              { id: 'coverage', label: 'Supply Gap Matrix', icon: MapPin },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -386,6 +399,35 @@ export default function AdminPanel() {
                     <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '10px 0' }}>
                       {prov.description}
                     </p>
+
+                    {/* Service Area & Coverage Info */}
+                    <div style={{ background: 'var(--bg-subtle)', padding: '10px 12px', borderRadius: 'var(--radius-md)', margin: '10px 0', fontSize: '0.78rem', border: '1px solid var(--border-light)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                        <span style={{ fontWeight: 700, color: 'var(--text-muted)' }}>SERVICE AREA & COVERAGE:</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setEditingCoverageProv(prov);
+                            setOverrideRadius(prov.maxServiceDistanceKm || 10);
+                            setOverrideMode(prov.coverageMode || 'RADIUS');
+                            setOverrideDailyCap(prov.maxOrdersPerDay || 8);
+                          }}
+                          style={{ color: 'var(--primary)', fontWeight: 700, background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontSize: '0.72rem' }}
+                        >
+                          Adjust Radius ⚙️
+                        </button>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                        <div>📍 <strong>Base:</strong> {prov.baseLocation?.label || 'Whitefield Central'} ({prov.baseLocation?.pincode || '560066'})</div>
+                        <div>📏 <strong>Radius:</strong> {prov.maxServiceDistanceKm || 10} km ({prov.coverageMode || 'RADIUS'} Mode) • Cap: {prov.maxOrdersPerDay ? `${prov.maxOrdersPerDay}/day` : 'None'}</div>
+                        <div>🏢 <strong>Covers {getCoveredSocieties(prov, societies).length} Societies:</strong> {getCoveredSocieties(prov, societies).map(s => s.name).join(', ') || 'None'}</div>
+                        {prov.travelChargePerKm ? (
+                          <div style={{ color: 'var(--accent-amber)', fontWeight: 600 }}>
+                            🚗 Travel fee: ₹{prov.travelChargePerKm}/km past {prov.freeServiceRadiusKm || 0}km (Max: ₹{prov.maxTravelCharge})
+                          </div>
+                        ) : null}
+                      </div>
+                    </div>
 
                     {/* Documents */}
                     <div style={{ background: 'var(--bg-subtle)', padding: '10px', borderRadius: 'var(--radius-md)', margin: '10px 0', fontSize: '0.78rem' }}>
@@ -1069,7 +1111,202 @@ export default function AdminPanel() {
           </div>
         )}
 
+        {/* ============================================================== */}
+        {/* TAB 9: SUPPLY GAP MATRIX & DEMAND DESK */}
+        {/* ============================================================== */}
+        {activeTab === 'coverage' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '10px' }}>
+              <div>
+                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Society Supply Gap & Coverage Matrix</h2>
+                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
+                  Identifies society clusters with zero verified providers per category so operations can proactively recruit partners.
+                </p>
+              </div>
+              <span className="badge badge-emerald" style={{ fontSize: '0.75rem', padding: '6px 12px' }}>
+                {societies.length} Societies • {categories.length} Categories Monitored
+              </span>
+            </div>
+
+            {/* Resident Demand Signals */}
+            {serviceRequests.length > 0 && (
+              <div className="card" style={{ borderLeft: '4px solid var(--accent-amber)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                  <h3 style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--text-main)' }}>
+                    📢 Outstanding Resident Demand Requests ({serviceRequests.length})
+                  </h3>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {serviceRequests.map(req => (
+                    <div key={req.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '8px 12px', background: 'var(--bg-subtle)', borderRadius: '6px', fontSize: '0.8rem' }}>
+                      <div>
+                        <strong>{req.categoryName}</strong> requested by resident in <strong>{req.societyName}</strong>
+                      </div>
+                      <span className="badge badge-amber" style={{ fontSize: '0.68rem' }}>
+                        Pending Recruitment
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Matrix Table */}
+            <div className="card">
+              <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px' }}>
+                Cluster Coverage Breakdown
+              </h3>
+              <div style={{ overflowX: 'auto' }}>
+                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+                  <thead>
+                    <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
+                      <th style={{ padding: '10px 12px' }}>Society / Cluster</th>
+                      <th style={{ padding: '10px 12px' }}>Category</th>
+                      <th style={{ padding: '10px 12px' }}>Active Providers</th>
+                      <th style={{ padding: '10px 12px' }}>Supply Status</th>
+                      <th style={{ padding: '10px 12px' }}>Action</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {societies.flatMap(soc => 
+                      categories.map(cat => {
+                        const coveringProviders = providers.filter(
+                          p => p.status === 'VERIFIED' && p.categoryId === cat.id && isSocietyCovered(p, soc, societies)
+                        );
+                        const hasSupply = coveringProviders.length > 0;
+                        const hasDemand = serviceRequests.some(r => r.societyId === soc.id && r.categoryId === cat.id);
+
+                        return (
+                          <tr key={`${soc.id}-${cat.id}`} style={{ borderBottom: '1px solid var(--border-light)' }}>
+                            <td style={{ padding: '10px 12px', fontWeight: 600 }}>
+                              {soc.name}
+                              <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>{soc.locality || soc.city}</div>
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              {cat.name}
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              {hasSupply ? (
+                                <span style={{ color: 'var(--text-main)', fontWeight: 600 }}>
+                                  {coveringProviders.map(p => p.businessName).join(', ')}
+                                </span>
+                              ) : (
+                                <span style={{ color: 'var(--accent-rose)', fontWeight: 600 }}>0 verified partners</span>
+                              )}
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              {hasSupply ? (
+                                <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
+                                  Covered ({coveringProviders.length})
+                                </span>
+                              ) : (
+                                <span className="badge badge-rose" style={{ fontSize: '0.68rem' }}>
+                                  Supply Gap!
+                                </span>
+                              )}
+                              {hasDemand ? (
+                                <span className="badge badge-amber" style={{ fontSize: '0.65rem', marginLeft: '4px' }}>
+                                  Resident Request Logged
+                                </span>
+                              ) : null}
+                            </td>
+                            <td style={{ padding: '10px 12px' }}>
+                              {!hasSupply ? (
+                                <button
+                                  type="button"
+                                  onClick={() => setActiveTab('providers')}
+                                  className="btn btn-secondary btn-sm"
+                                  style={{ fontSize: '0.72rem', padding: '3px 8px' }}
+                                >
+                                  Recruit / Verify
+                                </button>
+                              ) : (
+                                <span style={{ color: 'var(--accent-emerald)', fontSize: '0.75rem' }}>✓ Optimal</span>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        )}
+
       </div>
+
+      {/* Admin Coverage Override Modal */}
+      {editingCoverageProv && (
+        <div className="modal-overlay" onClick={() => setEditingCoverageProv(null)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+              <div>
+                <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Adjust Coverage: {editingCoverageProv.businessName}</h3>
+                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Admin Operations Override</div>
+              </div>
+              <button onClick={() => setEditingCoverageProv(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+            </div>
+
+            <form onSubmit={(e) => {
+              e.preventDefault();
+              updateProviderServiceArea(editingCoverageProv.id, {
+                maxServiceDistanceKm: Number(overrideRadius),
+                coverageMode: overrideMode,
+                maxOrdersPerDay: Number(overrideDailyCap),
+              });
+              setEditingCoverageProv(null);
+            }} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+              <div>
+                <label className="form-label">Coverage Mode</label>
+                <select
+                  value={overrideMode}
+                  onChange={(e) => setOverrideMode(e.target.value as CoverageMode)}
+                  className="form-input"
+                >
+                  <option value="RADIUS">Radius Mode</option>
+                  <option value="SELECTED_SOCIETIES">Manual Selected Societies Mode</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="form-label">Max Travel Radius: <strong>{overrideRadius} km</strong></label>
+                <input
+                  type="range"
+                  min="1"
+                  max="25"
+                  value={overrideRadius}
+                  onChange={(e) => setOverrideRadius(Number(e.target.value))}
+                  style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }}
+                />
+              </div>
+
+              <div>
+                <label className="form-label">Daily Order Booking Limit</label>
+                <input
+                  type="number"
+                  min="1"
+                  max="50"
+                  value={overrideDailyCap}
+                  onChange={(e) => setOverrideDailyCap(Number(e.target.value))}
+                  className="form-input"
+                />
+              </div>
+
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                <button type="button" onClick={() => setEditingCoverageProv(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+                  Cancel
+                </button>
+                <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
+                  Save Coverage Settings
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* Add Coupon Modal */}
       {showAddCouponModal && (

@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Service, Provider, Order } from '@/lib/types';
+import { isSocietyCovered, getDistanceToSociety } from '@/lib/geo';
 import BookingModal from './BookingModal';
 import ReviewModal from './ReviewModal';
 import ComplaintModal from './ComplaintModal';
@@ -19,6 +20,7 @@ export default function CustomerPortal() {
   const { 
     currentUser,
     selectedSociety,
+    societies,
     categories, 
     providers, 
     services, 
@@ -37,6 +39,7 @@ export default function CustomerPortal() {
     getWalletStreak,
     walletTransactions,
     createOrder,
+    createServiceRequest,
     sendChatMessage,
     getOrderMessages,
   } = useMarketplace();
@@ -57,10 +60,13 @@ export default function CustomerPortal() {
   const [viewingProvider, setViewingProvider] = useState<Provider | null>(null);
   const [dismissedNoticeIds, setDismissedNoticeIds] = useState<string[]>([]);
 
-  // Filter providers based on search, category and society
+  // Demand request feedback state
+  const [requestFeedback, setRequestFeedback] = useState<string>('');
+
+  // Filter providers based on search, category and geographic coverage
   const filteredProviders = providers.filter(p => {
-    // Check society support
-    const servesSociety = p.supportedSocieties.includes(selectedSociety.id);
+    // Check geographic coverage
+    const servesSociety = isSocietyCovered(p, selectedSociety, societies);
     if (!servesSociety) return false;
 
     // Verified toggle
@@ -461,6 +467,19 @@ export default function CustomerPortal() {
                               <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>
                                 {provider.onTimeRate}% on-time
                               </span>
+                              {(() => {
+                                const dist = getDistanceToSociety(provider, selectedSociety);
+                                return dist !== null ? (
+                                  <span className="badge badge-slate" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                    <MapPin size={10} /> {dist} km away
+                                  </span>
+                                ) : null;
+                              })()}
+                              {provider.travelChargePerKm ? (
+                                <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>
+                                  🚗 Surcharge past {provider.freeServiceRadiusKm || 0}km
+                                </span>
+                              ) : null}
                               <span style={{ color: 'var(--text-muted)', fontSize: '0.72rem' }}>
                                 🕐 {provider.workingHours?.start || '8 AM'} - {provider.workingHours?.end || '8 PM'}
                               </span>
@@ -593,7 +612,47 @@ export default function CustomerPortal() {
               ))}
             </div>
 
-            {/* Provider Grid */}
+            {/* Request Service Feedback */}
+            {requestFeedback && (
+              <div style={{ padding: '12px 16px', background: '#ecfdf5', border: '1px solid #10b981', borderRadius: '8px', color: '#047857', fontSize: '0.85rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <CheckCircle2 size={16} />
+                <span>{requestFeedback}</span>
+              </div>
+            )}
+
+            {/* Provider Grid or Empty Demand State */}
+            {filteredProviders.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '48px 24px', background: 'var(--bg-card)' }}>
+                <MapPin size={42} color="var(--primary)" style={{ margin: '0 auto 12px' }} />
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 800 }}>No Verified Providers in Your Area Yet</h3>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', maxWidth: '480px', margin: '8px auto 18px', lineHeight: 1.5 }}>
+                  We haven't launched coverage for {selectedCategorySlug !== 'all' ? categories.find(c => c.slug === selectedCategorySlug)?.name : 'this category'} in {selectedSociety.name} yet.
+                  Request this service and our society operations team will fast-track partner onboarding for your cluster.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const activeCat = selectedCategorySlug !== 'all' 
+                      ? categories.find(c => c.slug === selectedCategorySlug) 
+                      : categories[0];
+                    if (activeCat) {
+                      createServiceRequest({
+                        societyId: selectedSociety.id,
+                        societyName: selectedSociety.name,
+                        categoryId: activeCat.id,
+                        categoryName: activeCat.name,
+                      });
+                      setRequestFeedback(`Demand registered for ${activeCat.name} in ${selectedSociety.name}! We will notify you when partners are verified.`);
+                      setTimeout(() => setRequestFeedback(''), 4000);
+                    }
+                  }}
+                  className="btn btn-primary btn-md"
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Bell size={16} /> Notify Me / Request This Service
+                </button>
+              </div>
+            ) : (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
               {filteredProviders.map(provider => {
                 const provServices = services.filter(s => s.providerId === provider.id && s.isActive);
@@ -697,6 +756,7 @@ export default function CustomerPortal() {
                 );
               })}
             </div>
+            )}
 
           </div>
         )}

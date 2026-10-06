@@ -2,13 +2,14 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { Service, PricingModel, OrderStatus, Order } from '@/lib/types';
+import { Service, PricingModel, OrderStatus, Order, CoverageMode } from '@/lib/types';
+import { getCoveredSocieties, calculateHaversineDistance, BENGALURU_LOCALITIES } from '@/lib/geo';
 import { 
   DollarSign, PackageCheck, Repeat, Star, 
   Calendar, Check, X, Plus, Clock, 
   MapPin, CheckCircle, ShieldCheck, AlertCircle,
   FileSpreadsheet, Printer, ArrowDownToLine,
-  Sliders, Palmtree, Coffee, CheckCircle2, User, MessageCircle, Send
+  Sliders, Palmtree, Coffee, CheckCircle2, User, MessageCircle, Send, Navigation
 } from 'lucide-react';
 
 export default function ProviderDashboard() {
@@ -22,6 +23,8 @@ export default function ProviderDashboard() {
     commissionRules,
     updateOrderStatus, 
     updateProviderAvailability,
+    updateProviderServiceArea,
+    societies,
     requestPayout,
     addService,
     selectedSociety,
@@ -68,6 +71,23 @@ export default function ProviderDashboard() {
   const [orderToReject, setOrderToReject] = useState<Order | null>(null);
   const [rejectionReasonOption, setRejectionReasonOption] = useState<string>('Capacity full / high booking volume today');
   const [customRejectionText, setCustomRejectionText] = useState<string>('');
+
+  // Covered societies
+  const coveredSocietiesList = getCoveredSocieties(provider, societies);
+
+  // Service Area & Distance Modal State
+  const [showServiceAreaModal, setShowServiceAreaModal] = useState<boolean>(false);
+  const initialLocalityIdx = BENGALURU_LOCALITIES.findIndex(l => l.label === provider.baseLocation?.label);
+  const [areaLocalityIdx, setAreaLocalityIdx] = useState<number>(initialLocalityIdx >= 0 ? initialLocalityIdx : 0);
+  const [areaCoverageMode, setAreaCoverageMode] = useState<CoverageMode>(provider.coverageMode || 'RADIUS');
+  const [areaMaxDistance, setAreaMaxDistance] = useState<number>(provider.maxServiceDistanceKm || 8);
+  const [areaExcludedSocieties, setAreaExcludedSocieties] = useState<string[]>(provider.excludedSocietyIds || []);
+  const [areaManualSocieties, setAreaManualSocieties] = useState<string[]>(provider.supportedSocieties || [societies[0]?.id || 'soc-1']);
+  const [areaDailyCap, setAreaDailyCap] = useState<number>(provider.maxOrdersPerDay || 8);
+  const [areaEnableTravel, setAreaEnableTravel] = useState<boolean>(Boolean(provider.travelChargePerKm && provider.travelChargePerKm > 0));
+  const [areaFreeRadius, setAreaFreeRadius] = useState<number>(provider.freeServiceRadiusKm || 3);
+  const [areaChargePerKm, setAreaChargePerKm] = useState<number>(provider.travelChargePerKm || 15);
+  const [areaMaxCap, setAreaMaxCap] = useState<number>(provider.maxTravelCharge || 150);
 
   // Feature 9 & 13: Working Hours & Vacation Mode Modal State
   const [showAvailabilityModal, setShowAvailabilityModal] = useState<boolean>(false);
@@ -219,6 +239,14 @@ export default function ProviderDashboard() {
                     <CheckCircle2 size={12} /> Open ({provider.workingHours?.start || '8 AM'} - {provider.workingHours?.end || '8 PM'})
                   </span>
                 )}
+                <span className="badge badge-blue" style={{ fontSize: '0.7rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                  <MapPin size={12} /> Covers {coveredSocietiesList.length} societies within {provider.maxServiceDistanceKm || 10} km
+                </span>
+                {provider.maxOrdersPerDay ? (
+                  <span className="badge badge-slate" style={{ fontSize: '0.7rem' }}>
+                    Cap: {provider.maxOrdersPerDay} orders/day
+                  </span>
+                ) : null}
               </div>
 
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
@@ -234,6 +262,13 @@ export default function ProviderDashboard() {
                   style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
                 >
                   <Sliders size={13} /> Edit Hours & Vacation
+                </button>
+                <span>•</span>
+                <button
+                  onClick={() => setShowServiceAreaModal(true)}
+                  style={{ color: 'var(--primary)', fontWeight: 700, display: 'inline-flex', alignItems: 'center', gap: '4px', cursor: 'pointer', background: 'none', border: 'none', padding: 0 }}
+                >
+                  <Navigation size={13} /> Edit Service Area & Travel
                 </button>
               </div>
             </div>

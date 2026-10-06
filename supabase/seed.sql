@@ -9,10 +9,10 @@ INSERT INTO communities (id, name, area, city, state, pincode) VALUES
 ('c1111111-1111-1111-1111-111111111111', 'Whitefield Cluster', 'ITPL Main Road', 'Bengaluru', 'Karnataka', '560066'),
 ('c2222222-2222-2222-2222-222222222222', 'Sarjapur Corridor', 'Sarjapur Road', 'Bengaluru', 'Karnataka', '560035');
 
-INSERT INTO societies (id, community_id, name, address_line, city, pincode, total_flats, is_active) VALUES
-('s1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'Greenfield Heights', 'Channasandra Main Rd, Whitefield', 'Bengaluru', '560066', 1790, TRUE),
-('s2222222-2222-2222-2222-222222222222', 'c1111111-1111-1111-1111-111111111111', 'Silver Oak Palms', 'Varthur Kodi, Whitefield', 'Bengaluru', '560066', 950, TRUE),
-('s3333333-3333-3333-3333-333333333333', 'c2222222-2222-2222-2222-222222222222', 'Royal Palms Residency', 'Kaikondrahalli, Sarjapur Rd', 'Bengaluru', '560035', 2100, TRUE);
+INSERT INTO societies (id, community_id, name, address_line, city, locality, pincode, latitude, longitude, total_flats, is_active) VALUES
+('s1111111-1111-1111-1111-111111111111', 'c1111111-1111-1111-1111-111111111111', 'Greenfield Heights', 'Channasandra Main Rd, Whitefield', 'Bengaluru', 'Whitefield', '560066', 12.9830, 77.7510, 1790, TRUE),
+('s2222222-2222-2222-2222-222222222222', 'c1111111-1111-1111-1111-111111111111', 'Silver Oak Palms', 'Varthur Kodi, Whitefield', 'Bengaluru', 'Varthur', '560066', 12.9601, 77.7472, 950, TRUE),
+('s3333333-3333-3333-3333-333333333333', 'c2222222-2222-2222-2222-222222222222', 'Royal Palms Residency', 'Kaikondrahalli, Sarjapur Rd', 'Bengaluru', 'Sarjapur', '560035', 12.9152, 77.6845, 2100, TRUE);
 
 -- 2. Categories
 INSERT INTO categories (id, name, slug, icon, description, sort_order) VALUES
@@ -37,23 +37,105 @@ INSERT INTO commission_rules (id, rule_type, commission_percentage, notes) VALUE
 ('cr333333-3333-3333-3333-333333333333', 'CATEGORY', 8.00, 'AC Repair category promotional commission');
 
 -- 5. Providers
-INSERT INTO providers (id, user_id, business_name, category_id, description, status, verified_at, rating, review_count, completed_orders, on_time_rate) VALUES
-('p1111111-1111-1111-1111-111111111111', 'u2222222-2222-2222-2222-222222222222', 'Raj Laundry & Dry Cleaners', 'cat11111-1111-1111-1111-111111111111', 'Serving Greenfield Heights for 3+ years. Free pickup & doorstep delivery within 24 hours. Gentle wash & crisp steam pressing.', 'VERIFIED', NOW() - INTERVAL '60 days', 4.85, 342, 1240, 98.40),
-('p2222222-2222-2222-2222-222222222222', 'u3333333-3333-3333-3333-333333333333', 'FreshBite Tiffin & Home Meals', 'cat22222-2222-2222-2222-222222222222', 'Homestyle vegetarian and North/South Indian meals prepared fresh with cold-pressed oils and organic pulses. Hot insulated lunch & dinner boxes.', 'VERIFIED', NOW() - INTERVAL '90 days', 4.90, 218, 890, 99.10),
-('p3333333-3333-3333-3333-333333333333', NULL, 'SparkleHome Deep Cleaning', 'cat33333-3333-3333-3333-333333333333', 'Trained & verified cleaners using hospital-grade disinfectants and German machinery for bathroom, kitchen & sofa care.', 'VERIFIED', NOW() - INTERVAL '30 days', 4.75, 95, 410, 96.50),
-('p4444444-4444-4444-4444-444444444444', NULL, 'ProFix Electricals & Handyman', 'cat55555-5555-5555-5555-555555555555', 'Licensed electricians residing right inside the locality. 15-minute emergency response for power cuts, tripping and installations.', 'VERIFIED', NOW() - INTERVAL '45 days', 4.80, 160, 620, 97.80),
-('p5555555-5555-5555-5555-555555555555', NULL, 'CoolBreeze AC Care', 'cat66666-6666-6666-6666-666666666666', 'Certified inverter & split AC technicians. Transparent pricing: ₹299 inspection fee adjusted if full repair or service is booked.', 'VERIFIED', NOW() - INTERVAL '15 days', 4.70, 78, 280, 95.20),
-('p6666666-6666-6666-6666-666666666666', NULL, 'AutoGleam Doorstep Car Wash', 'cat44444-4444-4444-4444-444444444444', 'Daily/alternate day waterless car cleaning directly at your basement parking slot before 7:30 AM.', 'VERIFIED', NOW() - INTERVAL '20 days', 4.92, 184, 760, 99.50),
-('p7777777-7777-7777-7777-777777777777', NULL, 'Modern Woodcraft & Carpenters', NULL, 'Custom woodwork, door locks, furniture repairs. Free estimate visits.', 'PENDING', NULL, 0.00, 0, 0, 100.00);
+INSERT INTO providers (id, user_id, business_name, category_id, description, status, verified_at, rating, review_count, completed_orders, on_time_rate, max_orders_per_day) VALUES
+('p1111111-1111-1111-1111-111111111111', 'u2222222-2222-2222-2222-222222222222', 'Raj Laundry & Dry Cleaners', 'cat11111-1111-1111-1111-111111111111', 'Serving Greenfield Heights for 3+ years. Free pickup & doorstep delivery within 24 hours. Gentle wash & crisp steam pressing.', 'VERIFIED', NOW() - INTERVAL '60 days', 4.85, 342, 1240, 98.40, 20),
+('p2222222-2222-2222-2222-222222222222', 'u3333333-3333-3333-3333-333333333333', 'FreshBite Tiffin & Home Meals', 'cat22222-2222-2222-2222-222222222222', 'Homestyle vegetarian and North/South Indian meals prepared fresh with cold-pressed oils and organic pulses. Hot insulated lunch & dinner boxes.', 'VERIFIED', NOW() - INTERVAL '90 days', 4.90, 218, 890, 99.10, 30),
+('p3333333-3333-3333-3333-333333333333', NULL, 'SparkleHome Deep Cleaning', 'cat33333-3333-3333-3333-333333333333', 'Trained & verified cleaners using hospital-grade disinfectants and German machinery for bathroom, kitchen & sofa care.', 'VERIFIED', NOW() - INTERVAL '30 days', 4.75, 95, 410, 96.50, 8),
+('p4444444-4444-4444-4444-444444444444', NULL, 'ProFix Electricals & Handyman', 'cat55555-5555-5555-5555-555555555555', 'Licensed electricians residing right inside the locality. 15-minute emergency response for power cuts, tripping and installations.', 'VERIFIED', NOW() - INTERVAL '45 days', 4.80, 160, 620, 97.80, 12),
+('p5555555-5555-5555-5555-555555555555', NULL, 'CoolBreeze AC Care', 'cat66666-6666-6666-6666-666666666666', 'Certified inverter & split AC technicians. Transparent pricing: ₹299 inspection fee adjusted if full repair or service is booked.', 'VERIFIED', NOW() - INTERVAL '15 days', 4.70, 78, 280, 95.20, 10),
+('p6666666-6666-6666-6666-666666666666', NULL, 'AutoGleam Doorstep Car Wash', 'cat44444-4444-4444-4444-444444444444', 'Daily/alternate day waterless car cleaning directly at your basement parking slot before 7:30 AM.', 'VERIFIED', NOW() - INTERVAL '20 days', 4.92, 184, 760, 99.50, 25),
+('p7777777-7777-7777-7777-777777777777', NULL, 'Modern Woodcraft & Carpenters', NULL, 'Custom woodwork, door locks, furniture repairs. Free estimate visits.', 'PENDING', NULL, 0.00, 0, 0, 100.00, 6);
 
--- Link Providers to Greenfield Heights Society
-INSERT INTO provider_service_areas (provider_id, society_id) VALUES
-('p1111111-1111-1111-1111-111111111111', 's1111111-1111-1111-1111-111111111111'),
-('p2222222-2222-2222-2222-222222222222', 's1111111-1111-1111-1111-111111111111'),
-('p3333333-3333-3333-3333-333333333333', 's1111111-1111-1111-1111-111111111111'),
-('p4444444-4444-4444-4444-444444444444', 's1111111-1111-1111-1111-111111111111'),
-('p5555555-5555-5555-5555-555555555555', 's1111111-1111-1111-1111-111111111111'),
-('p6666666-6666-6666-6666-666666666666', 's1111111-1111-1111-1111-111111111111');
+-- Link Providers to societies with full coverage metadata
+-- Raj Laundry: 5 km RADIUS from Whitefield, covers both Whitefield societies
+INSERT INTO provider_service_areas (
+  id, provider_id, society_id,
+  base_label, base_pincode, base_latitude, base_longitude,
+  max_distance_km, coverage_mode, excluded_society_ids,
+  free_service_radius_km, travel_charge_per_km, max_travel_charge
+) VALUES
+(
+  'psa11111-1111-1111-1111-111111111111',
+  'p1111111-1111-1111-1111-111111111111', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  5.00, 'RADIUS', '{}',
+  0.00, 0.00, NULL
+),
+(
+  'psa12222-2222-2222-2222-222222222222',
+  'p1111111-1111-1111-1111-111111111111', 's2222222-2222-2222-2222-222222222222',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  5.00, 'RADIUS', '{}',
+  0.00, 0.00, NULL
+),
+-- FreshBite Tiffin: 3 km RADIUS, only covers nearby society
+(
+  'psa22222-2222-2222-2222-222222222222',
+  'p2222222-2222-2222-2222-222222222222', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9601, 77.7472,
+  3.00, 'RADIUS', '{}',
+  0.00, 0.00, NULL
+),
+-- SparkleHome Cleaning: 10 km RADIUS, covers all three societies, travel charge applies
+(
+  'psa33333-3333-3333-3333-333333333333',
+  'p3333333-3333-3333-3333-333333333333', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  10.00, 'RADIUS', '{}',
+  3.00, 25.00, 150.00
+),
+(
+  'psa34444-4444-4444-4444-444444444444',
+  'p3333333-3333-3333-3333-333333333333', 's2222222-2222-2222-2222-222222222222',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  10.00, 'RADIUS', '{}',
+  3.00, 25.00, 150.00
+),
+(
+  'psa35555-5555-5555-5555-555555555555',
+  'p3333333-3333-3333-3333-333333333333', 's3333333-3333-3333-3333-333333333333',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  10.00, 'RADIUS', '{}',
+  3.00, 25.00, 150.00
+),
+-- ProFix Electrician: 8 km RADIUS, covers Whitefield societies, travel charge applies
+(
+  'psa44444-4444-4444-4444-444444444444',
+  'p4444444-4444-4444-4444-444444444444', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  8.00, 'RADIUS', '{}',
+  2.00, 30.00, 200.00
+),
+(
+  'psa45555-5555-5555-5555-555555555555',
+  'p4444444-4444-4444-4444-444444444444', 's2222222-2222-2222-2222-222222222222',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  8.00, 'RADIUS', '{}',
+  2.00, 30.00, 200.00
+),
+-- CoolBreeze AC: 5 km RADIUS, Whitefield only, travel charge applies
+(
+  'psa55555-5555-5555-5555-555555555555',
+  'p5555555-5555-5555-5555-555555555555', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  5.00, 'RADIUS', '{}',
+  1.00, 40.00, 250.00
+),
+(
+  'psa56666-6666-6666-6666-666666666666',
+  'p5555555-5555-5555-5555-555555555555', 's2222222-2222-2222-2222-222222222222',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  5.00, 'RADIUS', '{}',
+  1.00, 40.00, 250.00
+),
+-- AutoGleam Car Wash: SELECTED_SOCIETIES mode (basement parking required)
+(
+  'psa66666-6666-6666-6666-666666666666',
+  'p6666666-6666-6666-6666-666666666666', 's1111111-1111-1111-1111-111111111111',
+  'Whitefield', '560066', 12.9830, 77.7510,
+  5.00, 'SELECTED_SOCIETIES', '{}',
+  0.00, 0.00, NULL
+);
 
 -- 6. Services & Dynamic Pricing Models
 -- Pricing Model 1: PER_ITEM (Laundry)
@@ -91,7 +173,7 @@ INSERT INTO coupons (id, code, title, description, discount_type, discount_value
 INSERT INTO orders (
   id, order_number, customer_id, provider_id, service_id, society_id, status,
   scheduled_date, scheduled_slot, delivery_address, special_instructions,
-  pricing_model, item_quantity, subtotal, platform_fee, discount_amount, total_amount,
+  pricing_model, item_quantity, subtotal, travel_charge, platform_fee, discount_amount, total_amount,
   commission_percentage, platform_commission, provider_earnings
 ) VALUES
 (
@@ -100,7 +182,7 @@ INSERT INTO orders (
   's1111111-1111-1111-1111-111111111111', 'SCHEDULED',
   CURRENT_DATE + INTERVAL '1 day', '10:00 AM - 12:00 PM', 'Tower A - 402, Greenfield Heights',
   'Please ring bell twice. Cotton shirts need crisp hanger press.',
-  'PER_ITEM', 12, 480.00, 20.00, 50.00, 450.00,
+  'PER_ITEM', 12, 480.00, 0.00, 20.00, 50.00, 450.00,
   10.00, 48.00, 432.00
 ),
 (
@@ -109,7 +191,7 @@ INSERT INTO orders (
   's1111111-1111-1111-1111-111111111111', 'COMPLETED',
   CURRENT_DATE - INTERVAL '3 days', '02:00 PM - 04:00 PM', 'Tower A - 402, Greenfield Heights',
   'Master bathroom hard water stains on tiles.',
-  'FIXED', 1, 499.00, 20.00, 0.00, 519.00,
+  'FIXED', 1, 499.00, 0.00, 20.00, 0.00, 519.00,
   10.00, 49.90, 449.10
 );
 

@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Service, Provider, PricingModel } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
+import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
 import { 
   X, CheckCircle, ShieldCheck, Tag, 
   Calendar, Clock, CreditCard, AlertCircle, ArrowRight, Wallet 
@@ -17,7 +18,7 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ service, provider, onClose, onSuccess }: BookingModalProps) {
-  const { createOrder, validateCoupon, selectedSociety, coupons, currentUser, getWalletBalance, platformFeeRules } = useMarketplace();
+  const { createOrder, validateCoupon, selectedSociety, coupons, currentUser, getWalletBalance, platformFeeRules, orders } = useMarketplace();
   const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
@@ -93,6 +94,20 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     ? (platformFeeRules?.subscriptionFee ?? 10)
     : (platformFeeRules?.oneTimeFee ?? 20);
 
+  // Coverage check
+  const isCovered = isSocietyCovered(provider, selectedSociety);
+
+  // Travel charge calculation
+  const travelCharge = calculateTravelCharge(provider, selectedSociety);
+
+  // Capacity check
+  const providerOrdersOnDate = orders.filter(
+    o => o.providerId === provider.id &&
+         o.scheduledDate === scheduledDate &&
+         !['CANCELLED', 'REJECTED'].includes(o.status)
+  );
+  const isAtDailyCap = Boolean(provider.maxOrdersPerDay && providerOrdersOnDate.length >= provider.maxOrdersPerDay);
+
   // Live discount
   const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
 
@@ -103,7 +118,8 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     Math.floor(subtotal * PLATFORM_CONFIG.LOYALTY_REDEMPTION_CAP_RATIO)
   );
   const walletDiscount = useWallet ? maxWalletRedemption : 0;
-  const totalPayable = Math.max(0, subtotal + platformFee - discountAmount - walletDiscount);
+  // Total payable includes travel charge
+  const totalPayable = Math.max(0, subtotal + platformFee + travelCharge - discountAmount - walletDiscount);
 
   const handleApplyCoupon = (codeToApply?: string) => {
     const code = codeToApply || couponCodeInput;
@@ -138,6 +154,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
         subtotal,
         couponCode: appliedCoupon || undefined,
         walletAmountToUse: walletDiscount,
+        travelCharge: travelCharge > 0 ? travelCharge : undefined,
         isSubscription: isSub,
         subscriptionFrequency,
       });
@@ -637,6 +654,12 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 <span style={{ color: 'var(--text-muted)' }}>Hyperlocal Society Platform Fee</span>
                 <span>₹{platformFee.toFixed(2)}</span>
               </div>
+              {travelCharge > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px' }}>
+                  <span style={{ color: 'var(--text-muted)' }}>Travel & Distance Surcharge</span>
+                  <span style={{ fontWeight: 600 }}>+₹{travelCharge.toFixed(2)}</span>
+                </div>
+              )}
               {discountAmount > 0 && (
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '4px', color: 'var(--accent-emerald)' }}>
                   <span>Discount ({appliedCoupon})</span>
@@ -658,7 +681,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
             {/* Action Button: Razorpay Checkout (Disabled if Provider on Vacation) */}
             <button
               type="button"
-              disabled={isProcessingPayment || provider.isVacationMode || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
+              disabled={isProcessingPayment || !isCovered || isAtDailyCap || provider.isVacationMode || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
               onClick={handleProcessOrder}
               className="btn btn-primary btn-lg btn-full"
               style={{ 
