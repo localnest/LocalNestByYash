@@ -2,9 +2,10 @@
 
 import React from 'react';
 import { useMarketplace } from '@/lib/store';
+import { getCoveredSocieties } from '@/lib/geo';
 import { 
   Building2, LogOut, MapPin, Bell, 
-  X, ShieldCheck, User, Wrench, ShieldAlert 
+  X, ShieldCheck, User, Wrench, ShieldAlert, Navigation
 } from 'lucide-react';
 
 export default function AppHeader() {
@@ -59,9 +60,9 @@ export default function AppHeader() {
               </div>
             </div>
 
-            {/* Society Pill — static label for residents & providers, dropdown for admins only */}
+            {/* Society Pill — varies by role */}
             {currentUser.role === 'ADMIN' ? (
-              /* Admin: full society switcher */
+              /* Admin: full society switcher across all societies */
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
                 <MapPin size={13} color="#14b8a6" />
                 <select
@@ -87,8 +88,38 @@ export default function AppHeader() {
                   ))}
                 </select>
               </div>
+            ) : currentUser.role === 'PROVIDER' && activeProvider ? (
+              /* Provider: show their actual service coverage footprint */
+              (() => {
+                const covered = getCoveredSocieties(activeProvider, societies);
+                const radiusLabel = activeProvider.coverageMode === 'RADIUS'
+                  ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
+                  : 'Selected societies';
+                return (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '6px',
+                      background: 'rgba(255,255,255,0.1)',
+                      padding: '4px 10px',
+                      borderRadius: '20px',
+                      cursor: 'default',
+                      userSelect: 'none',
+                    }}
+                    title={covered.map(s => s.name).join(', ') || 'No societies covered yet'}
+                  >
+                    <Navigation size={13} color="#f59e0b" />
+                    <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#fff' }}>
+                      {covered.length > 0
+                        ? `Covers ${covered.length} ${covered.length === 1 ? 'society' : 'societies'} · ${radiusLabel}`
+                        : 'No coverage set'}
+                    </span>
+                  </div>
+                );
+              })()
             ) : (
-              /* Residents & Providers: static home-society label */
+              /* Resident: static home-society label — they live in one place */
               <div
                 style={{
                   display: 'flex',

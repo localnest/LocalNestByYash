@@ -27,7 +27,6 @@ export default function ProviderDashboard() {
     societies,
     requestPayout,
     addService,
-    selectedSociety,
     sendChatMessage,
     getOrderMessages,
     currentUser,
@@ -252,9 +251,16 @@ export default function ProviderDashboard() {
               <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', flexWrap: 'wrap' }}>
                 <span>{provider.categoryName}</span>
                 <span>•</span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '3px' }}>
+                <span
+                  style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'help' }}
+                  title={coveredSocietiesList.length > 0
+                    ? `Serving: ${coveredSocietiesList.map(s => s.name).join(', ')}`
+                    : 'No coverage configured yet'}
+                >
                   <MapPin size={13} color="var(--primary)" />
-                  Serving {selectedSociety.name}
+                  {coveredSocietiesList.length > 0
+                    ? `Covers ${coveredSocietiesList.length} ${coveredSocietiesList.length === 1 ? 'society' : 'societies'}${provider.coverageMode === 'RADIUS' ? ` · ${provider.maxServiceDistanceKm ?? 8} km radius` : ''}`
+                    : 'No societies covered'}
                 </span>
                 <span>•</span>
                 <button
@@ -419,7 +425,12 @@ export default function ProviderDashboard() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                    Today's Fulfillment Schedule in {selectedSociety.name}
+                    Today's Fulfillment Schedule
+                    {coveredSocietiesList.length === 1
+                      ? ` in ${coveredSocietiesList[0].name}`
+                      : coveredSocietiesList.length > 1
+                        ? ` across ${coveredSocietiesList.length} Societies`
+                        : ''}
                   </h3>
                   <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
                     {allManifestItems.length} deliveries & scheduled visits planned
