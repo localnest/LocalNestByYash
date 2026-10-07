@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Service, Provider, PricingModel } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
@@ -28,7 +28,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     d.setDate(d.getDate() + 1);
     return d.toISOString().split('T')[0];
   });
-  const [scheduledSlot, setScheduledSlot] = useState<string>('10:00 AM - 12:00 PM');
+  const [scheduledSlot, setScheduledSlot] = useState<string>('');
   const [deliveryAddress, setDeliveryAddress] = useState<string>('Tower A - 402, ' + selectedSociety.name);
   const [specialInstructions, setSpecialInstructions] = useState<string>('');
 
@@ -107,6 +107,67 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
          !['CANCELLED', 'REJECTED'].includes(o.status)
   );
   const isAtDailyCap = Boolean(provider.maxOrdersPerDay && providerOrdersOnDate.length >= provider.maxOrdersPerDay);
+
+  // ── Smart Slot Logic ─────────────────────────────────────────────────────
+  const ALL_SLOTS = [
+    { label: '07:00 – 09:00 AM', tag: 'Early Bird',  startH: 7 },
+    { label: '09:00 – 11:00 AM', tag: 'Morning',     startH: 9 },
+    { label: '11:00 AM – 01:00 PM', tag: 'Late Morning', startH: 11 },
+    { label: '01:00 – 03:00 PM', tag: 'Afternoon',   startH: 13 },
+    { label: '03:00 – 05:00 PM', tag: 'Mid Afternoon', startH: 15 },
+    { label: '05:00 – 07:00 PM', tag: 'Evening',     startH: 17 },
+  ];
+
+  const parseHour = (timeStr: string): number => {
+    // e.g. '08:00 AM' => 8, '08:00 PM' => 20
+    if (!timeStr) return 0;
+    const [hm, period] = timeStr.split(' ');
+    let h = parseInt(hm.split(':')[0], 10);
+    if (period === 'PM' && h !== 12) h += 12;
+    if (period === 'AM' && h === 12) h = 0;
+    return h;
+  };
+
+  const selectedDayName = useMemo(() => 
+    new Date(scheduledDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
+  [scheduledDate]);
+
+  const isOffDay = Boolean(provider.workingHours?.daysOff?.includes(selectedDayName));
+
+  const openH = parseHour(provider.workingHours?.start || '08:00 AM');
+  const closeH = parseHour(provider.workingHours?.end || '08:00 PM');
+
+  const availableSlots = useMemo(() => 
+    ALL_SLOTS.filter(s => s.startH >= openH && s.startH + 2 <= closeH),
+  [openH, closeH]);
+
+  // Count existing bookings per slot on selected date
+  const slotBookingCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    orders.forEach(o => {
+      if (o.providerId === provider.id && o.scheduledDate === scheduledDate && !['CANCELLED','REJECTED'].includes(o.status)) {
+        counts[o.scheduledSlot] = (counts[o.scheduledSlot] || 0) + 1;
+      }
+    });
+    return counts;
+  }, [orders, provider.id, scheduledDate]);
+
+  // Max bookings per slot: daily cap divided evenly across slots (min 1)
+  const slotsCount = Math.max(availableSlots.length, 1);
+  const perSlotCap = provider.maxOrdersPerDay ? Math.max(1, Math.ceil(provider.maxOrdersPerDay / slotsCount)) : 99;
+
+  const isSlotFull = (slotLabel: string) => (slotBookingCounts[slotLabel] || 0) >= perSlotCap;
+
+  // Auto-select first open slot when date or available slots change
+  React.useEffect(() => {
+    if (!scheduledSlot || !availableSlots.find(s => s.label === scheduledSlot && !isSlotFull(s.label))) {
+      const firstOpen = availableSlots.find(s => !isSlotFull(s.label));
+      setScheduledSlot(firstOpen?.label || (availableSlots[0]?.label ?? ''));
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [scheduledDate, availableSlots.length]);
+
+  const isSlotBooked = scheduledSlot ? isSlotFull(scheduledSlot) : false;
 
   // Live discount
   const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
@@ -417,39 +478,60 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     style={{ padding: '8px 12px' }}
                   />
                 </div>
+                {/* Smart Slot Grid */}
                 <div>
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                    <Clock size={14} /> Preferred Slot
+                    <Clock size={14} /> Available Slots
+                    <span style={{ fontWeight: 400, fontSize: '0.72rem', color: 'var(--text-muted)', marginLeft: '4px' }}>
+                      ({selectedDayName}{isOffDay ? ' — Off Day' : ''})
+                    </span>
                   </label>
-                  <select
-                    value={scheduledSlot}
-                    onChange={(e) => setScheduledSlot(e.target.value)}
-                    className="form-input"
-                    style={{ padding: '8px 12px' }}
-                  >
-                    <option value="07:00 AM - 09:00 AM">07:00 AM - 09:00 AM (Early)</option>
-                    <option value="10:00 AM - 12:00 PM">10:00 AM - 12:00 PM (Morning)</option>
-                    <option value="12:30 PM - 02:00 PM">12:30 PM - 02:00 PM (Lunch)</option>
-                    <option value="02:00 PM - 04:00 PM">02:00 PM - 04:00 PM (Afternoon)</option>
-                    <option value="05:00 PM - 07:00 PM">05:00 PM - 07:00 PM (Evening)</option>
-                  </select>
+
+                  {isOffDay ? (
+                    <div style={{ padding: '12px 14px', background: '#fef3c7', border: '1.5px solid #f59e0b', borderRadius: 'var(--radius-sm)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.82rem', color: '#92400e' }}>
+                      <AlertCircle size={16} style={{ flexShrink: 0 }} />
+                      <span><strong>{selectedDayName}</strong> is a scheduled off-day for {provider.businessName}. Please choose another date.</span>
+                    </div>
+                  ) : availableSlots.length === 0 ? (
+                    <div style={{ padding: '12px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-sm)', fontSize: '0.82rem', color: 'var(--text-muted)' }}>
+                      No slots available — provider working hours may not be set.
+                    </div>
+                  ) : (
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: '8px' }}>
+                      {availableSlots.map(slot => {
+                        const full = isSlotFull(slot.label);
+                        const selected = scheduledSlot === slot.label;
+                        const bookingsInSlot = slotBookingCounts[slot.label] || 0;
+                        return (
+                          <button
+                            key={slot.label}
+                            type="button"
+                            disabled={full}
+                            onClick={() => !full && setScheduledSlot(slot.label)}
+                            style={{
+                              padding: '9px 10px',
+                              borderRadius: 'var(--radius-sm)',
+                              border: selected ? '2px solid var(--primary)' : '1.5px solid var(--border-light)',
+                              background: full ? 'var(--bg-subtle)' : selected ? 'rgba(13,148,136,0.08)' : '#fff',
+                              cursor: full ? 'not-allowed' : 'pointer',
+                              opacity: full ? 0.55 : 1,
+                              textAlign: 'left',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <div style={{ fontSize: '0.78rem', fontWeight: selected ? 800 : 600, color: selected ? 'var(--primary)' : full ? 'var(--text-muted)' : 'var(--text-main)' }}>
+                              {slot.label}
+                            </div>
+                            <div style={{ fontSize: '0.67rem', marginTop: '2px', color: full ? 'var(--accent-rose)' : 'var(--text-subtle)' }}>
+                              {full ? '🔴 Fully Booked' : bookingsInSlot > 0 ? `${bookingsInSlot} booking${bookingsInSlot > 1 ? 's' : ''} · ${slot.tag}` : `Open · ${slot.tag}`}
+                            </div>
+                          </button>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               </div>
-
-              {/* Weekly Off Day Check */}
-              {(() => {
-                const dayName = new Date(scheduledDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' });
-                const isOff = provider.workingHours?.daysOff?.includes(dayName);
-                if (isOff) {
-                  return (
-                    <div style={{ marginTop: '8px', fontSize: '0.75rem', color: '#b45309', background: '#fef3c7', padding: '6px 10px', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <AlertCircle size={14} style={{ flexShrink: 0 }} />
-                      <span>{dayName} is a scheduled off-day for {provider.businessName}. Services will be initiated on the next working morning.</span>
-                    </div>
-                  );
-                }
-                return null;
-              })()}
             </div>
 
             {/* Address & Instructions */}
@@ -681,7 +763,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
             {/* Action Button: Razorpay Checkout (Disabled if Provider on Vacation) */}
             <button
               type="button"
-              disabled={isProcessingPayment || !isCovered || isAtDailyCap || provider.isVacationMode || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
+              disabled={isProcessingPayment || !isCovered || isAtDailyCap || isOffDay || isSlotBooked || provider.isVacationMode || !scheduledSlot || (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)}
               onClick={handleProcessOrder}
               className="btn btn-primary btn-lg btn-full"
               style={{ 

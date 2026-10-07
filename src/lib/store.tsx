@@ -112,7 +112,23 @@ interface MarketplaceContextType {
   skipNextDelivery: (subscriptionId: string, dateToSkip: string) => void;
 
   // Actions: Reviews
-  submitReview: (orderId: string, providerId: string, rating: number, comment: string) => { success: boolean; message: string };
+  submitReview: (
+    orderIdOrParams: string | {
+      orderId: string;
+      providerId: string;
+      rating: number;
+      comment: string;
+      tags?: string[];
+      customerFlat?: string;
+      privacyOption?: 'FULL_FLAT' | 'TOWER_ONLY' | 'ANONYMOUS';
+    },
+    providerId?: string,
+    rating?: number,
+    comment?: string,
+    tags?: string[],
+    customerFlat?: string
+  ) => { success: boolean; message: string };
+  respondToReview: (reviewId: string, replyComment: string) => { success: boolean; message: string };
 
   // Actions: Support & Complaints
   createComplaint: (orderId: string, category: string, description: string) => { success: boolean; ticketNumber: string };
@@ -280,6 +296,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
       const savedFeeRules = localStorage.getItem('hg_fee_rules');
       if (savedFeeRules) setPlatformFeeRules(JSON.parse(savedFeeRules));
+
+      const savedReviews = localStorage.getItem('hg_reviews');
+      if (savedReviews) setReviews(JSON.parse(savedReviews));
     } catch {
       // fallback to initial
     }
@@ -302,10 +321,12 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hg_chat_messages', JSON.stringify(chatMessages));
       localStorage.setItem('hg_fee_rules', JSON.stringify(platformFeeRules));
       localStorage.setItem('hg_service_requests', JSON.stringify(serviceRequests));
+      localStorage.setItem('hg_reviews', JSON.stringify(reviews));
     } catch {
       // ignore
     }
-  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules, serviceRequests]);
+  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules, serviceRequests, reviews]);
+
 
   const addNotification = (msg: string) => {
     setNotifications(prev => [msg, ...prev.slice(0, 4)]);
@@ -948,7 +969,31 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification(`Delivery on ${new Date(dateToSkip).toLocaleDateString()} has been skipped.`);
   };
 
-  const submitReview = (orderId: string, providerId: string, rating: number, comment: string) => {
+  const submitReview = (
+    orderIdOrParams: string | {
+      orderId: string;
+      providerId: string;
+      rating: number;
+      comment: string;
+      tags?: string[];
+      customerFlat?: string;
+      privacyOption?: 'FULL_FLAT' | 'TOWER_ONLY' | 'ANONYMOUS';
+    },
+    argProviderId?: string,
+    argRating?: number,
+    argComment?: string,
+    argTags?: string[],
+    argCustomerFlat?: string
+  ) => {
+    const isObj = typeof orderIdOrParams === 'object';
+    const orderId = isObj ? orderIdOrParams.orderId : orderIdOrParams;
+    const providerId = isObj ? orderIdOrParams.providerId : (argProviderId || '');
+    const rating = isObj ? orderIdOrParams.rating : (argRating || 5);
+    const comment = isObj ? orderIdOrParams.comment : (argComment || '');
+    const tags = isObj ? orderIdOrParams.tags : argTags;
+    const customerFlat = isObj ? orderIdOrParams.customerFlat : argCustomerFlat;
+    const privacyOption = isObj ? orderIdOrParams.privacyOption : 'FULL_FLAT';
+
     const order = orders.find(o => o.id === orderId);
     if (!order || order.status !== 'COMPLETED') {
       return { success: false, message: 'Reviews can only be submitted for completed orders.' };
@@ -958,14 +1003,31 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       return { success: false, message: 'You have already submitted a review for this order.' };
     }
 
+    const flatStr = customerFlat || order.customerFlat || currentUser?.flatNumber || '';
+    let displayName = currentUser?.fullName || order.customerName || 'Verified Resident';
+    let displayFlat = flatStr;
+
+    if (privacyOption === 'TOWER_ONLY' && flatStr) {
+      const towerMatch = flatStr.match(/Tower\s+[A-Za-z0-9]+/i) || flatStr.match(/Wing\s+[A-Za-z0-9]+/i);
+      displayFlat = towerMatch ? `${towerMatch[0]} Resident` : 'Society Resident';
+    } else if (privacyOption === 'ANONYMOUS') {
+      displayName = 'Verified Resident';
+      displayFlat = 'Greenfield Neighbor';
+    }
+
     const newReview: Review = {
       id: `rev-${Date.now()}`,
       orderId,
-      customerId: currentUser?.id || 'usr-customer-1',
-      customerName: currentUser?.fullName || 'Resident',
+      customerId: currentUser?.id || order.customerId || 'usr-customer-1',
+      customerName: displayName,
+      customerFlat: displayFlat,
+      societyId: order.societyId || selectedSociety.id,
+      societyName: order.societyName || selectedSociety.name,
+      serviceName: order.serviceName,
       providerId,
       rating,
       comment,
+      tags: tags && tags.length > 0 ? tags : undefined,
       isVerifiedPurchase: true,
       createdAt: new Date().toISOString(),
     };
@@ -978,16 +1040,37 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         const avg = provReviews.reduce((sum, r) => sum + r.rating, 0) / provReviews.length;
         return {
           ...p,
-          rating: Number(avg.toFixed(2)),
+          rating: Number(avg.toFixed(1)),
           reviewCount: provReviews.length,
         };
       }
       return p;
     }));
 
-    addNotification('Thank you for your rating! Your verified review has been posted.');
+    addNotification('Thank you! Your verified neighbor review and rating have been posted.');
     return { success: true, message: 'Review successfully recorded.' };
   };
+
+  const respondToReview = (reviewId: string, replyComment: string) => {
+    if (!replyComment.trim()) {
+      return { success: false, message: 'Response cannot be empty.' };
+    }
+    setReviews(prev => prev.map(r => {
+      if (r.id === reviewId) {
+        return {
+          ...r,
+          providerResponse: {
+            comment: replyComment.trim(),
+            respondedAt: new Date().toISOString(),
+          }
+        };
+      }
+      return r;
+    }));
+    addNotification('Your response to the neighbor review has been published.');
+    return { success: true, message: 'Response published successfully.' };
+  };
+
 
   const createComplaint = (orderId: string, category: string, description: string) => {
     const order = orders.find(o => o.id === orderId);
@@ -1281,6 +1364,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       resumeSubscription,
       skipNextDelivery,
       submitReview,
+      respondToReview,
       createComplaint,
       updateComplaintStatus,
       updateProviderStatus,

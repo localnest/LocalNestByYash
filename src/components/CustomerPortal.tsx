@@ -13,7 +13,7 @@ import {
   Calendar, Check, AlertCircle, Sparkles, Shirt, 
   UtensilsCrossed, Car, Zap, Snowflake, ArrowRight, 
   ChevronRight, Pause, Play, CheckCircle2, Phone,
-  Bell, Megaphone, Wrench, X, Wallet, MessageCircle, Send, Gift, TrendingUp
+  Bell, Megaphone, Wrench, X, Wallet, MessageCircle, Send, Gift, TrendingUp, ThumbsUp
 } from 'lucide-react';
 
 export default function CustomerPortal() {
@@ -44,8 +44,8 @@ export default function CustomerPortal() {
     getOrderMessages,
   } = useMarketplace();
 
-  // Active Tab: 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support'
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet'>('home');
+  // Active Tab: 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
+  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'>('home');
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatError, setChatError] = useState('');
@@ -58,6 +58,7 @@ export default function CustomerPortal() {
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [complaintOrder, setComplaintOrder] = useState<Order | null>(null);
   const [viewingProvider, setViewingProvider] = useState<Provider | null>(null);
+  const [providerReviewFilter, setProviderReviewFilter] = useState<'ALL' | 'LOCAL'>('ALL');
   const [dismissedNoticeIds, setDismissedNoticeIds] = useState<string[]>([]);
 
   // Demand request feedback state
@@ -186,6 +187,7 @@ export default function CustomerPortal() {
               { id: 'orders', label: `My Orders (${orders.length})`, icon: Clock },
               { id: 'subscriptions', label: `Subscriptions (${subscriptions.filter(s => s.status === 'ACTIVE').length})`, icon: RefreshCw },
               { id: 'offers', label: 'Offers', icon: Tag },
+              { id: 'notices', label: `Notices (${notices.filter(n => n.isActive && (n.societyId === 'ALL' || n.societyId === selectedSociety.id)).length})`, icon: Megaphone },
               { id: 'support', label: 'Support & Tickets', icon: HelpCircle },
               { id: 'wallet', label: 'My Wallet', icon: Wallet },
             ].map(tab => {
@@ -433,6 +435,7 @@ export default function CustomerPortal() {
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
                 {filteredProviders.slice(0, 4).map(provider => {
                   const provServices = services.filter(s => s.providerId === provider.id && s.isActive);
+                  const provReviews = reviews.filter(r => r.providerId === provider.id);
                   return (
                     <div key={provider.id} className="card card-hover" style={{ display: 'flex', flexDirection: 'column', justifyContent: 'space-between' }}>
                       <div>
@@ -459,7 +462,7 @@ export default function CustomerPortal() {
                             <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '6px', fontSize: '0.78rem', flexWrap: 'wrap' }}>
                               <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontWeight: 700, color: '#f59e0b' }}>
                                 <Star size={14} fill="#f59e0b" color="#f59e0b" />
-                                {provider.rating > 0 ? provider.rating : 'New'}
+                                {provider.rating > 0 ? `${provider.rating} (${provReviews.length || provider.reviewCount})` : 'New'}
                               </span>
                               <span style={{ color: 'var(--text-muted)' }}>
                                 {provider.completedOrders > 0 ? `${provider.completedOrders.toLocaleString()} completed` : 'New provider'}
@@ -496,6 +499,23 @@ export default function CustomerPortal() {
                         <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)', marginTop: '10px', lineHeight: 1.4 }}>
                           {provider.description}
                         </p>
+
+                        {/* Verified Neighbor Review Snippet */}
+                        {provReviews.length > 0 && (
+                          <div style={{ marginTop: '10px', background: '#f8fafc', borderLeft: '3px solid var(--accent-emerald)', padding: '8px 10px', borderRadius: '0 6px 6px 0', fontSize: '0.78rem' }}>
+                            <div style={{ color: 'var(--text-main)', fontStyle: 'italic', lineHeight: 1.4 }}>
+                              "{provReviews[0].comment.slice(0, 95)}..."
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '5px', fontSize: '0.7rem', color: 'var(--text-muted)' }}>
+                              <span style={{ fontWeight: 600 }}>
+                                — {provReviews[0].customerName} {provReviews[0].customerFlat ? `(${provReviews[0].customerFlat})` : ''}
+                              </span>
+                              <span style={{ color: 'var(--accent-emerald)', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '2px' }}>
+                                <ShieldCheck size={11} /> Verified Neighbor
+                              </span>
+                            </div>
+                          </div>
+                        )}
 
                         {/* Starting Price & Service tags */}
                         <div style={{ marginTop: '14px', paddingTop: '10px', borderTop: '1px solid var(--border-light)' }}>
@@ -1202,90 +1222,494 @@ export default function CustomerPortal() {
       </main>
 
       {/* Provider Details View Drawer/Modal */}
-      {viewingProvider && (
-        <div className="modal-overlay" onClick={() => setViewingProvider(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '620px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px' }}>
-              <div style={{ display: 'flex', gap: '12px' }}>
-                <img 
-                  src={viewingProvider.avatarUrl} 
-                  alt={viewingProvider.businessName}
-                  style={{ width: '70px', height: '70px', borderRadius: '12px', objectFit: 'cover' }}
-                />
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{viewingProvider.businessName}</h2>
-                    {viewingProvider.status === 'VERIFIED' && <ShieldCheck size={18} color="var(--accent-emerald)" />}
-                  </div>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>{viewingProvider.categoryName}</div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '4px', fontSize: '0.8rem' }}>
-                    <span style={{ fontWeight: 700, color: '#f59e0b' }}>★ {viewingProvider.rating}</span>
-                    <span>• {viewingProvider.completedOrders} orders completed</span>
-                    <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>• {viewingProvider.onTimeRate}% on-time</span>
+      {viewingProvider && (() => {
+        const provAllReviews = reviews.filter(r => r.providerId === viewingProvider.id);
+        const provLocalReviews = provAllReviews.filter(
+          r => !r.societyId || r.societyId === selectedSociety.id || r.societyName === selectedSociety.name
+        );
+        const displayedReviews = providerReviewFilter === 'LOCAL' ? provLocalReviews : provAllReviews;
+
+        // Compute dynamic rating stats
+        const totalRevCount = provAllReviews.length;
+        const avgScore = totalRevCount > 0 
+          ? (provAllReviews.reduce((sum, r) => sum + r.rating, 0) / totalRevCount).toFixed(1)
+          : (viewingProvider.rating || 5.0).toString();
+
+        const ratingDist = [5, 4, 3, 2, 1].map(stars => {
+          const count = provAllReviews.filter(r => r.rating === stars).length;
+          const pct = totalRevCount > 0 ? Math.round((count / totalRevCount) * 100) : 0;
+          return { stars, count, pct };
+        });
+
+        // Collect top tags
+        const allTags: Record<string, number> = {};
+        provAllReviews.forEach(r => {
+          r.tags?.forEach(tag => {
+            allTags[tag] = (allTags[tag] || 0) + 1;
+          });
+        });
+        const topTags = Object.entries(allTags).sort((a, b) => b[1] - a[1]).slice(0, 4);
+
+        return (
+          <div className="modal-overlay" onClick={() => setViewingProvider(null)}>
+            <div 
+              className="modal-content" 
+              onClick={(e) => e.stopPropagation()} 
+              style={{ maxWidth: '680px', maxHeight: '90vh', overflowY: 'auto' }}
+            >
+              {/* Header */}
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px' }}>
+                <div style={{ display: 'flex', gap: '14px', alignItems: 'center' }}>
+                  <img 
+                    src={viewingProvider.avatarUrl} 
+                    alt={viewingProvider.businessName}
+                    style={{ width: '68px', height: '68px', borderRadius: '14px', objectFit: 'cover', border: '2px solid var(--border-light)' }}
+                  />
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                      <h2 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{viewingProvider.businessName}</h2>
+                      {viewingProvider.status === 'VERIFIED' && (
+                        <span className="badge badge-emerald" style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '0.68rem' }}>
+                          <ShieldCheck size={12} /> Verified Provider
+                        </span>
+                      )}
+                      {viewingProvider.isVacationMode && (
+                        <span className="badge badge-amber" style={{ fontSize: '0.65rem' }}>🏖️ Vacation Paused</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}>{viewingProvider.categoryName}</div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginTop: '4px', fontSize: '0.8rem', flexWrap: 'wrap' }}>
+                      <span style={{ fontWeight: 800, color: '#f59e0b', display: 'flex', alignItems: 'center', gap: '3px' }}>
+                        <Star size={14} fill="#f59e0b" color="#f59e0b" /> {avgScore}
+                      </span>
+                      <span style={{ color: 'var(--text-muted)' }}>• {viewingProvider.completedOrders} orders</span>
+                      <span style={{ color: 'var(--accent-emerald)', fontWeight: 600 }}>• {viewingProvider.onTimeRate}% on-time</span>
+                      <span style={{ color: 'var(--text-muted)' }}>• 🕐 {viewingProvider.workingHours?.start || '8 AM'} - {viewingProvider.workingHours?.end || '8 PM'}</span>
+                    </div>
                   </div>
                 </div>
+                <button 
+                  onClick={() => setViewingProvider(null)} 
+                  className="btn btn-secondary btn-sm" 
+                  style={{ borderRadius: '50%', width: '32px', height: '32px', padding: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <X size={16} />
+                </button>
               </div>
-              <button onClick={() => setViewingProvider(null)} className="btn btn-secondary btn-sm" style={{ padding: '4px 8px' }}>
-                ✕
-              </button>
-            </div>
 
-            <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '16px' }}>
-              {viewingProvider.description}
-            </p>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '18px' }}>
+                {viewingProvider.description}
+              </p>
 
-            {/* Provider's Services with Dynamic Booking Buttons */}
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '10px' }}>Services & Pricing:</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '18px' }}>
-              {services.filter(s => s.providerId === viewingProvider.id && s.isActive).map(service => (
-                <div key={service.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                  <div>
-                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{service.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{service.description.slice(0, 70)}...</div>
-                    <span className="badge badge-slate" style={{ fontSize: '0.65rem', marginTop: '4px' }}>
-                      Model: {service.pricingModel.replace('_', ' ')}
-                    </span>
-                  </div>
-                  <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1rem' }}>
-                      {service.pricingModel === 'CUSTOM_QUOTATION' ? 'Free Quote' : `₹${service.basePrice}`}
-                    </div>
-                    <button
-                      onClick={() => {
-                        setViewingProvider(null);
-                        setBookingService({ service, provider: viewingProvider });
+              {/* Provider's Services with Dynamic Booking Buttons */}
+              <div style={{ marginBottom: '22px' }}>
+                <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '10px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <Wrench size={16} color="var(--primary)" /> Available Services & Society Rates
+                </h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                  {services.filter(s => s.providerId === viewingProvider.id && s.isActive).map(service => (
+                    <div 
+                      key={service.id} 
+                      style={{ 
+                        display: 'flex', 
+                        justifyContent: 'space-between', 
+                        alignItems: 'center', 
+                        background: 'var(--bg-subtle)', 
+                        padding: '12px 14px', 
+                        borderRadius: 'var(--radius-md)',
+                        border: '1px solid var(--border-light)'
                       }}
-                      className="btn btn-primary btn-sm"
-                      style={{ marginTop: '4px' }}
                     >
-                      Book
+                      <div style={{ flex: 1, marginRight: '12px' }}>
+                        <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>{service.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          {service.description.slice(0, 85)}...
+                        </div>
+                        <span className="badge badge-slate" style={{ fontSize: '0.65rem', marginTop: '4px' }}>
+                          Model: {service.pricingModel.replace('_', ' ')}
+                        </span>
+                      </div>
+                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                        <div style={{ fontWeight: 800, color: 'var(--primary)', fontSize: '1.05rem' }}>
+                          {service.pricingModel === 'CUSTOM_QUOTATION' ? 'Free Quote' : `₹${service.basePrice}`}
+                        </div>
+                        <button
+                          onClick={() => {
+                            setViewingProvider(null);
+                            setBookingService({ service, provider: viewingProvider });
+                          }}
+                          disabled={viewingProvider.isVacationMode}
+                          className="btn btn-primary btn-sm"
+                          style={{ marginTop: '4px', opacity: viewingProvider.isVacationMode ? 0.6 : 1 }}
+                        >
+                          {viewingProvider.isVacationMode ? 'Paused' : 'Book Slot'}
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Verified Neighbor Reviews Section */}
+              <div style={{ borderTop: '1px solid var(--border-light)', paddingTop: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', flexWrap: 'wrap', gap: '8px' }}>
+                  <div>
+                    <h4 style={{ fontSize: '1.05rem', fontWeight: 800, display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <Star size={18} fill="#f59e0b" color="#f59e0b" /> Verified Neighbor Reviews
+                    </h4>
+                    <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                      Authentic ratings from verified flat owners who booked through LocalNest
+                    </p>
+                  </div>
+
+                  {/* Filter Pills */}
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <button
+                      onClick={() => setProviderReviewFilter('LOCAL')}
+                      className={`btn btn-sm ${providerReviewFilter === 'LOCAL' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '16px' }}
+                    >
+                      🏡 {selectedSociety.name} ({provLocalReviews.length})
+                    </button>
+                    <button
+                      onClick={() => setProviderReviewFilter('ALL')}
+                      className={`btn btn-sm ${providerReviewFilter === 'ALL' ? 'btn-primary' : 'btn-secondary'}`}
+                      style={{ fontSize: '0.72rem', padding: '4px 10px', borderRadius: '16px' }}
+                    >
+                      🌐 All ({provAllReviews.length})
                     </button>
                   </div>
                 </div>
-              ))}
-            </div>
 
-            {/* Customer Verified Reviews */}
-            <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '10px' }}>Society Resident Reviews:</h4>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
-              {reviews.filter(r => r.providerId === viewingProvider.id).map(rev => (
-                <div key={rev.id} style={{ background: '#fff', border: '1px solid var(--border-light)', padding: '10px', borderRadius: '8px', fontSize: '0.8rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <strong style={{ color: 'var(--text-main)' }}>{rev.customerName}</strong>
-                    <span style={{ color: '#f59e0b', fontWeight: 700 }}>{'★'.repeat(rev.rating)}</span>
+                {/* Rating Overview Card */}
+                <div style={{ 
+                  background: 'linear-gradient(135deg, rgba(245,158,11,0.06) 0%, rgba(13,148,136,0.05) 100%)', 
+                  border: '1px solid rgba(245,158,11,0.2)', 
+                  borderRadius: 'var(--radius-md)', 
+                  padding: '14px 18px', 
+                  marginBottom: '16px',
+                  display: 'grid',
+                  gridTemplateColumns: '140px 1fr',
+                  gap: '16px',
+                  alignItems: 'center'
+                }}>
+                  {/* Left: Big Score */}
+                  <div style={{ textAlign: 'center', borderRight: '1px solid rgba(0,0,0,0.06)', paddingRight: '12px' }}>
+                    <div style={{ fontSize: '2.4rem', fontWeight: 900, color: '#b45309', lineHeight: 1 }}>
+                      {avgScore}
+                    </div>
+                    <div style={{ display: 'flex', justifyContent: 'center', gap: '2px', margin: '4px 0' }}>
+                      {[1, 2, 3, 4, 5].map(s => (
+                        <Star 
+                          key={s} 
+                          size={14} 
+                          fill={s <= Math.round(Number(avgScore)) ? '#f59e0b' : 'none'} 
+                          color="#f59e0b" 
+                        />
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                      {totalRevCount} verified rating{totalRevCount !== 1 ? 's' : ''}
+                    </div>
                   </div>
-                  <p style={{ color: 'var(--text-muted)', marginTop: '4px' }}>{rev.comment}</p>
-                </div>
-              ))}
-            </div>
 
+                  {/* Right: Distribution Bars */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
+                    {ratingDist.map(item => (
+                      <div key={item.stars} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.72rem' }}>
+                        <span style={{ width: '22px', textAlign: 'right', fontWeight: 600 }}>{item.stars}★</span>
+                        <div style={{ flex: 1, height: '7px', background: '#e2e8f0', borderRadius: '4px', overflow: 'hidden' }}>
+                          <div style={{ width: `${item.pct}%`, height: '100%', background: '#f59e0b', borderRadius: '4px' }} />
+                        </div>
+                        <span style={{ width: '28px', color: 'var(--text-muted)', fontSize: '0.68rem' }}>{item.count}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Popular Praise Tags */}
+                {topTags.length > 0 && (
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '14px', flexWrap: 'wrap' }}>
+                    <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--text-muted)' }}>Top Neighbor Praise:</span>
+                    {topTags.map(([tag, count]) => (
+                      <span 
+                        key={tag} 
+                        style={{ 
+                          fontSize: '0.72rem', 
+                          background: '#ecfdf5', 
+                          color: '#047857', 
+                          border: '1px solid #a7f3d0', 
+                          padding: '2px 8px', 
+                          borderRadius: '12px',
+                          fontWeight: 600
+                        }}
+                      >
+                        {tag} <span style={{ opacity: 0.7 }}>({count})</span>
+                      </span>
+                    ))}
+                  </div>
+                )}
+
+                {/* Reviews List */}
+                {displayedReviews.length === 0 ? (
+                  <div style={{ textAlign: 'center', padding: '32px 16px', background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)' }}>
+                    <Star size={32} color="var(--text-subtle)" style={{ margin: '0 auto 8px' }} />
+                    <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>No reviews yet for this filter</div>
+                    <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      Be the first verified neighbor from {selectedSociety.name} to book and rate this provider!
+                    </div>
+                  </div>
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                    {displayedReviews.map(rev => {
+                      const initial = rev.customerName?.charAt(0).toUpperCase() || 'R';
+                      const formattedDate = new Date(rev.createdAt).toLocaleDateString('en-IN', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric'
+                      });
+
+                      return (
+                        <div 
+                          key={rev.id} 
+                          style={{ 
+                            background: '#fff', 
+                            border: '1px solid var(--border-light)', 
+                            borderRadius: 'var(--radius-md)', 
+                            padding: '14px',
+                            boxShadow: '0 1px 3px rgba(0,0,0,0.02)'
+                          }}
+                        >
+                          {/* Reviewer Header */}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '8px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                              <div style={{ 
+                                width: '34px', 
+                                height: '34px', 
+                                borderRadius: '50%', 
+                                background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)', 
+                                color: '#fff', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center', 
+                                fontWeight: 800, 
+                                fontSize: '0.85rem' 
+                              }}>
+                                {initial}
+                              </div>
+                              <div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>{rev.customerName}</strong>
+                                  {rev.customerFlat && (
+                                    <span style={{ fontSize: '0.72rem', background: '#f1f5f9', color: '#475569', padding: '1px 6px', borderRadius: '4px', fontWeight: 600 }}>
+                                      {rev.customerFlat}
+                                    </span>
+                                  )}
+                                  <span style={{ color: 'var(--accent-emerald)', fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '2px', fontWeight: 700 }}>
+                                    <ShieldCheck size={12} /> Verified Purchase
+                                  </span>
+                                </div>
+                                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '1px' }}>
+                                  📍 {rev.societyName || selectedSociety.name} • {formattedDate}
+                                </div>
+                              </div>
+                            </div>
+
+                            {/* Stars */}
+                            <div style={{ display: 'flex', gap: '2px', alignItems: 'center' }}>
+                              {[1, 2, 3, 4, 5].map(s => (
+                                <Star 
+                                  key={s} 
+                                  size={13} 
+                                  fill={s <= rev.rating ? '#f59e0b' : 'none'} 
+                                  color="#f59e0b" 
+                                />
+                              ))}
+                            </div>
+                          </div>
+
+                          {/* Service Title */}
+                          {rev.serviceName && (
+                            <div style={{ marginTop: '8px', fontSize: '0.74rem', color: 'var(--primary)', fontWeight: 600 }}>
+                              Service Booked: {rev.serviceName}
+                            </div>
+                          )}
+
+                          {/* Praise Tags */}
+                          {rev.tags && rev.tags.length > 0 && (
+                            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '5px', marginTop: '6px' }}>
+                              {rev.tags.map(t => (
+                                <span 
+                                  key={t} 
+                                  style={{ 
+                                    fontSize: '0.7rem', 
+                                    background: '#f8fafc', 
+                                    border: '1px solid #e2e8f0', 
+                                    padding: '2px 7px', 
+                                    borderRadius: '12px',
+                                    color: '#334155',
+                                    fontWeight: 500
+                                  }}
+                                >
+                                  {t}
+                                </span>
+                              ))}
+                            </div>
+                          )}
+
+                          {/* Comment Body */}
+                          <p style={{ color: 'var(--text-main)', fontSize: '0.84rem', lineHeight: 1.5, marginTop: '8px', margin: '8px 0 0' }}>
+                            {rev.comment}
+                          </p>
+
+                          {/* Provider Response (if any) */}
+                          {rev.providerResponse && (
+                            <div style={{ 
+                              marginTop: '10px', 
+                              background: '#f8fafc', 
+                              borderLeft: '3px solid var(--primary)', 
+                              padding: '8px 12px', 
+                              borderRadius: '0 6px 6px 0',
+                              fontSize: '0.78rem'
+                            }}>
+                              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '3px' }}>
+                                <span style={{ fontWeight: 700, color: 'var(--primary)' }}>
+                                  💬 Response from {viewingProvider.businessName}
+                                </span>
+                                <span style={{ fontSize: '0.68rem', color: 'var(--text-muted)' }}>
+                                  {new Date(rev.providerResponse.respondedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                                </span>
+                              </div>
+                              <p style={{ margin: 0, color: '#334155', lineHeight: 1.4 }}>
+                                {rev.providerResponse.comment}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      );
+                    })}
+                  </div>
+                )}
+              </div>
+
+            </div>
           </div>
-        </div>
-      )}
+        );
+      })()}
 
 
       {/* ============================================================== */}
-      {/* TAB: WALLET */}
+      {/* TAB: NOTICE BOARD */}
+      {/* ============================================================== */}
+      {activeTab === 'notices' && (() => {
+        const myNotices = notices
+          .filter(n => n.isActive && (n.societyId === 'ALL' || n.societyId === selectedSociety.id))
+          .sort((a, b) => {
+            // Urgent first, then by date desc
+            if (a.priority === 'URGENT' && b.priority !== 'URGENT') return -1;
+            if (b.priority === 'URGENT' && a.priority !== 'URGENT') return 1;
+            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+          });
+
+        const typeConfig: Record<string, { color: string; bg: string; icon: React.ReactNode }> = {
+          ANNOUNCEMENT: { color: '#1d4ed8', bg: '#dbeafe', icon: <Megaphone size={15} /> },
+          MAINTENANCE:  { color: '#92400e', bg: '#fef3c7', icon: <Wrench size={15} /> },
+          ALERT:        { color: '#be123c', bg: '#ffe4e6', icon: <AlertCircle size={15} /> },
+          SERVICE_UPDATE: { color: '#065f46', bg: '#d1fae5', icon: <Bell size={15} /> },
+        };
+
+        return (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+              <div>
+                <h2 style={{ fontSize: '1.35rem', fontWeight: 800 }}>Society Notice Board</h2>
+                <p style={{ fontSize: '0.82rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                  Official announcements for {selectedSociety.name}
+                </p>
+              </div>
+              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                {myNotices.length} active notice{myNotices.length !== 1 ? 's' : ''}
+              </span>
+            </div>
+
+            {myNotices.length === 0 ? (
+              <div className="card" style={{ textAlign: 'center', padding: '48px 24px' }}>
+                <Bell size={40} color="var(--text-subtle)" style={{ marginBottom: '12px' }} />
+                <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '6px' }}>All Clear!</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>No active notices for your society right now.</div>
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {myNotices.map(notice => {
+                  const cfg = typeConfig[notice.type] || typeConfig.ANNOUNCEMENT;
+                  const isUrgent = notice.priority === 'URGENT';
+                  const timeAgo = (() => {
+                    const diff = Date.now() - new Date(notice.createdAt).getTime();
+                    const h = Math.floor(diff / 3600000);
+                    const d = Math.floor(h / 24);
+                    if (d > 0) return `${d}d ago`;
+                    if (h > 0) return `${h}h ago`;
+                    return 'Just now';
+                  })();
+
+                  return (
+                    <div
+                      key={notice.id}
+                      className="card"
+                      style={{
+                        padding: '18px 20px',
+                        borderLeft: `4px solid ${isUrgent ? 'var(--accent-rose)' : cfg.color}`,
+                        background: isUrgent ? '#fff8f8' : undefined,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px', flexWrap: 'wrap' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+                          {/* Type badge */}
+                          <span style={{
+                            display: 'inline-flex', alignItems: 'center', gap: '5px',
+                            padding: '3px 10px', borderRadius: '20px',
+                            background: cfg.bg, color: cfg.color,
+                            fontSize: '0.72rem', fontWeight: 700
+                          }}>
+                            {cfg.icon}
+                            {notice.type.replace('_', ' ')}
+                          </span>
+                          {isUrgent && (
+                            <span style={{
+                              padding: '3px 10px', borderRadius: '20px',
+                              background: '#ffe4e6', color: 'var(--accent-rose)',
+                              fontSize: '0.72rem', fontWeight: 800
+                            }}>
+                              🔴 URGENT
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.72rem', color: 'var(--text-subtle)', whiteSpace: 'nowrap' }}>
+                          {timeAgo}
+                        </div>
+                      </div>
+
+                      <div style={{ marginTop: '12px' }}>
+                        <div style={{ fontWeight: 800, fontSize: '1rem', marginBottom: '6px' }}>{notice.title}</div>
+                        <div style={{ fontSize: '0.875rem', color: 'var(--text-muted)', lineHeight: 1.6 }}>{notice.content}</div>
+                      </div>
+
+                      <div style={{ marginTop: '12px', paddingTop: '10px', borderTop: '1px solid var(--border-light)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.75rem', color: 'var(--text-subtle)' }}>
+                        <span>Posted by <strong style={{ color: 'var(--text-muted)' }}>{notice.authorName}</strong></span>
+                        <span>
+                          {notice.societyId === 'ALL' ? '📢 All Societies' : `📍 ${notice.societyName}`}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
+
       {/* ============================================================== */}
       {activeTab === 'wallet' && currentUser && (() => {
         const uid = currentUser.id;

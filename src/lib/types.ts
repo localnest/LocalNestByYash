@@ -293,12 +293,22 @@ export interface Review {
   orderId: string;
   customerId: string;
   customerName: string;
+  customerFlat?: string;
+  societyId?: string;
+  societyName?: string;
+  serviceName?: string;
   providerId: string;
   rating: number;
   comment: string;
+  tags?: string[];
   isVerifiedPurchase: boolean;
+  providerResponse?: {
+    comment: string;
+    respondedAt: string;
+  };
   createdAt: string;
 }
+
 
 export interface Complaint {
   id: string;
