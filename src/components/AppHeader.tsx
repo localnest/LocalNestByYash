@@ -59,32 +59,55 @@ export default function AppHeader() {
               </div>
             </div>
 
-            {/* Society Pill / Dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
-              <MapPin size={13} color="#14b8a6" />
-              <select 
-                value={selectedSociety.id}
-                onChange={(e) => {
-                  const s = societies.find(soc => soc.id === e.target.value);
-                  if (s) setSelectedSociety(s);
+            {/* Society Pill — static label for residents & providers, dropdown for admins only */}
+            {currentUser.role === 'ADMIN' ? (
+              /* Admin: full society switcher */
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '4px 10px', borderRadius: '20px' }}>
+                <MapPin size={13} color="#14b8a6" />
+                <select
+                  value={selectedSociety.id}
+                  onChange={(e) => {
+                    const s = societies.find(soc => soc.id === e.target.value);
+                    if (s) setSelectedSociety(s);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#fff',
+                    fontSize: '0.78rem',
+                    fontWeight: 600,
+                    outline: 'none',
+                    cursor: 'pointer'
+                  }}
+                >
+                  {societies.map(soc => (
+                    <option key={soc.id} value={soc.id} style={{ color: '#0f172a', background: '#fff' }}>
+                      {soc.name} ({soc.totalFlats.toLocaleString()} flats)
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              /* Residents & Providers: static home-society label */
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255,255,255,0.1)',
+                  padding: '4px 10px',
+                  borderRadius: '20px',
+                  cursor: 'default',
+                  userSelect: 'none',
                 }}
-                style={{ 
-                  background: 'transparent', 
-                  border: 'none', 
-                  color: '#fff', 
-                  fontSize: '0.78rem', 
-                  fontWeight: 600,
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
+                title={`You are registered at ${selectedSociety.name}`}
               >
-                {societies.map(soc => (
-                  <option key={soc.id} value={soc.id} style={{ color: '#0f172a', background: '#fff' }}>
-                    {soc.name} ({soc.totalFlats.toLocaleString()} flats)
-                  </option>
-                ))}
-              </select>
-            </div>
+                <MapPin size={13} color="#14b8a6" />
+                <span style={{ fontSize: '0.78rem', fontWeight: 600, color: '#fff' }}>
+                  {selectedSociety.name}
+                </span>
+              </div>
+            )}
           </div>
 
           {/* User Session Info & Logout */}
