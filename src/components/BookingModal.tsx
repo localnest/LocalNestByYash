@@ -18,7 +18,7 @@ interface BookingModalProps {
 }
 
 export default function BookingModal({ service, provider, onClose, onSuccess }: BookingModalProps) {
-  const { createOrder, validateCoupon, selectedSociety, coupons, currentUser, getWalletBalance, platformFeeRules, orders } = useMarketplace();
+  const { createOrder, validateCoupon, selectedSociety, coupons, currentUser, getWalletBalance, platformFeeRules, orders, t } = useMarketplace();
   const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
@@ -773,7 +773,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               }}
             >
               {provider.isVacationMode ? (
-                'Provider on Vacation (Booking Paused)'
+                t.onVacation
               ) : isProcessingPayment ? (
                 <>
                   <div className="skeleton" style={{ width: '16px', height: '16px', borderRadius: '50%' }}></div>
@@ -782,7 +782,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               ) : (
                 <>
                   <CreditCard size={18} />
-                  Pay ₹{totalPayable.toFixed(2)} & Confirm
+                  Pay ₹{totalPayable.toFixed(2)} & {t.confirm}
                   <ArrowRight size={18} />
                 </>
               )}

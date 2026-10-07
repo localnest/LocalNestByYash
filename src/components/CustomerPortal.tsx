@@ -42,6 +42,9 @@ export default function CustomerPortal() {
     createServiceRequest,
     sendChatMessage,
     getOrderMessages,
+    language,
+    setLanguage,
+    t,
   } = useMarketplace();
 
   // Active Tab: 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
@@ -182,14 +185,14 @@ export default function CustomerPortal() {
           {/* Desktop Nav Tabs */}
           <div style={{ display: 'flex', gap: '6px' }} className="desktop-tabs">
             {[
-              { id: 'home', label: 'Home', icon: Home },
-              { id: 'explore', label: 'Explore Services', icon: Compass },
-              { id: 'orders', label: `My Orders (${orders.length})`, icon: Clock },
-              { id: 'subscriptions', label: `Subscriptions (${subscriptions.filter(s => s.status === 'ACTIVE').length})`, icon: RefreshCw },
-              { id: 'offers', label: 'Offers', icon: Tag },
-              { id: 'notices', label: `Notices (${notices.filter(n => n.isActive && (n.societyId === 'ALL' || n.societyId === selectedSociety.id)).length})`, icon: Megaphone },
-              { id: 'support', label: 'Support & Tickets', icon: HelpCircle },
-              { id: 'wallet', label: 'My Wallet', icon: Wallet },
+              { id: 'home', label: t.navHome, icon: Home },
+              { id: 'explore', label: t.navExplore, icon: Compass },
+              { id: 'orders', label: `${t.navOrders} (${orders.length})`, icon: Clock },
+              { id: 'subscriptions', label: `${t.navSubscriptions} (${subscriptions.filter(s => s.status === 'ACTIVE').length})`, icon: RefreshCw },
+              { id: 'offers', label: t.navOffers, icon: Tag },
+              { id: 'notices', label: `${t.navNotices} (${notices.filter(n => n.isActive && (n.societyId === 'ALL' || n.societyId === selectedSociety.id)).length})`, icon: Megaphone },
+              { id: 'support', label: t.navSupport, icon: HelpCircle },
+              { id: 'wallet', label: t.navWallet, icon: Wallet },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1858,11 +1861,11 @@ export default function CustomerPortal() {
       {/* Bottom Navigation for Mobile / Tablet */}
       <nav className="mobile-nav">
         {[
-          { id: 'home', label: 'Home', icon: Home },
-          { id: 'explore', label: 'Explore', icon: Compass },
-          { id: 'orders', label: 'Orders', icon: Clock },
-          { id: 'subscriptions', label: 'Recurring', icon: RefreshCw },
-          { id: 'offers', label: 'Offers', icon: Tag },
+          { id: 'home', label: t.navHome, icon: Home },
+          { id: 'explore', label: t.navExplore, icon: Compass },
+          { id: 'orders', label: t.navOrders, icon: Clock },
+          { id: 'subscriptions', label: t.navSubscriptions, icon: RefreshCw },
+          { id: 'offers', label: t.navOffers, icon: Tag },
         ].map(item => {
           const Icon = item.icon;
           const isActive = activeTab === item.id;

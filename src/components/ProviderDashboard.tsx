@@ -32,6 +32,9 @@ export default function ProviderDashboard() {
     sendChatMessage,
     getOrderMessages,
     currentUser,
+    language,
+    setLanguage,
+    t,
   } = useMarketplace();
 
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
@@ -298,13 +301,13 @@ export default function ProviderDashboard() {
           {/* Navigation Tabs */}
           <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
             {[
-              { id: 'overview', label: 'Overview' },
-              { id: 'orders', label: `Orders (${providerOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED' && o.status !== 'REJECTED').length} active)` },
-              { id: 'manifest', label: `Delivery Sheet (${allManifestItems.length})`, icon: FileSpreadsheet },
-              { id: 'subscriptions', label: `Subscriptions (${providerSubscriptions.length})` },
-              { id: 'services', label: `Services (${providerServices.length})` },
-              { id: 'earnings', label: `Earnings (₹${withdrawableBalance.toLocaleString()})` },
-              { id: 'reviews', label: `Reviews & Ratings (${myReviews.length})`, icon: Star },
+              { id: 'overview', label: t.navOverview },
+              { id: 'orders', label: `${t.navProviderOrders} (${providerOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED' && o.status !== 'REJECTED').length} active)` },
+              { id: 'manifest', label: `${t.navManifest} (${allManifestItems.length})`, icon: FileSpreadsheet },
+              { id: 'subscriptions', label: `${t.navProviderSubs} (${providerSubscriptions.length})` },
+              { id: 'services', label: `${t.navProviderServices} (${providerServices.length})` },
+              { id: 'earnings', label: `${t.navEarnings} (₹${withdrawableBalance.toLocaleString()})` },
+              { id: 'reviews', label: `${t.navProviderReviews} (${myReviews.length})`, icon: Star },
             ].map(tab => {
               const isActive = activeTab === tab.id;
               const TabIcon = tab.icon;

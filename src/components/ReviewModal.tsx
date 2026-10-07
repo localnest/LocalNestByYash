@@ -30,7 +30,7 @@ const RATING_LABELS: Record<number, { text: string; color: string; desc: string 
 };
 
 export default function ReviewModal({ order, onClose }: ReviewModalProps) {
-  const { submitReview, currentUser } = useMarketplace();
+  const { submitReview, currentUser, t } = useMarketplace();
   const [rating, setRating] = useState<number>(5);
   const [hoverRating, setHoverRating] = useState<number>(5);
   const [selectedTags, setSelectedTags] = useState<string[]>(['✨ Spotless Clean', '⏰ On-Time Arrival']);
@@ -86,7 +86,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
       >
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
           <div>
-            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Verified Neighbor Review</h3>
+            <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.verifiedNeighborReview}</h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               Your rating directly shapes verified recommendations in {order.societyName || 'Greenfield Heights'}
             </p>
@@ -101,7 +101,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
             <div style={{ width: '64px', height: '64px', borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
               <CheckCircle size={36} color="var(--accent-emerald)" />
             </div>
-            <h4 style={{ fontSize: '1.25rem', fontWeight: 800 }}>Review Published to Society!</h4>
+            <h4 style={{ fontSize: '1.25rem', fontWeight: 800 }}>{t.reviewSuccess}</h4>
             <p style={{ color: 'var(--text-muted)', fontSize: '0.88rem', marginTop: '6px', maxWidth: '380px', margin: '6px auto 0' }}>
               Thank you! Your verified rating helps your neighbors at {order.societyName} choose dependable doorstep professionals.
             </p>
@@ -126,14 +126,14 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
                 </div>
               </div>
               <span className="badge badge-emerald" style={{ fontSize: '0.68rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <ShieldCheck size={12} /> Verified Order
+                <ShieldCheck size={12} /> {t.verified} Order
               </span>
             </div>
 
             {/* Star Rating Section */}
             <div style={{ textAlign: 'center', background: 'var(--bg-subtle)', padding: '16px', borderRadius: 'var(--radius-md)' }}>
               <label style={{ fontSize: '0.85rem', fontWeight: 700, display: 'block', marginBottom: '8px' }}>
-                How was your service experience?
+                {t.experienceQuestion}
               </label>
               
               <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
@@ -173,7 +173,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
             {/* Quick Praise Tags */}
             <div>
               <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '5px', marginBottom: '8px' }}>
-                <ThumbsUp size={14} color="var(--primary)" /> What stood out? (Tap tags)
+                <ThumbsUp size={14} color="var(--primary)" /> {t.whatStoodOut}
               </label>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
                 {PRAISE_TAGS.map(tag => {
@@ -205,7 +205,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
             {/* Feedback Comment Box */}
             <div>
               <label className="form-label">
-                Detailed Neighbor Feedback: <span style={{ color: 'var(--accent-rose)' }}>*</span>
+                {t.detailedFeedback}: <span style={{ color: 'var(--accent-rose)' }}>*</span>
               </label>
               <textarea
                 value={comment}
@@ -277,7 +277,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
             </div>
 
             <button type="submit" className="btn btn-primary btn-full" style={{ padding: '11px', fontSize: '0.92rem', fontWeight: 700 }}>
-              Publish Verified Review
+              {t.publishReview}
             </button>
           </form>
         )}

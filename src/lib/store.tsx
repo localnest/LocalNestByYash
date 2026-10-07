@@ -22,6 +22,9 @@ import { PLATFORM_CONFIG } from './config';
 
 import { filterContactDetails, resolveCommissionRate } from './retentionUtils';
 export { filterContactDetails };
+import { Language, TranslationDictionary, TRANSLATIONS } from './i18n';
+export type { Language, TranslationDictionary };
+
 
 interface MarketplaceContextType {
   // Auth & Session
@@ -205,6 +208,11 @@ interface MarketplaceContextType {
   // Notifications
   notifications: string[];
   dismissNotification: (index: number) => void;
+
+  // Language / i18n
+  language: Language;
+  setLanguage: (lang: Language) => void;
+  t: TranslationDictionary;
 }
 
 const MarketplaceContext = createContext<MarketplaceContextType | undefined>(undefined);
@@ -234,6 +242,21 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const [notifications, setNotifications] = useState<string[]>([
     'Welcome to Greenfield Heights pilot marketplace! Secure logins for Residents, Providers, and Administrators.'
   ]);
+
+  // Language State
+  const [language, setLanguageState] = useState<Language>('en');
+
+  const setLanguage = (lang: Language) => {
+    setLanguageState(lang);
+    try {
+      localStorage.setItem('hg_language', lang);
+    } catch {
+      // ignore
+    }
+  };
+
+  const t = TRANSLATIONS[language] || TRANSLATIONS.en;
+
 
   // Load from local storage on client if available
   useEffect(() => {
@@ -299,6 +322,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
       const savedReviews = localStorage.getItem('hg_reviews');
       if (savedReviews) setReviews(JSON.parse(savedReviews));
+
+      const savedLang = localStorage.getItem('hg_language') as Language;
+      if (savedLang && (savedLang === 'en' || savedLang === 'hi' || savedLang === 'mr')) {
+        setLanguageState(savedLang);
+      }
     } catch {
       // fallback to initial
     }
@@ -1389,6 +1417,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       deactivateNotice,
       notifications,
       dismissNotification,
+      language,
+      setLanguage,
+      t,
     }}>
       {children}
     </MarketplaceContext.Provider>

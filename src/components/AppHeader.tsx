@@ -5,7 +5,7 @@ import { useMarketplace } from '@/lib/store';
 import { getCoveredSocieties } from '@/lib/geo';
 import { 
   Building2, LogOut, MapPin, Bell, 
-  X, ShieldCheck, User, Wrench, ShieldAlert, Navigation
+  X, ShieldCheck, User, Wrench, ShieldAlert, Navigation, Globe
 } from 'lucide-react';
 
 export default function AppHeader() {
@@ -18,7 +18,10 @@ export default function AppHeader() {
     notifications, 
     dismissNotification,
     providers,
-    activeProviderId 
+    activeProviderId,
+    language,
+    setLanguage,
+    t
   } = useMarketplace();
 
   if (!currentUser) return null;
@@ -163,6 +166,46 @@ export default function AppHeader() {
               </div>
             </div>
 
+            {/* Language Switcher — Only for Provider & Customer (Resident) */}
+            {(currentUser.role === 'CUSTOMER' || currentUser.role === 'PROVIDER') && (
+              <div 
+                style={{ 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  background: 'rgba(255,255,255,0.08)', 
+                  borderRadius: '20px', 
+                  padding: '2px 4px', 
+                  border: '1px solid rgba(255,255,255,0.14)' 
+                }}
+                title={t.selectLanguage}
+              >
+                <Globe size={13} color="#14b8a6" style={{ margin: '0 5px' }} />
+                {(['en', 'hi', 'mr'] as const).map(lang => {
+                  const isSelected = language === lang;
+                  const label = lang === 'en' ? 'EN' : lang === 'hi' ? 'हिंदी' : 'मराठी';
+                  return (
+                    <button
+                      key={lang}
+                      onClick={() => setLanguage(lang)}
+                      style={{
+                        background: isSelected ? 'var(--primary)' : 'transparent',
+                        color: isSelected ? '#fff' : '#cbd5e1',
+                        border: 'none',
+                        borderRadius: '16px',
+                        padding: '3px 8px',
+                        fontSize: '0.72rem',
+                        fontWeight: isSelected ? 800 : 500,
+                        cursor: 'pointer',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {label}
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Sign Out Button */}
             <button
               onClick={logout}
@@ -178,7 +221,7 @@ export default function AppHeader() {
               title="Sign out of current account"
             >
               <LogOut size={13} />
-              Sign Out
+              {t.signOut}
             </button>
           </div>
 
