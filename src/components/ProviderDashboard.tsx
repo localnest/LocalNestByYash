@@ -1409,6 +1409,228 @@ export default function ProviderDashboard() {
         );
       })()}
 
+      {/* ================================================================
+          EDIT SERVICE AREA & TRAVEL CHARGE MODAL
+          (was referenced but never rendered — now wired up)
+          ================================================================ */}
+      {showServiceAreaModal && (() => {
+        const currentLocality = BENGALURU_LOCALITIES[areaLocalityIdx] || BENGALURU_LOCALITIES[0];
+        const societiesWithDist = societies.map(soc => {
+          if (!soc.latitude || !soc.longitude) return { society: soc, distance: null, inRange: false, isExcluded: areaExcludedSocieties.includes(soc.id) };
+          const dist = calculateHaversineDistance(currentLocality.latitude, currentLocality.longitude, soc.latitude, soc.longitude);
+          const inRange = dist <= areaMaxDistance;
+          const isExcluded = areaExcludedSocieties.includes(soc.id);
+          return { society: soc, distance: Math.round(dist * 10) / 10, inRange, isExcluded, isCovered: inRange && !isExcluded };
+        });
+
+        const toggleExclude = (id: string) => setAreaExcludedSocieties(prev =>
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+        );
+        const toggleManual = (id: string) => {
+          if (areaCoverageMode === 'SELECTED_SOCIETIES') {
+            const exists = areaManualSocieties.includes(id);
+            if (!exists) setAreaManualSocieties(prev => [...prev, id]);
+            else if (areaManualSocieties.length > 1) setAreaManualSocieties(prev => prev.filter(x => x !== id));
+          }
+        };
+
+        const handleSave = () => {
+          const derivedSupported = areaCoverageMode === 'RADIUS'
+            ? societiesWithDist.filter(s => s.inRange && !s.isExcluded).map(s => s.society.id)
+            : areaManualSocieties;
+          updateProviderServiceArea(provider.id, {
+            baseLocation: { label: currentLocality.label, pincode: currentLocality.pincode, latitude: currentLocality.latitude, longitude: currentLocality.longitude },
+            maxServiceDistanceKm: areaMaxDistance,
+            coverageMode: areaCoverageMode,
+            excludedSocietyIds: areaExcludedSocieties,
+            supportedSocieties: derivedSupported,
+            maxOrdersPerDay: areaDailyCap,
+            freeServiceRadiusKm: areaEnableTravel ? areaFreeRadius : undefined,
+            travelChargePerKm: areaEnableTravel ? areaChargePerKm : undefined,
+            maxTravelCharge: areaEnableTravel ? areaMaxCap : undefined,
+          });
+          setShowServiceAreaModal(false);
+        };
+
+        return (
+          <div
+            style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
+            onClick={(e) => { if (e.target === e.currentTarget) setShowServiceAreaModal(false); }}
+          >
+            <div style={{ background: 'var(--card-bg)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
+              {/* Modal Header */}
+              <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div>
+                  <div style={{ fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <Navigation size={18} color="var(--primary)" /> Edit Service Area &amp; Travel
+                  </div>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                    Changes apply immediately to new bookings
+                  </div>
+                </div>
+                <button onClick={() => setShowServiceAreaModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
+                  <X size={20} />
+                </button>
+              </div>
+
+              {/* Modal Body — scrollable */}
+              <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '18px' }}>
+
+                {/* Base Location */}
+                <div>
+                  <label className="form-label">Your Base Location / Operating Hub</label>
+                  <select value={areaLocalityIdx} onChange={e => setAreaLocalityIdx(Number(e.target.value))} className="form-input">
+                    {BENGALURU_LOCALITIES.map((loc, idx) => (
+                      <option key={loc.label} value={idx}>{loc.label} (PIN: {loc.pincode})</option>
+                    ))}
+                  </select>
+                  <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    {currentLocality.latitude.toFixed(4)}° N, {currentLocality.longitude.toFixed(4)}° E
+                  </div>
+                </div>
+
+                {/* Coverage Mode Toggle */}
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  <button type="button" onClick={() => setAreaCoverageMode('RADIUS')}
+                    className={`btn btn-sm ${areaCoverageMode === 'RADIUS' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, padding: '8px' }}>
+                    <Sliders size={14} /> Distance Radius
+                  </button>
+                  <button type="button" onClick={() => setAreaCoverageMode('SELECTED_SOCIETIES')}
+                    className={`btn btn-sm ${areaCoverageMode === 'SELECTED_SOCIETIES' ? 'btn-primary' : 'btn-secondary'}`}
+                    style={{ flex: 1, padding: '8px' }}>
+                    <MapPin size={14} /> Specific Societies Only
+                  </button>
+                </div>
+
+                {/* RADIUS MODE */}
+                {areaCoverageMode === 'RADIUS' && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    <div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                        <label className="form-label" style={{ margin: 0 }}>Max Travel Distance:</label>
+                        <span style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)' }}>{areaMaxDistance} km</span>
+                      </div>
+                      <input type="range" min="1" max="25" step="1" value={areaMaxDistance}
+                        onChange={e => setAreaMaxDistance(Number(e.target.value))}
+                        style={{ width: '100%', accentColor: 'var(--primary)', cursor: 'pointer' }} />
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.71rem', color: 'var(--text-muted)' }}>
+                        <span>1 km</span><span>10 km</span><span>25 km</span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="form-label" style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                        Live Coverage Preview ({societiesWithDist.filter(s => s.inRange && !s.isExcluded).length} societies covered):
+                      </label>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
+                        {societiesWithDist.map(({ society, distance, inRange, isExcluded }) => (
+                          <div key={society.id} style={{
+                            padding: '8px 12px', borderRadius: '8px', border: '1px solid var(--border-light)',
+                            background: inRange && !isExcluded ? 'rgba(20,184,166,0.06)' : 'var(--bg-subtle)',
+                            display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+                          }}>
+                            <div>
+                              <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>{society.name}</div>
+                              <div style={{ fontSize: '0.71rem', color: 'var(--text-muted)' }}>
+                                {society.locality || society.city} • {distance !== null ? `${distance} km away` : 'No coordinates'}
+                              </div>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              {inRange ? (
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.72rem', cursor: 'pointer' }}>
+                                  <input type="checkbox" checked={isExcluded} onChange={() => toggleExclude(society.id)} />
+                                  <span style={{ color: isExcluded ? 'var(--accent-rose)' : 'var(--text-muted)' }}>
+                                    {isExcluded ? 'Excluded' : 'Exclude'}
+                                  </span>
+                                </label>
+                              ) : (
+                                <span className="badge badge-slate" style={{ fontSize: '0.65rem' }}>Out of range</span>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* SELECTED SOCIETIES MODE */}
+                {areaCoverageMode === 'SELECTED_SOCIETIES' && (
+                  <div>
+                    <label className="form-label">Select Societies You Can Serve:</label>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                      {societies.map(soc => {
+                        const isChecked = areaManualSocieties.includes(soc.id);
+                        return (
+                          <button key={soc.id} type="button" onClick={() => toggleManual(soc.id)}
+                            className={`btn btn-sm ${isChecked ? 'btn-primary' : 'btn-secondary'}`}
+                            style={{ fontSize: '0.78rem', borderRadius: '20px' }}>
+                            <MapPin size={12} /> {soc.name}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Daily Order Cap */}
+                <div style={{ background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>Daily Order Booking Limit</div>
+                      <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Locks calendar when you reach capacity.</div>
+                    </div>
+                    <input type="number" min="1" max="50" value={areaDailyCap}
+                      onChange={e => setAreaDailyCap(Number(e.target.value))}
+                      className="form-input" style={{ width: '80px', padding: '6px' }} />
+                  </div>
+                </div>
+
+                {/* Travel Charge */}
+                <div style={{ border: '1px solid var(--border-light)', borderRadius: 'var(--radius-md)', padding: '14px' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontWeight: 700, fontSize: '0.85rem' }}>
+                    <input type="checkbox" checked={areaEnableTravel} onChange={e => setAreaEnableTravel(e.target.checked)} />
+                    <span>Enable Travel &amp; Fuel Surcharge for Outlying Clusters</span>
+                  </label>
+                  {areaEnableTravel && (
+                    <div style={{ marginTop: '12px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '10px' }}>
+                      <div>
+                        <label className="form-label">Free Radius (km)</label>
+                        <input type="number" min="0" max="15" value={areaFreeRadius}
+                          onChange={e => setAreaFreeRadius(Number(e.target.value))} className="form-input" />
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>₹0 within this radius</div>
+                      </div>
+                      <div>
+                        <label className="form-label">Rate / km (₹)</label>
+                        <input type="number" min="5" max="100" value={areaChargePerKm}
+                          onChange={e => setAreaChargePerKm(Number(e.target.value))} className="form-input" />
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>charged past free radius</div>
+                      </div>
+                      <div>
+                        <label className="form-label">Max Cap (₹)</label>
+                        <input type="number" min="20" max="500" value={areaMaxCap}
+                          onChange={e => setAreaMaxCap(Number(e.target.value))} className="form-input" />
+                        <div style={{ fontSize: '0.68rem', color: 'var(--text-muted)', marginTop: '2px' }}>maximum surcharge limit</div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Modal Footer */}
+              <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button onClick={() => setShowServiceAreaModal(false)} className="btn btn-secondary btn-sm">
+                  Cancel
+                </button>
+                <button onClick={handleSave} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <CheckCircle size={14} /> Save Service Area
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
+
     </div>
   );
 }
