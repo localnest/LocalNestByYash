@@ -138,38 +138,38 @@ export default function AuthScreen() {
       </div>
 
       {/* Main Authentication Card */}
-      <div className="card" style={{ maxWidth: '480px', width: '100%', padding: '28px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff' }}>
+      <div className="card" style={{ maxWidth: 'min(480px, 95vw)', width: '100%', padding: '24px 18px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff', boxSizing: 'border-box' }}>
         
         {/* Role Selector Tabs */}
-        <div style={{ display: 'flex', background: 'var(--bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)', marginBottom: '20px' }}>
+        <div style={{ display: 'flex', background: 'var(--bg-subtle)', padding: '4px', borderRadius: 'var(--radius-md)', marginBottom: '20px', gap: '4px' }}>
           <button
             type="button"
             onClick={() => handleRoleTabChange('CUSTOMER')}
             className={`btn btn-sm ${activeRole === 'CUSTOMER' ? 'btn-primary' : ''}`}
-            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 6px', color: activeRole === 'CUSTOMER' ? '#fff' : 'var(--text-muted)' }}
+            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 4px', color: activeRole === 'CUSTOMER' ? '#fff' : 'var(--text-muted)', minHeight: '38px', minWidth: 0, justifyContent: 'center' }}
           >
-            <UserCheck size={14} />
-            Resident
+            <UserCheck size={14} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Resident</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleRoleTabChange('PROVIDER')}
             className={`btn btn-sm ${activeRole === 'PROVIDER' ? 'btn-primary' : ''}`}
-            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 6px', color: activeRole === 'PROVIDER' ? '#fff' : 'var(--text-muted)' }}
+            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 4px', color: activeRole === 'PROVIDER' ? '#fff' : 'var(--text-muted)', minHeight: '38px', minWidth: 0, justifyContent: 'center' }}
           >
-            <Wrench size={14} />
-            Provider
+            <Wrench size={14} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Provider</span>
           </button>
 
           <button
             type="button"
             onClick={() => handleRoleTabChange('ADMIN')}
             className={`btn btn-sm ${activeRole === 'ADMIN' ? 'btn-primary' : ''}`}
-            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 6px', color: activeRole === 'ADMIN' ? '#fff' : 'var(--text-muted)' }}
+            style={{ flex: 1, borderRadius: '8px', fontSize: '0.78rem', padding: '8px 4px', color: activeRole === 'ADMIN' ? '#fff' : 'var(--text-muted)', minHeight: '38px', minWidth: 0, justifyContent: 'center' }}
           >
-            <ShieldCheck size={14} />
-            Admin
+            <ShieldCheck size={14} style={{ flexShrink: 0 }} />
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>Admin</span>
           </button>
         </div>
 
@@ -330,12 +330,12 @@ export default function AuthScreen() {
             <span>TEST LOGINS (CLICK TO AUTO-FILL):</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '6px' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '6px' }}>
             <button
               type="button"
               onClick={() => handleQuickFill('resident')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left' }}
+              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left', minHeight: '38px', minWidth: 0 }}
             >
               🏡 <strong>Resident</strong> (Flat A-402)
             </button>
@@ -344,7 +344,7 @@ export default function AuthScreen() {
               type="button"
               onClick={() => handleQuickFill('provider_laundry')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left' }}
+              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left', minHeight: '38px', minWidth: 0 }}
             >
               🧺 <strong>Raj Laundry</strong>
             </button>
@@ -353,7 +353,7 @@ export default function AuthScreen() {
               type="button"
               onClick={() => handleQuickFill('provider_tiffin')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left' }}
+              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left', minHeight: '38px', minWidth: 0 }}
             >
               🍱 <strong>FreshBite Tiffin</strong>
             </button>
@@ -362,7 +362,7 @@ export default function AuthScreen() {
               type="button"
               onClick={() => handleQuickFill('admin')}
               className="btn btn-secondary btn-sm"
-              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left' }}
+              style={{ fontSize: '0.72rem', padding: '6px 8px', justifyContent: 'flex-start', textAlign: 'left', minHeight: '38px', minWidth: 0 }}
             >
               🛡️ <strong>Platform Admin</strong>
             </button>

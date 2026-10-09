@@ -134,10 +134,10 @@ export default function ProviderOnboarding() {
       justifyContent: 'center',
       padding: '24px 16px'
     }}>
-      <div className="card" style={{ maxWidth: '680px', width: '100%', padding: '32px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff' }}>
+      <div className="card" style={{ maxWidth: 'min(680px, 95vw)', width: '100%', padding: '24px 18px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff', boxSizing: 'border-box' }}>
         
         {/* Step Indicator Header */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px', gap: '8px' }}>
           <div>
             <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
               Step {step} of 3 • Provider Registration
@@ -151,7 +151,7 @@ export default function ProviderOnboarding() {
           <button 
             type="button" 
             onClick={logout}
-            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline' }}
+            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline', minHeight: '36px', minWidth: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             Cancel & Sign Out
           </button>
@@ -251,7 +251,7 @@ export default function ProviderOnboarding() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '10px' }}>
                 <div>
                   <label className="form-label">Base Price (₹)</label>
                   <input
@@ -323,12 +323,12 @@ export default function ProviderOnboarding() {
             </div>
 
             {/* Coverage Mode Toggle */}
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
               <button
                 type="button"
                 onClick={() => setCoverageMode('RADIUS')}
                 className={`btn btn-sm ${coverageMode === 'RADIUS' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, padding: '8px' }}
+                style={{ flex: '1 1 200px', padding: '10px 12px', minHeight: '44px' }}
               >
                 <Sliders size={14} /> Distance Radius Mode (Recommended)
               </button>
@@ -336,7 +336,7 @@ export default function ProviderOnboarding() {
                 type="button"
                 onClick={() => setCoverageMode('SELECTED_SOCIETIES')}
                 className={`btn btn-sm ${coverageMode === 'SELECTED_SOCIETIES' ? 'btn-primary' : 'btn-secondary'}`}
-                style={{ flex: 1, padding: '8px' }}
+                style={{ flex: '1 1 200px', padding: '10px 12px', minHeight: '44px' }}
               >
                 <Building size={14} /> Specific Societies Only
               </button>

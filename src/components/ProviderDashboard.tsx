@@ -299,7 +299,7 @@ export default function ProviderDashboard() {
           </div>
 
           {/* Navigation Tabs */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <div className="scrollable-tabs" style={{ maxWidth: '100%', minWidth: 0 }}>
             {[
               { id: 'overview', label: t.navOverview },
               { id: 'orders', label: `${t.navProviderOrders} (${providerOrders.filter(o => o.status !== 'COMPLETED' && o.status !== 'CANCELLED' && o.status !== 'REJECTED').length} active)` },
@@ -316,7 +316,7 @@ export default function ProviderDashboard() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ borderRadius: '8px', fontSize: '0.8rem' }}
+                  style={{ borderRadius: '8px', fontSize: '0.8rem', flexShrink: 0, whiteSpace: 'nowrap', minHeight: '36px' }}
                 >
                   {TabIcon && <TabIcon size={13} />}
                   {tab.label}
@@ -677,11 +677,11 @@ export default function ProviderDashboard() {
             </div>
 
             {/* Manifest Table */}
-            <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+            <div className="card table-responsive" style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}>
+              <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                 <thead>
                   <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
-                    <th style={{ padding: '12px 14px', width: '40px' }}>Done</th>
+                    <th style={{ padding: '12px 14px', width: '48px' }}>Done</th>
                     <th style={{ padding: '12px 14px' }}>Flat / Tower</th>
                     <th style={{ padding: '12px 14px' }}>Resident Name</th>
                     <th style={{ padding: '12px 14px' }}>Service & Plan</th>
@@ -701,12 +701,12 @@ export default function ProviderDashboard() {
                           transition: 'background 0.2s ease'
                         }}
                       >
-                        <td style={{ padding: '12px 14px' }}>
+                        <td style={{ padding: '12px 14px', minWidth: '48px' }}>
                           <input
                             type="checkbox"
                             checked={isDone}
                             onChange={() => toggleManifestCheck(item.id)}
-                            style={{ width: '18px', height: '18px', cursor: 'pointer', accentColor: 'var(--primary)' }}
+                            style={{ width: '22px', height: '22px', minWidth: '22px', minHeight: '22px', cursor: 'pointer', accentColor: 'var(--primary)' }}
                           />
                         </td>
                         <td style={{ padding: '12px 14px', fontWeight: 800, color: 'var(--primary)' }}>
@@ -903,8 +903,8 @@ export default function ProviderDashboard() {
             {/* Payout History Ledger */}
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Bank Transfer History</h3>
-              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+              <div className="card table-responsive" style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}>
+                <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
                       <th style={{ padding: '12px 16px' }}>Reference #</th>
@@ -949,8 +949,8 @@ export default function ProviderDashboard() {
             {/* Completed Orders Detailed Breakdown */}
             <div>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>Itemized Order Earnings</h3>
-              <div className="card" style={{ padding: 0, overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
+              <div className="card table-responsive" style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}>
+                <table style={{ width: '100%', minWidth: '650px', borderCollapse: 'collapse', fontSize: '0.85rem', textAlign: 'left' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', color: 'var(--text-muted)' }}>
                       <th style={{ padding: '12px 16px' }}>Order #</th>
@@ -1348,15 +1348,21 @@ export default function ProviderDashboard() {
       {/* Feature 10: Decline Order Modal */}
       {orderToReject && (
         <div className="modal-overlay" onClick={() => setOrderToReject(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(480px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--accent-rose)' }}>Decline Booking Request</h3>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Order #{orderToReject.orderNumber} • {orderToReject.customerName} ({orderToReject.customerFlat})
                 </div>
               </div>
-              <button onClick={() => setOrderToReject(null)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button 
+                onClick={() => setOrderToReject(null)} 
+                style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                aria-label="Close decline modal"
+              >
+                ✕
+              </button>
             </div>
 
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '16px' }}>
@@ -1418,15 +1424,21 @@ export default function ProviderDashboard() {
       {/* Feature 9 & 13: Availability & Vacation Mode Modal */}
       {showAvailabilityModal && (
         <div className="modal-overlay" onClick={() => setShowAvailabilityModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '520px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(520px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Operating Hours & Vacation Mode</h3>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Control when society residents can book your services
                 </div>
               </div>
-              <button onClick={() => setShowAvailabilityModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button 
+                onClick={() => setShowAvailabilityModal(false)} 
+                style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                aria-label="Close availability modal"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleSaveAvailability} style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
@@ -1472,7 +1484,7 @@ export default function ProviderDashboard() {
               {/* Working Hours Settings */}
               <div>
                 <h4 style={{ fontSize: '0.95rem', fontWeight: 700, marginBottom: '8px' }}>Daily Working Hours</h4>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                   <div>
                     <label className="form-label">Opening Time</label>
                     <select
@@ -1552,15 +1564,21 @@ export default function ProviderDashboard() {
       {/* Feature 11: Request Payout Withdrawal Modal */}
       {showPayoutModal && (
         <div className="modal-overlay" onClick={() => setShowPayoutModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(480px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', gap: '8px' }}>
               <div>
                 <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>Request Bank Payout</h3>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
                   Direct transfer from platform escrow to your account
                 </div>
               </div>
-              <button onClick={() => setShowPayoutModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button 
+                onClick={() => setShowPayoutModal(false)} 
+                style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                aria-label="Close payout modal"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleRequestPayoutSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -1584,12 +1602,12 @@ export default function ProviderDashboard() {
 
               <div>
                 <label className="form-label">Payout Method</label>
-                <div style={{ display: 'flex', gap: '10px' }}>
+                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                   <button
                     type="button"
                     onClick={() => { setPayoutMethod('UPI'); setPayoutDetails('provider@okhdfcbank'); }}
                     className={`btn btn-sm ${payoutMethod === 'UPI' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ flex: 1 }}
+                    style={{ flex: '1 1 140px', minHeight: '44px' }}
                   >
                     UPI Transfer (Instant)
                   </button>
@@ -1597,7 +1615,7 @@ export default function ProviderDashboard() {
                     type="button"
                     onClick={() => { setPayoutMethod('BANK_NEFT'); setPayoutDetails('HDFC Bank - A/C 9928192849 (IFSC: HDFC000124)'); }}
                     className={`btn btn-sm ${payoutMethod === 'BANK_NEFT' ? 'btn-primary' : 'btn-secondary'}`}
-                    style={{ flex: 1 }}
+                    style={{ flex: '1 1 140px', minHeight: '44px' }}
                   >
                     NEFT / IMPS Bank
                   </button>
@@ -1639,10 +1657,16 @@ export default function ProviderDashboard() {
       {/* Add Service Modal */}
       {showAddServiceModal && (
         <div className="modal-overlay" onClick={() => setShowAddServiceModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(520px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Add New Service Offering</h3>
-              <button onClick={() => setShowAddServiceModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button 
+                onClick={() => setShowAddServiceModal(false)} 
+                style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'none', border: 'none', cursor: 'pointer', flexShrink: 0 }}
+                aria-label="Close add service modal"
+              >
+                ✕
+              </button>
             </div>
 
             <form onSubmit={handleCreateService} style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
@@ -1674,7 +1698,7 @@ export default function ProviderDashboard() {
                 </select>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
                 <div>
                   <label className="form-label">Base Price (₹)</label>
                   <input
@@ -1828,9 +1852,9 @@ export default function ProviderDashboard() {
             style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.65)', zIndex: 1000, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}
             onClick={(e) => { if (e.target === e.currentTarget) setShowServiceAreaModal(false); }}
           >
-            <div style={{ background: 'var(--bg-surface, #ffffff)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: '560px', maxHeight: '90vh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-xl)', border: '1px solid var(--border-light)' }}>
+            <div style={{ background: 'var(--bg-surface, #ffffff)', borderRadius: 'var(--radius-lg)', width: '100%', maxWidth: 'min(560px, 95vw)', maxHeight: '90dvh', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxShadow: 'var(--shadow-xl)', border: '1px solid var(--border-light)' }}>
               {/* Modal Header */}
-              <div style={{ padding: '18px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ padding: '16px 18px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                   <div style={{ fontWeight: 800, fontSize: '1.1rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
                     <Navigation size={18} color="var(--primary)" /> Edit Service Area &amp; Travel
@@ -1839,13 +1863,18 @@ export default function ProviderDashboard() {
                     Changes apply immediately to new bookings
                   </div>
                 </div>
-                <button onClick={() => setShowServiceAreaModal(false)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', padding: '4px' }}>
+                <button
+                  type="button"
+                  aria-label="Close service area modal"
+                  onClick={() => setShowServiceAreaModal(false)}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
                   <X size={20} />
                 </button>
               </div>
 
               {/* Modal Body — scrollable */}
-              <div style={{ overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '0' }}>
+              <div style={{ overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '0' }}>
 
                 {/* ── STEP 1: Shop Location ─────────────────────────── */}
                 <div style={{ marginBottom: '20px' }}>
@@ -1858,7 +1887,7 @@ export default function ProviderDashboard() {
                     }}>1</div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>Your Shop / Operating Location</div>
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: '32px' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', paddingLeft: 'clamp(8px, 3vw, 28px)' }}>
                     <div>
                       <label className="form-label">Shop / Business Name</label>
                       <input
@@ -1906,17 +1935,17 @@ export default function ProviderDashboard() {
                     }}>2</div>
                     <div style={{ fontWeight: 700, fontSize: '0.9rem' }}>How Far Can You Travel?</div>
                   </div>
-                  <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                  <div style={{ paddingLeft: 'clamp(8px, 3vw, 28px)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                     {/* Mode toggle */}
-                    <div style={{ display: 'flex', gap: '8px' }}>
+                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                       <button type="button" onClick={() => setAreaCoverageMode('RADIUS')}
                         className={`btn btn-sm ${areaCoverageMode === 'RADIUS' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1 }}>
+                        style={{ flex: '1 1 160px', minHeight: '44px' }}>
                         <Sliders size={13} /> Radius from Shop
                       </button>
                       <button type="button" onClick={() => setAreaCoverageMode('SELECTED_SOCIETIES')}
                         className={`btn btn-sm ${areaCoverageMode === 'SELECTED_SOCIETIES' ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1 }}>
+                        style={{ flex: '1 1 160px', minHeight: '44px' }}>
                         <MapPin size={13} /> Pick Societies Manually
                       </button>
                     </div>
@@ -1942,7 +1971,7 @@ export default function ProviderDashboard() {
                             Charge travel fee for distant locations
                           </label>
                           {areaEnableTravel && (
-                            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '8px' }}>
                               <div>
                                 <label className="form-label" style={{ fontSize: '0.72rem' }}>Free within (km)</label>
                                 <input type="number" min="0" max="15" value={areaFreeRadius}
@@ -1973,7 +2002,7 @@ export default function ProviderDashboard() {
                             return (
                               <button key={soc.id} type="button" onClick={() => toggleManual(soc.id)}
                                 className={`btn btn-sm ${isChecked ? 'btn-primary' : 'btn-secondary'}`}
-                                style={{ fontSize: '0.78rem', borderRadius: '20px' }}>
+                                style={{ fontSize: '0.78rem', borderRadius: '20px', minHeight: '36px' }}>
                                 <MapPin size={11} /> {soc.name}
                               </button>
                             );
@@ -1985,7 +2014,7 @@ export default function ProviderDashboard() {
                             Charge travel fee for distant societies
                           </label>
                           {areaEnableTravel && (
-                            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                            <div style={{ marginTop: '10px', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))', gap: '8px' }}>
                               <div>
                                 <label className="form-label" style={{ fontSize: '0.72rem' }}>Free within (km)</label>
                                 <input type="number" min="0" max="15" value={areaFreeRadius}
@@ -2028,7 +2057,7 @@ export default function ProviderDashboard() {
                         </span>
                       </div>
                     </div>
-                    <div style={{ paddingLeft: '32px', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
+                    <div style={{ paddingLeft: 'clamp(8px, 3vw, 28px)', display: 'flex', flexDirection: 'column', gap: '6px', maxHeight: '220px', overflowY: 'auto' }}>
                       {societiesWithDist
                         .sort((a, b) => (a.distance ?? 999) - (b.distance ?? 999))
                         .map(({ society, distance, inRange, isExcluded }) => (
@@ -2072,7 +2101,7 @@ export default function ProviderDashboard() {
                 )}
 
                 {/* Daily Order Cap */}
-                <div style={{ background: 'var(--bg-subtle)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <div style={{ background: 'var(--bg-subtle)', padding: '12px 14px', borderRadius: 'var(--radius-sm)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '8px' }}>
                   <div>
                     <div style={{ fontSize: '0.82rem', fontWeight: 700 }}>Daily Order Booking Limit</div>
                     <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>Blocks new bookings once you hit capacity.</div>
@@ -2088,11 +2117,11 @@ export default function ProviderDashboard() {
               </div>
 
               {/* Modal Footer */}
-              <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button onClick={() => setShowServiceAreaModal(false)} className="btn btn-secondary btn-sm">
+              <div style={{ padding: '14px 20px', borderTop: '1px solid var(--border)', display: 'flex', gap: '10px', justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+                <button onClick={() => setShowServiceAreaModal(false)} className="btn btn-secondary btn-sm" style={{ minHeight: '44px' }}>
                   Cancel
                 </button>
-                <button onClick={handleSave} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <button onClick={handleSave} className="btn btn-primary btn-sm" style={{ display: 'flex', alignItems: 'center', gap: '6px', minHeight: '44px' }}>
                   <CheckCircle size={14} /> Save Service Area
                 </button>
               </div>

@@ -82,16 +82,20 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
       <div 
         className="modal-content" 
         onClick={(e) => e.stopPropagation()} 
-        style={{ maxWidth: '520px', maxHeight: '90vh', overflowY: 'auto' }}
+        style={{ maxWidth: 'min(520px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}
       >
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '14px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', gap: '8px' }}>
           <div>
             <h3 style={{ fontSize: '1.2rem', fontWeight: 800 }}>{t.verifiedNeighborReview}</h3>
             <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
               Your rating directly shapes verified recommendations in {order.societyName || 'Greenfield Heights'}
             </p>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '4px' }}>
+          <button 
+            onClick={onClose} 
+            style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}
+            aria-label="Close review modal"
+          >
             <X size={20} />
           </button>
         </div>
@@ -136,7 +140,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
                 {t.experienceQuestion}
               </label>
               
-              <div style={{ display: 'flex', justifyContent: 'center', gap: '8px', marginBottom: '6px' }}>
+              <div style={{ display: 'flex', justifyContent: 'center', gap: '6px', marginBottom: '6px', flexWrap: 'wrap' }}>
                 {[1, 2, 3, 4, 5].map((star) => (
                   <button
                     type="button"
@@ -145,13 +149,19 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
                     onMouseEnter={() => setHoverRating(star)}
                     onMouseLeave={() => setHoverRating(rating)}
                     style={{ 
-                      padding: '4px', 
+                      padding: '6px', 
+                      minWidth: '44px',
+                      minHeight: '44px',
+                      display: 'inline-flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
                       background: 'none', 
                       border: 'none', 
                       cursor: 'pointer',
                       transform: activeRating >= star ? 'scale(1.12)' : 'scale(1)',
                       transition: 'transform 0.12s ease'
                     }}
+                    aria-label={`${star} star rating`}
                   >
                     <Star 
                       size={32} 

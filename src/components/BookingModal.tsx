@@ -232,12 +232,12 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(580px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
         
         {/* Header */}
-        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px' }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: '16px', borderBottom: '1px solid var(--border-light)', paddingBottom: '12px', gap: '8px' }}>
           <div>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
               <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
                 {service.pricingModel.replace('_', ' ')}
               </span>
@@ -249,7 +249,11 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               {service.name}
             </h2>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)', padding: '4px' }}>
+          <button 
+            onClick={onClose} 
+            style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}
+            aria-label="Close booking modal"
+          >
             <X size={20} />
           </button>
         </div>
@@ -310,7 +314,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                         type="button"
                         onClick={() => setItemQuantity(Math.max(1, itemQuantity - 1))}
                         className="btn btn-secondary btn-sm"
-                        style={{ width: '32px', height: '32px', padding: 0 }}
+                        style={{ minWidth: '40px', minHeight: '40px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         -
                       </button>
@@ -319,7 +323,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                         type="button"
                         onClick={() => setItemQuantity(itemQuantity + 1)}
                         className="btn btn-secondary btn-sm"
-                        style={{ width: '32px', height: '32px', padding: 0 }}
+                        style={{ minWidth: '40px', minHeight: '40px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                       >
                         +
                       </button>
@@ -341,14 +345,14 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     </span>
                   </div>
                   <label className="form-label">Estimated Service Duration:</label>
-                  <div style={{ display: 'flex', gap: '8px' }}>
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                     {[1, 2, 3, 4].map(h => (
                       <button
                         key={h}
                         type="button"
                         onClick={() => setHours(h)}
                         className={`btn btn-sm ${hours === h ? 'btn-primary' : 'btn-secondary'}`}
-                        style={{ flex: 1 }}
+                        style={{ flex: 1, minWidth: '60px', minHeight: '44px' }}
                       >
                         {h} {h === 1 ? 'Hour' : 'Hours'}
                       </button>
@@ -363,21 +367,21 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                   <span style={{ fontWeight: 600, fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>
                     Select Garments / Items:
                   </span>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '160px', overflowY: 'auto' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', maxHeight: '180px', overflowY: 'auto' }}>
                     {service.pricingItems.map(item => {
                       const qty = itemQuantities[item.name] || 0;
                       return (
-                        <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '6px 12px', borderRadius: '8px' }}>
-                          <div>
+                        <div key={item.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: '#fff', padding: '8px 12px', borderRadius: '8px', gap: '8px', flexWrap: 'wrap' }}>
+                          <div style={{ minWidth: 0, flex: 1 }}>
                             <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.name}</div>
                             <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>₹{item.price} / {item.unit}</div>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
                             <button
                               type="button"
                               onClick={() => setItemQuantities({ ...itemQuantities, [item.name]: Math.max(0, qty - 1) })}
                               className="btn btn-secondary btn-sm"
-                              style={{ width: '28px', height: '28px', padding: 0 }}
+                              style={{ minWidth: '38px', minHeight: '38px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               -
                             </button>
@@ -386,7 +390,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                               type="button"
                               onClick={() => setItemQuantities({ ...itemQuantities, [item.name]: qty + 1 })}
                               className="btn btn-secondary btn-sm"
-                              style={{ width: '28px', height: '28px', padding: 0 }}
+                              style={{ minWidth: '38px', minHeight: '38px', padding: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
                             >
                               +
                             </button>
@@ -464,7 +468,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
 
             {/* Date & Slot Picker */}
             <div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '12px' }}>
                 <div>
                   <label className="form-label" style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
                     <Calendar size={14} /> Service Date
@@ -497,7 +501,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                       No slots available — provider working hours may not be set.
                     </div>
                   ) : (
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(148px, 1fr))', gap: '8px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(130px, 1fr))', gap: '8px' }}>
                       {availableSlots.map(slot => {
                         const full = isSlotFull(slot.label);
                         const selected = scheduledSlot === slot.label;

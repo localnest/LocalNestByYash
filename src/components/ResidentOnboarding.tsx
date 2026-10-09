@@ -48,10 +48,10 @@ export default function ResidentOnboarding() {
       justifyContent: 'center',
       padding: '24px 16px'
     }}>
-      <div className="card" style={{ maxWidth: '580px', width: '100%', padding: '32px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff' }}>
+      <div className="card" style={{ maxWidth: 'min(580px, 95vw)', width: '100%', padding: '24px 18px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff', boxSizing: 'border-box' }}>
         
         {/* Step Indicator */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px', gap: '8px' }}>
           <div>
             <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
               Step {step} of 2 • Resident Onboarding
@@ -63,7 +63,7 @@ export default function ResidentOnboarding() {
           <button 
             type="button" 
             onClick={logout}
-            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline' }}
+            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline', minHeight: '36px', minWidth: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
             Cancel & Sign Out
           </button>
@@ -115,7 +115,7 @@ export default function ResidentOnboarding() {
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
               <div>
                 <label className="form-label">Tower / Wing / Block</label>
                 <select

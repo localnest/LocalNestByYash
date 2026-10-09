@@ -31,13 +31,17 @@ export default function ComplaintModal({ order, onClose }: ComplaintModalProps) 
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(480px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px', gap: '8px' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <ShieldAlert size={20} color="var(--accent-rose)" />
+            <ShieldAlert size={20} color="var(--accent-rose)" style={{ flexShrink: 0 }} />
             <h3 style={{ fontSize: '1.2rem' }}>Raise Support Ticket</h3>
           </div>
-          <button onClick={onClose} style={{ color: 'var(--text-muted)' }}>
+          <button 
+            onClick={onClose} 
+            style={{ color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer' }}
+            aria-label="Close complaint modal"
+          >
             <X size={20} />
           </button>
         </div>

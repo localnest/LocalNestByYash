@@ -227,7 +227,7 @@ export default function AdminPanel() {
           </div>
 
           {/* Admin Navigation Pills */}
-          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+          <div className="scrollable-tabs" style={{ display: 'flex', gap: '6px', maxWidth: '100%', overflowX: 'auto', paddingBottom: '4px' }}>
             {[
               { id: 'overview', label: 'Overview & GMV', icon: BarChart3 },
               { id: 'providers', label: `Provider Queue (${pendingProvidersCount})`, icon: ShieldCheck },
@@ -246,7 +246,7 @@ export default function AdminPanel() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-dark'}`}
-                  style={{ borderRadius: '8px', fontSize: '0.78rem', padding: '6px 12px' }}
+                  style={{ borderRadius: '8px', fontSize: '0.78rem', padding: '8px 14px', flexShrink: 0, minHeight: '44px', whiteSpace: 'nowrap' }}
                 >
                   <Icon size={14} />
                   {tab.label}
@@ -321,13 +321,13 @@ export default function AdminPanel() {
             </div>
 
             {/* Recent Orders Overview */}
-            <div className="card">
+            <div className="card table-responsive" style={{ overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}>
               <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '14px' }}>
                 Recent Platform Orders
               </h3>
 
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
+              <div style={{ overflowX: 'auto', width: '100%' }}>
+                <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.85rem' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
                       <th style={{ padding: '10px 14px' }}>Order #</th>
@@ -380,7 +380,7 @@ export default function AdminPanel() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 300px), 1fr))', gap: '16px' }}>
               {providers.map(prov => {
                 const isPending = prov.status === 'PENDING' || prov.status === 'UNDER_REVIEW';
                 const isVerified = prov.status === 'VERIFIED';
@@ -445,20 +445,20 @@ export default function AdminPanel() {
                     </div>
 
                     {/* Action Buttons */}
-                    <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '12px' }}>
+                    <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid var(--border-light)', paddingTop: '12px', flexWrap: 'wrap' }}>
                       {isPending && (
                         <>
                           <button
                             onClick={() => updateProviderStatus(prov.id, 'VERIFIED')}
                             className="btn btn-primary btn-sm"
-                            style={{ flex: 1 }}
+                            style={{ flex: '1 1 140px', minHeight: '44px' }}
                           >
                             <Check size={14} /> Verify & Approve
                           </button>
                           <button
                             onClick={() => updateProviderStatus(prov.id, 'REJECTED')}
                             className="btn btn-secondary btn-sm"
-                            style={{ color: 'var(--accent-rose)' }}
+                            style={{ color: 'var(--accent-rose)', flex: '1 1 100px', minHeight: '44px' }}
                           >
                             <X size={14} /> Reject
                           </button>
@@ -469,7 +469,7 @@ export default function AdminPanel() {
                         <button
                           onClick={() => updateProviderStatus(prov.id, 'SUSPENDED')}
                           className="btn btn-secondary btn-sm"
-                          style={{ color: 'var(--accent-rose)', flex: 1 }}
+                          style={{ color: 'var(--accent-rose)', flex: '1 1 140px', minHeight: '44px' }}
                         >
                           Suspend Account
                         </button>
@@ -479,7 +479,7 @@ export default function AdminPanel() {
                         <button
                           onClick={() => updateProviderStatus(prov.id, 'VERIFIED')}
                           className="btn btn-primary btn-sm"
-                          style={{ flex: 1 }}
+                          style={{ flex: '1 1 140px', minHeight: '44px' }}
                         >
                           Reactivate Provider
                         </button>
@@ -505,7 +505,7 @@ export default function AdminPanel() {
               </p>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
               {commissionRules.map(rule => (
                 <div key={rule.id} className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -560,7 +560,7 @@ export default function AdminPanel() {
                 )}
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '16px', marginTop: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 240px), 1fr))', gap: '16px', marginTop: '16px' }}>
                 <div style={{ background: 'var(--bg-subtle)', padding: '14px', borderRadius: 'var(--radius-md)' }}>
                   <label style={{ fontSize: '0.82rem', fontWeight: 600, display: 'block', marginBottom: '6px' }}>
                     Standard One-Time Order Platform Fee (₹)
@@ -638,7 +638,7 @@ export default function AdminPanel() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
               {coupons.map(coupon => (
                 <div key={coupon.id} className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -790,7 +790,7 @@ export default function AdminPanel() {
               </button>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
               {societies.map(soc => (
                 <div key={soc.id} className="card">
                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -830,7 +830,7 @@ export default function AdminPanel() {
         {/* ============================================================== */}
         {activeTab === 'notices' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.1fr) minmax(0, 0.9fr)', gap: '24px', alignItems: 'start' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 320px), 1fr))', gap: '24px', alignItems: 'start' }}>
 
               {/* Notices List (Left) */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1152,12 +1152,12 @@ export default function AdminPanel() {
             )}
 
             {/* Matrix Table */}
-            <div className="card">
+            <div className="card table-responsive" style={{ overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}>
               <h3 style={{ fontSize: '1.05rem', fontWeight: 700, marginBottom: '12px' }}>
                 Cluster Coverage Breakdown
               </h3>
-              <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
+              <div style={{ overflowX: 'auto', width: '100%' }}>
+                <table style={{ width: '100%', minWidth: '600px', borderCollapse: 'collapse', fontSize: '0.825rem' }}>
                   <thead>
                     <tr style={{ background: 'var(--bg-subtle)', borderBottom: '1px solid var(--border-light)', textAlign: 'left', color: 'var(--text-muted)' }}>
                       <th style={{ padding: '10px 12px' }}>Society / Cluster</th>
@@ -1241,13 +1241,18 @@ export default function AdminPanel() {
       {/* Admin Coverage Override Modal */}
       {editingCoverageProv && (
         <div className="modal-overlay" onClick={() => setEditingCoverageProv(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '480px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(480px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <h3 style={{ fontSize: '1.15rem', fontWeight: 800 }}>Adjust Coverage: {editingCoverageProv.businessName}</h3>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>Admin Operations Override</div>
               </div>
-              <button onClick={() => setEditingCoverageProv(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem' }}>✕</button>
+              <button
+                type="button"
+                aria-label="Close dialog"
+                onClick={() => setEditingCoverageProv(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: '1.2rem', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
             </div>
 
             <form onSubmit={(e) => {
@@ -1295,11 +1300,11 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
-                <button type="button" onClick={() => setEditingCoverageProv(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '8px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setEditingCoverageProv(null)} className="btn btn-secondary" style={{ flex: '1 1 120px', minHeight: '44px' }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 2 }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: '2 1 160px', minHeight: '44px' }}>
                   Save Coverage Settings
                 </button>
               </div>
@@ -1311,10 +1316,15 @@ export default function AdminPanel() {
       {/* Add Coupon Modal */}
       {showAddCouponModal && (
         <div className="modal-overlay" onClick={() => setShowAddCouponModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(520px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Create New Society Coupon</h3>
-              <button onClick={() => setShowAddCouponModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button
+                type="button"
+                aria-label="Close dialog"
+                onClick={() => setShowAddCouponModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
             </div>
 
             <form onSubmit={handleCreateCouponSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1342,7 +1352,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '10px' }}>
                 <div>
                   <label className="form-label">Discount Type</label>
                   <select
@@ -1368,7 +1378,7 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '10px' }}>
                 <div>
                   <label className="form-label">Min Order Value (₹)</label>
                   <input
@@ -1403,7 +1413,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '6px' }}>
+              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '6px', minHeight: '44px' }}>
                 Deploy Coupon to Platform
               </button>
             </form>
@@ -1414,10 +1424,15 @@ export default function AdminPanel() {
       {/* Add Society Modal */}
       {showAddSocietyModal && (
         <div className="modal-overlay" onClick={() => setShowAddSocietyModal(false)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(520px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <h3 style={{ fontSize: '1.2rem', fontWeight: 700 }}>Onboard New Residential Society</h3>
-              <button onClick={() => setShowAddSocietyModal(false)} style={{ color: 'var(--text-muted)' }}>✕</button>
+              <button
+                type="button"
+                aria-label="Close dialog"
+                onClick={() => setShowAddSocietyModal(false)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
             </div>
 
             <form onSubmit={handleCreateSocietySubmit} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -1445,7 +1460,7 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 140px), 1fr))', gap: '10px' }}>
                 <div>
                   <label className="form-label">Total Flats / Units</label>
                   <input
@@ -1468,7 +1483,7 @@ export default function AdminPanel() {
                 </div>
               </div>
 
-              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '6px' }}>
+              <button type="submit" className="btn btn-primary btn-full" style={{ marginTop: '6px', minHeight: '44px' }}>
                 Add Society to Multi-Society Network
               </button>
             </form>
@@ -1479,7 +1494,7 @@ export default function AdminPanel() {
       {/* Feature 16: Dispute Resolution Mediation Modal */}
       {mediatingComplaint && (
         <div className="modal-overlay" onClick={() => setMediatingComplaint(null)}>
-          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: '580px' }}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()} style={{ maxWidth: 'min(580px, 95vw)', maxHeight: '90dvh', overflowY: 'auto' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
               <div>
                 <span className="badge badge-rose" style={{ fontSize: '0.7rem', marginBottom: '4px' }}>Escrow Arbitration Desk</span>
@@ -1488,7 +1503,12 @@ export default function AdminPanel() {
                   Order #{mediatingComplaint.orderNumber} • Resident: {mediatingComplaint.customerName}
                 </div>
               </div>
-              <button onClick={() => setMediatingComplaint(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem' }}>✕</button>
+              <button
+                type="button"
+                aria-label="Close dialog"
+                onClick={() => setMediatingComplaint(null)}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-muted)', fontSize: '1.2rem', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >✕</button>
             </div>
 
             {/* Case Details Box */}
@@ -1585,11 +1605,11 @@ export default function AdminPanel() {
                 />
               </div>
 
-              <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                <button type="button" onClick={() => setMediatingComplaint(null)} className="btn btn-secondary" style={{ flex: 1 }}>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '6px', flexWrap: 'wrap' }}>
+                <button type="button" onClick={() => setMediatingComplaint(null)} className="btn btn-secondary" style={{ flex: '1 1 120px', minHeight: '44px' }}>
                   Cancel
                 </button>
-                <button type="submit" className="btn btn-primary" style={{ flex: 2, display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px' }}>
+                <button type="submit" className="btn btn-primary" style={{ flex: '2 1 180px', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', minHeight: '44px' }}>
                   <ShieldCheck size={16} /> Enforce Resolution & Close Ticket
                 </button>
               </div>

@@ -182,8 +182,8 @@ export default function CustomerPortal() {
             </div>
           </div>
 
-          {/* Desktop Nav Tabs */}
-          <div style={{ display: 'flex', gap: '6px' }} className="desktop-tabs">
+          {/* Desktop & Mobile Nav Tabs */}
+          <div className="scrollable-tabs desktop-tabs" style={{ maxWidth: '100%', minWidth: 0 }}>
             {[
               { id: 'home', label: t.navHome, icon: Home },
               { id: 'explore', label: t.navExplore, icon: Compass },
@@ -201,7 +201,7 @@ export default function CustomerPortal() {
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id as any)}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '6px 12px' }}
+                  style={{ borderRadius: '8px', fontSize: '0.8rem', padding: '6px 12px', flexShrink: 0, whiteSpace: 'nowrap', minHeight: '36px' }}
                 >
                   <Icon size={14} />
                   {tab.label}
@@ -385,7 +385,7 @@ export default function CustomerPortal() {
                   </button>
                 </div>
 
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '12px' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 260px), 1fr))', gap: '12px' }}>
                   {subscriptions.filter(s => s.status === 'ACTIVE').map(sub => (
                     <div key={sub.id} style={{ background: 'var(--bg-subtle)', borderRadius: 'var(--radius-md)', padding: '14px', border: '1px solid var(--border-light)' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
@@ -435,7 +435,7 @@ export default function CustomerPortal() {
                 </button>
               </div>
 
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: '16px' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
                 {filteredProviders.slice(0, 4).map(provider => {
                   const provServices = services.filter(s => s.providerId === provider.id && s.isActive);
                   const provReviews = reviews.filter(r => r.providerId === provider.id);
@@ -676,7 +676,7 @@ export default function CustomerPortal() {
                 </button>
               </div>
             ) : (
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '16px' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 280px), 1fr))', gap: '16px' }}>
               {filteredProviders.map(provider => {
                 const provServices = services.filter(s => s.providerId === provider.id && s.isActive);
                 const provReviews = reviews.filter(r => r.providerId === provider.id);
@@ -895,8 +895,8 @@ export default function CustomerPortal() {
                           </div>
                         </div>
                       ) : (
-                        <div style={{ margin: '18px 0' }}>
-                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative' }}>
+                        <div style={{ margin: '18px 0', overflowX: 'auto', minWidth: 0 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'relative', minWidth: '280px', paddingBottom: '4px' }}>
                             <div style={{ position: 'absolute', top: '13px', left: '8%', right: '8%', height: '3px', background: 'var(--border-light)', zIndex: 0 }}></div>
                             {[
                               { state: 'PENDING', label: '1. Placed', desc: 'Escrow Paid' },
@@ -1791,14 +1791,14 @@ export default function CustomerPortal() {
           setChatInput('');
         };
         return (
-          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-            <div style={{ background: 'var(--card-bg)', borderRadius: '16px', width: '480px', maxWidth: '95vw', maxHeight: '80vh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.4)' }}>
-              <div style={{ padding: '16px 20px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.55)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '12px' }}>
+            <div style={{ background: 'var(--card-bg)', borderRadius: '16px', width: '480px', maxWidth: '95vw', maxHeight: '85dvh', display: 'flex', flexDirection: 'column', boxShadow: '0 24px 64px rgba(0,0,0,0.4)', boxSizing: 'border-box' }}>
+              <div style={{ padding: '14px 18px', borderBottom: '1px solid var(--border)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <div>
-                  <div style={{ fontWeight: 700 }}>Chat — {chatOrder?.providerName}</div>
+                  <div style={{ fontWeight: 700, fontSize: '0.95rem' }}>Chat — {chatOrder?.providerName}</div>
                   <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Order {chatOrder?.orderNumber}</div>
                 </div>
-                <button onClick={() => setChatOrderId(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)' }}>{'x'}</button>
+                <button onClick={() => setChatOrderId(null)} style={{ background: 'none', border: 'none', fontSize: '1.4rem', cursor: 'pointer', color: 'var(--text-muted)', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{'×'}</button>
               </div>
               <div style={{ flex: 1, overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px', minHeight: '200px' }}>
                 {messages.length === 0 && (
@@ -1808,7 +1808,7 @@ export default function CustomerPortal() {
                   const isMe = m.senderRole === 'CUSTOMER';
                   return (
                     <div key={m.id} style={{ display: 'flex', justifyContent: isMe ? 'flex-end' : 'flex-start' }}>
-                      <div style={{ maxWidth: '72%', background: isMe ? 'var(--primary)' : 'var(--card-hover)', color: isMe ? '#fff' : 'var(--text-main)', borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px', padding: '8px 14px', fontSize: '0.85rem' }}>
+                      <div style={{ maxWidth: '78%', background: isMe ? 'var(--primary)' : 'var(--card-hover)', color: isMe ? '#fff' : 'var(--text-main)', borderRadius: isMe ? '14px 14px 2px 14px' : '14px 14px 14px 2px', padding: '8px 14px', fontSize: '0.85rem', wordBreak: 'break-word' }}>
                         {m.text}
                         <div style={{ fontSize: '0.65rem', opacity: 0.6, marginTop: '4px', textAlign: 'right' }}>{new Date(m.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
                       </div>
@@ -1817,10 +1817,10 @@ export default function CustomerPortal() {
                 })}
               </div>
               {chatError && <div style={{ padding: '6px 16px', background: '#fff3cd', color: '#856404', fontSize: '0.78rem' }}>{'🛡️'} {chatError}</div>}
-              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px' }}>
-                <input value={chatInput} onChange={e => { setChatInput(e.target.value); setChatError(''); }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Message your provider..." style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border)', padding: '8px 12px', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '0.87rem' }} />
-                <button onClick={handleSend} style={{ background: 'var(--primary)', border: 'none', borderRadius: '8px', padding: '8px 14px', color: '#fff', cursor: 'pointer' }}>
-                  <Send size={15} />
+              <div style={{ padding: '12px 16px', borderTop: '1px solid var(--border)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <input value={chatInput} onChange={e => { setChatInput(e.target.value); setChatError(''); }} onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } }} placeholder="Message your provider..." style={{ flex: 1, borderRadius: '8px', border: '1px solid var(--border)', padding: '10px 14px', background: 'var(--card-bg)', color: 'var(--text-main)', fontSize: '16px', minHeight: '44px', boxSizing: 'border-box' }} />
+                <button onClick={handleSend} style={{ background: 'var(--primary)', border: 'none', borderRadius: '8px', padding: '10px 14px', color: '#fff', cursor: 'pointer', minWidth: '44px', minHeight: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <Send size={16} />
                 </button>
               </div>
               <div style={{ padding: '6px 16px 10px', fontSize: '0.7rem', color: 'var(--text-muted)', textAlign: 'center' }}>Keep all communication inside LocalNest.</div>
