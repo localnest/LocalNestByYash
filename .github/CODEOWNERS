@@ -1,7 +1,23 @@
-# Repository owner approvals
+# ==============================================================================
+# LocalNest Code Owners
+# ==============================================================================
+# Reviewers are automatically requested when pull requests modify matching paths.
+# Update GitHub usernames (@yashcreator11, @sagar, @rohit) to match team handles.
+
+# Global fallback: All team members
 *                          @yashcreator11
-/supabase/                 @yashcreator11
+
+# Core architecture & workflow definitions
 /.github/                  @yashcreator11
+/docs/                     @yashcreator11
+
+# Database migrations & backend contracts
+/supabase/                 @yashcreator11
+
+# Core shared state & config (Off-limits without consensus)
 /src/lib/store.tsx         @yashcreator11
-/src/lib/dispatchClaim.ts  @yashcreator11
 /src/lib/config.ts         @yashcreator11
+/src/lib/dispatchClaim.ts  @yashcreator11
+
+# Feature modules & ports
+/src/features/             @yashcreator11

@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0f172a" />
+      <stop offset="100%" stop-color="#042f2e" />
+    </linearGradient>
+    <linearGradient id="tealGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2dd4bf" />
+      <stop offset="100%" stop-color="#0d9488" />
+    </linearGradient>
+  </defs>
+  <!-- Background with rounded corners -->
+  <rect width="512" height="512" rx="112" fill="url(#bgGrad)" />
+  
+  <!-- Outer glowing ring -->
+  <circle cx="256" cy="256" r="180" stroke="url(#tealGrad)" stroke-width="12" fill="none" opacity="0.3" />
+  
+  <!-- Nest / House Roof Icon -->
+  <path d="M256 128 L384 240 L352 240 L352 360 C352 372 342 382 330 382 L182 382 C170 382 160 372 160 360 L160 240 L128 240 Z" 
+        fill="url(#tealGrad)" />
+        
+  <!-- Center Door / Shield Arch -->
+  <path d="M224 382 L224 288 C224 270 238 256 256 256 C274 256 288 270 288 288 L288 382 Z" 
+        fill="#0f172a" />
+        
+  <!-- Verified Badge Star -->
+  <circle cx="340" cy="180" r="28" fill="#f59e0b" />
+  <polygon points="340,165 344,175 355,176 347,184 349,195 340,189 331,195 333,184 325,176 336,175" fill="#ffffff" />
+</svg>

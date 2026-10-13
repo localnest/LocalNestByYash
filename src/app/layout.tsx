@@ -10,6 +10,7 @@ export const metadata: Metadata = {
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
+    apple: '/icon-192.png',
   },
 };
 
@@ -27,6 +28,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <AppHeader />
           {children}
         </MarketplaceProvider>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function() {});
+                });
+              }
+            `,
+          }}
+        />
       </body>
     </html>
   );
