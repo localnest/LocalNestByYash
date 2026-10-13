@@ -56,6 +56,31 @@ export async function verifyOtp(
   }
 }
 
+export async function signInWithGoogle(
+  redirectTo?: string,
+): Promise<{ success: boolean; error?: string }> {
+  const supabase = createBrowserClient();
+  const origin = typeof window !== 'undefined' ? window.location.origin : '';
+  const redirectUrl = redirectTo || `${origin}/auth/callback`;
+
+  try {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: 'offline',
+          prompt: 'consent',
+        },
+      },
+    });
+    if (error) return { success: false, error: error.message };
+    return { success: true };
+  } catch (err: unknown) {
+    return { success: false, error: err instanceof Error ? err.message : 'Failed Google sign-in' };
+  }
+}
+
 export async function signOut(): Promise<void> {
   const supabase = createBrowserClient();
   await supabase.auth.signOut();
