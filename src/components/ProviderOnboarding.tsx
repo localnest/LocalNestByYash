@@ -5,9 +5,7 @@ import { useMarketplace } from '@/lib/store';
 import { PricingModel, CoverageMode } from '@/lib/types';
 import { BENGALURU_LOCALITIES, calculateHaversineDistance } from '@/lib/geo';
 import {
-  Wrench,
   Building,
-  ShieldCheck,
   DollarSign,
   Clock,
   ArrowRight,
@@ -18,8 +16,9 @@ import {
   AlertCircle,
   Percent,
   Sliders,
-  Car,
   Navigation,
+  Upload,
+  X,
 } from 'lucide-react';
 
 export default function ProviderOnboarding() {
@@ -40,6 +39,34 @@ export default function ProviderOnboarding() {
   const [unitName, setUnitName] = useState<string>('per service');
   const [documentType, setDocumentType] = useState<string>('Aadhaar / National ID');
   const [documentName, setDocumentName] = useState<string>('aadhaar_card_doc.pdf');
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string>('');
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUploadError('');
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      setUploadError('File size exceeds 5MB limit. Please upload a smaller file.');
+      return;
+    }
+
+    const validTypes = ['application/pdf', 'image/jpeg', 'image/jpg', 'image/png'];
+    if (!validTypes.includes(file.type)) {
+      setUploadError('Unsupported file type. Please upload a PDF, PNG, or JPG.');
+      return;
+    }
+
+    setUploadedFile(file);
+    setDocumentName(file.name);
+  };
+
+  const handleClearFile = () => {
+    setUploadedFile(null);
+    setDocumentName('');
+    setUploadError('');
+  };
 
   // Step 2: Coverage & Location
   const [selectedLocalityIdx, setSelectedLocalityIdx] = useState<number>(0);
@@ -121,7 +148,7 @@ export default function ProviderOnboarding() {
         basePrice: Number(basePrice),
         unitName,
         documentType,
-        documentName,
+        documentName: uploadedFile?.name ?? documentName,
         acceptedTerms,
         baseLocation: {
           label: currentLocality.label,
@@ -256,7 +283,7 @@ export default function ProviderOnboarding() {
                 />
               </div>
               <div>
-                <label className="form-label">ID / Document Proof</label>
+                <label className="form-label">ID / Document Proof Type</label>
                 <select
                   value={documentType}
                   onChange={(e) => setDocumentType(e.target.value)}
@@ -267,6 +294,90 @@ export default function ProviderOnboarding() {
                   <option value="FSSAI Food License">FSSAI Food License (For Tiffins)</option>
                   <option value="Society Vendor Gate Pass">Society Vendor Gate Pass</option>
                 </select>
+
+                <div style={{ marginTop: '10px' }}>
+                  <label className="form-label" style={{ fontSize: '0.8rem' }}>
+                    Upload Verification Document (PDF, PNG, JPG - Max 5MB)
+                  </label>
+
+                  {!uploadedFile ? (
+                    <label
+                      style={{
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '6px',
+                        padding: '16px',
+                        border: '2px dashed var(--border-light)',
+                        borderRadius: 'var(--radius-md)',
+                        background: 'var(--bg-subtle)',
+                        cursor: 'pointer',
+                        textAlign: 'center',
+                        transition: 'border-color 0.2s ease',
+                      }}
+                    >
+                      <Upload size={22} color="var(--primary)" />
+                      <span style={{ fontSize: '0.82rem', fontWeight: 600 }}>
+                        Choose file or drag &amp; drop
+                      </span>
+                      <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                        PDF, PNG, or JPG up to 5MB
+                      </span>
+                      <input
+                        type="file"
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={handleFileChange}
+                        style={{ display: 'none' }}
+                      />
+                    </label>
+                  ) : (
+                    <div
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        padding: '10px 14px',
+                        background: '#ecfdf5',
+                        border: '1px solid var(--accent-emerald)',
+                        borderRadius: 'var(--radius-md)',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <FileText size={18} color="var(--accent-emerald)" />
+                        <div>
+                          <div style={{ fontSize: '0.82rem', fontWeight: 700, color: '#065f46' }}>
+                            {uploadedFile.name}
+                          </div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
+                            {(uploadedFile.size / 1024).toFixed(1)} KB • Ready for verification
+                          </div>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleClearFile}
+                        className="btn btn-secondary btn-sm"
+                        style={{ padding: '3px 8px', fontSize: '0.72rem' }}
+                        title="Remove file"
+                      >
+                        <X size={14} /> Remove
+                      </button>
+                    </div>
+                  )}
+
+                  {uploadError && (
+                    <div
+                      style={{
+                        color: 'var(--accent-rose)',
+                        fontSize: '0.75rem',
+                        marginTop: '6px',
+                      }}
+                    >
+                      {uploadError}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

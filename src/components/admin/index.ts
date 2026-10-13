@@ -1,0 +1,9 @@
+export { default as AdminOverviewTab } from './AdminOverviewTab';
+export { default as AdminProvidersTab } from './AdminProvidersTab';
+export { default as AdminCommissionTab } from './AdminCommissionTab';
+export { default as AdminCouponsTab } from './AdminCouponsTab';
+export { default as AdminDisputesTab } from './AdminDisputesTab';
+export { default as AdminSocietiesTab } from './AdminSocietiesTab';
+export { default as AdminNoticesTab } from './AdminNoticesTab';
+export { default as AdminLeakageTab } from './AdminLeakageTab';
+export { default as AdminCoverageTab } from './AdminCoverageTab';
