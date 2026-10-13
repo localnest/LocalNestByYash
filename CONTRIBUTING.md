@@ -1,5 +1,23 @@
 # Contributing to LocalNest
 
+## ⚠️ Branch Safety Agreement (Read First)
+
+Branch protection is not technically enforced on this repo (GitHub Free plan, private repo).
+**The team agrees to follow these rules manually — no exceptions:**
+
+| Rule                                    | Detail                                                 |
+| --------------------------------------- | ------------------------------------------------------ |
+| **Never push directly to `main`**       | Always open a PR, even for one-line fixes              |
+| **Never merge a red PR**                | All CI checks must be green before merging             |
+| **Never merge your own PR**             | At least one other team member must review and approve |
+| **Never merge without Sonar passing**   | No new blocker/critical issues on new code             |
+| **Revert immediately if `main` breaks** | Don't fix forward — revert the bad merge first         |
+
+> Violation of these rules will result in access being revoked.
+> We will upgrade to GitHub Team (enforced rules) when production work begins.
+
+---
+
 ## Workflow
 
 1. Branch from `main`: `feat/short-name`, `fix/short-name`, `chore/short-name`.
