@@ -1,14 +1,17 @@
 /**
- * Supabase Client Initialization
- * Connects to live PostgreSQL / Supabase project if environment variables are set.
- * In local demo mode, our application seamlessly uses the resilient React Context store.
+ * Supabase Client Initialization & Typed Helpers
+ * Re-exports browser and server clients with full TypeScript schema types.
  */
 
-export const isSupabaseConfigured = () => {
+export * from './supabase/client.ts';
+export * from './supabase/server.ts';
+export type * from './database.types.ts';
+
+export const isSupabaseConfigured = (): boolean => {
   return (
     typeof process !== 'undefined' &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_URL &&
-    !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL) &&
+    Boolean(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) &&
     process.env.NEXT_PUBLIC_SUPABASE_URL !== 'https://your-project.supabase.co'
   );
 };
