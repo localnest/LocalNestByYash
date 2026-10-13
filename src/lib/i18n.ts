@@ -111,6 +111,16 @@ export interface TranslationDictionary {
   publishReply: string;
   praiseBadgesEarned: string;
   yourResponse: string;
+
+  // Dispatch marketplace
+  dispatchTitle: string;
+  dispatchSubtitle: string;
+  findingProvider: string;
+  residentRequests: string;
+  recurringSchedulesTitle: string;
+  householdPreferencesTitle: string;
+  providerInboxTitle: string;
+  providerSkillsTitle: string;
 }
 
 export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
@@ -224,6 +234,14 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     publishReply: 'Publish Reply',
     praiseBadgesEarned: 'Praise Badges Earned From Neighbors',
     yourResponse: 'Your Response',
+    dispatchTitle: 'Book a service. LocalNest finds your provider.',
+    dispatchSubtitle: 'Providers rotate on every request; no provider selection or favorites.',
+    findingProvider: 'Finding your provider...',
+    residentRequests: 'Your dispatch requests',
+    recurringSchedulesTitle: 'Recurring schedules',
+    householdPreferencesTitle: 'Resident preferences shared with each provider',
+    providerInboxTitle: 'New requests for you',
+    providerSkillsTitle: 'Services you perform',
   },
 
   hi: {
@@ -336,6 +354,14 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     publishReply: 'उत्तर प्रकाशित करें',
     praiseBadgesEarned: 'पड़ोसियों से मिले प्रशंसा बैज',
     yourResponse: 'आपका उत्तर',
+    dispatchTitle: 'सेवा बुक करें। LocalNest सेवा प्रदाता ढूंढेगा।',
+    dispatchSubtitle: 'हर अनुरोध पर प्रदाता बदलते हैं; किसी खास प्रदाता का चयन या पसंदीदा सूची नहीं।',
+    findingProvider: 'आपके लिए प्रदाता खोजा जा रहा है...',
+    residentRequests: 'आपके सेवा अनुरोध',
+    recurringSchedulesTitle: 'बार-बार होने वाली सेवाएं',
+    householdPreferencesTitle: 'हर सेवा प्रदाता के साथ साझा की जाने वाली निवासी प्राथमिकताएं',
+    providerInboxTitle: 'आपके लिए नए अनुरोध',
+    providerSkillsTitle: 'आप कौन-सी सेवाएं देते हैं',
   },
 
   mr: {
@@ -448,6 +474,14 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
     publishReply: 'उत्तर प्रकाशित करा',
     praiseBadgesEarned: 'शेजाऱ्यांकडून मिळालेले कौतुक बॅज',
     yourResponse: 'आपले उत्तर',
+    dispatchTitle: 'सेवा बुक करा. LocalNest तुमच्यासाठी सेवा प्रदाता शोधेल.',
+    dispatchSubtitle: 'प्रत्येक विनंतीसाठी प्रदाता बदलतात; विशिष्ट प्रदाता निवडता येत नाही.',
+    findingProvider: 'तुमच्यासाठी प्रदाता शोधत आहे...',
+    residentRequests: 'तुमच्या सेवा विनंत्या',
+    recurringSchedulesTitle: 'नियमित सेवा वेळापत्रक',
+    householdPreferencesTitle: 'प्रत्येक प्रदात्यासोबत शेअर होणाऱ्या रहिवासी पसंती',
+    providerInboxTitle: 'तुमच्यासाठी नवीन विनंत्या',
+    providerSkillsTitle: 'तुम्ही देत असलेल्या सेवा',
   },
 };
 

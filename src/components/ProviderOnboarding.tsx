@@ -558,9 +558,9 @@ export default function ProviderOnboarding() {
                   <Percent size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>Transparent 10% Platform Commission (0% for 60 Days!)</strong>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>Transparent category-based platform pricing</strong>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Enjoy 0% promotional take-rate for your first 60 days. Standard 10% take-rate applies thereafter only on completed orders with zero listing charges.
+                    Commission categories use a fixed, category-specific rate. Membership categories include a 60-day free trial and a monthly plan. There are no listing fees.
                   </p>
                 </div>
               </div>

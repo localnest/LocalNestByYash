@@ -7,6 +7,7 @@ import { isSocietyCovered, getDistanceToSociety } from '@/lib/geo';
 import BookingModal from './BookingModal';
 import ReviewModal from './ReviewModal';
 import ComplaintModal from './ComplaintModal';
+import ResidentDispatchCenter from './ResidentDispatchCenter';
 import { 
   Home, Compass, Clock, RefreshCw, Tag, 
   HelpCircle, Search, Star, ShieldCheck, MapPin, 
@@ -47,8 +48,8 @@ export default function CustomerPortal() {
     t,
   } = useMarketplace();
 
-  // Active Tab: 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
-  const [activeTab, setActiveTab] = useState<'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'>('home');
+  // Active Tab: 'dispatch' | 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
+  const [activeTab, setActiveTab] = useState<'dispatch' | 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'>('dispatch');
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatError, setChatError] = useState('');
@@ -185,6 +186,7 @@ export default function CustomerPortal() {
           {/* Desktop & Mobile Nav Tabs */}
           <div className="scrollable-tabs desktop-tabs" style={{ maxWidth: '100%', minWidth: 0 }}>
             {[
+              { id: 'dispatch', label: '⚡ Service Dispatch', icon: Sparkles },
               { id: 'home', label: t.navHome, icon: Home },
               { id: 'explore', label: t.navExplore, icon: Compass },
               { id: 'orders', label: `${t.navOrders} (${orders.length})`, icon: Clock },
@@ -214,6 +216,13 @@ export default function CustomerPortal() {
 
       {/* Main Content Area */}
       <main className="container" style={{ marginTop: '20px' }}>
+
+        {/* ============================================================== */}
+        {/* TAB 0: UBER-STYLE SERVICE DISPATCH */}
+        {/* ============================================================== */}
+        {activeTab === 'dispatch' && (
+          <ResidentDispatchCenter />
+        )}
 
         {/* ============================================================== */}
         {/* TAB 1: HOME */}
@@ -859,6 +868,19 @@ export default function CustomerPortal() {
                           <span>Platform Fee: ₹{order.platformFee} {order.discountAmount > 0 ? `• Saved: ₹${order.discountAmount}` : ''}</span>
                         </div>
                       </div>
+
+                      {/* Uber-Style Door OTP Passcode */}
+                      {order.doorOtp && order.status !== 'COMPLETED' && order.status !== 'CANCELLED' && order.status !== 'REJECTED' && (
+                        <div style={{ margin: '12px 0', background: '#f0fdf4', border: '1.5px solid #86efac', borderRadius: 'var(--radius-md)', padding: '12px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '8px' }}>
+                          <div>
+                            <span style={{ fontSize: '0.75rem', color: '#166534', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Doorstep Security Passcode</span>
+                            <div style={{ fontSize: '0.85rem', color: '#15803d' }}>Share this 4-digit code with the pro when they arrive at your flat door</div>
+                          </div>
+                          <div style={{ fontSize: '1.4rem', fontWeight: 900, letterSpacing: '4px', background: '#dcfce7', padding: '6px 16px', borderRadius: '8px', color: '#166534', border: '1px solid #bbf7d0' }}>
+                            {order.doorOtp}
+                          </div>
+                        </div>
+                      )}
 
                       {/* Feature 2: State Machine Visual Progression */}
                       {order.status === 'REJECTED' ? (

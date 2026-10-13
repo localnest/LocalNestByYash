@@ -8,9 +8,10 @@ import {
   DollarSign, PackageCheck, Repeat, Star, 
   Calendar, Check, X, Plus, Clock, 
   MapPin, CheckCircle, ShieldCheck, AlertCircle,
-  FileSpreadsheet, Printer, ArrowDownToLine,
+  FileSpreadsheet, Printer, ArrowDownToLine, Bell,
   Sliders, Palmtree, Coffee, CheckCircle2, User, MessageCircle, Send, Navigation
 } from 'lucide-react';
+import ProviderDispatchWorkspace from './ProviderDispatchWorkspace';
 
 export default function ProviderDashboard() {
   const { 
@@ -71,7 +72,7 @@ export default function ProviderDashboard() {
   const [replyError, setReplyError] = useState<string>('');
 
   // Tab State: 'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings' | 'reviews'
-  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings' | 'reviews'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings' | 'reviews' | 'dispatch'>('overview');
 
   // New Service Modal State
   const [showAddServiceModal, setShowAddServiceModal] = useState<boolean>(false);
@@ -308,6 +309,7 @@ export default function ProviderDashboard() {
               { id: 'services', label: `${t.navProviderServices} (${providerServices.length})` },
               { id: 'earnings', label: `${t.navEarnings} (₹${withdrawableBalance.toLocaleString()})` },
               { id: 'reviews', label: `${t.navProviderReviews} (${myReviews.length})`, icon: Star },
+              { id: 'dispatch', label: 'Job inbox & Billing', icon: Bell },
             ].map(tab => {
               const isActive = activeTab === tab.id;
               const TabIcon = tab.icon;
@@ -329,6 +331,7 @@ export default function ProviderDashboard() {
       </div>
 
       <div className="container" style={{ marginTop: '24px' }}>
+        {activeTab === 'dispatch' && <ProviderDispatchWorkspace />}
         
         {/* ============================================================== */}
         {/* OVERVIEW TAB */}

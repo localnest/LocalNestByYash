@@ -15,26 +15,43 @@ INSERT INTO societies (id, community_id, name, address_line, city, locality, pin
 ('s3333333-3333-3333-3333-333333333333', 'c2222222-2222-2222-2222-222222222222', 'Royal Palms Residency', 'Kaikondrahalli, Sarjapur Rd', 'Bengaluru', 'Sarjapur', '560035', 12.9152, 77.6845, 2100, TRUE);
 
 -- 2. Categories
-INSERT INTO categories (id, name, slug, icon, description, sort_order) VALUES
-('cat11111-1111-1111-1111-111111111111', 'Laundry & Dry Clean', 'laundry', 'Shirt', 'Wash, fold, premium steam ironing and dry cleaning', 1),
-('cat22222-2222-2222-2222-222222222222', 'Daily Tiffin & Meals', 'tiffin', 'UtensilsCrossed', 'Nutritious home-cooked daily lunch and dinner boxes', 2),
-('cat33333-3333-3333-3333-333333333333', 'Deep Home Cleaning', 'cleaning', 'Sparkles', 'Kitchen, bathroom, sofa and complete flat deep cleaning', 3),
-('cat44444-4444-4444-4444-444444444444', 'Doorstep Car Wash', 'car-wash', 'Car', 'Eco-friendly waterless exterior & interior shine at your parking slot', 4),
-('cat55555-5555-5555-5555-555555555555', 'Electrician', 'electrician', 'Zap', 'Wiring, switches, fan installations and fuse fixes', 5),
-('cat66666-6666-6666-6666-666666666666', 'AC Service & Repair', 'ac-service', 'Snowflake', 'Filter wash, jet cleaning, gas recharge, and inspection', 6);
+INSERT INTO categories (
+  id, name, slug, icon, description, sort_order, monetization, matching,
+  flat_commission_rate, membership_monthly_fee, membership_group_id, supports_one_off_dispatch
+) VALUES
+('cat11111-1111-1111-1111-111111111111', 'Laundry & Dry Clean', 'laundry', 'Shirt', 'Wash, fold, premium steam ironing and dry cleaning', 1, 'COMMISSION', 'DISPATCH', 10, NULL, NULL, FALSE),
+('cat22222-2222-2222-2222-222222222222', 'Daily Tiffin & Meals', 'tiffin', 'UtensilsCrossed', 'Nutritious home-cooked daily lunch and dinner boxes', 2, 'COMMISSION', 'BROWSE_ORDER', 10, NULL, NULL, FALSE),
+('cat33333-3333-3333-3333-333333333333', 'Deep Home Cleaning', 'cleaning', 'Sparkles', 'Kitchen, bathroom, sofa and complete flat deep cleaning', 3, 'MEMBERSHIP', 'DISPATCH', NULL, 499, 'home-services', FALSE),
+('cat44444-4444-4444-4444-444444444444', 'Doorstep Car Wash', 'car-wash', 'Car', 'Eco-friendly waterless exterior & interior shine at your parking slot', 4, 'COMMISSION', 'SUBSCRIPTION', 10, NULL, NULL, TRUE),
+('cat55555-5555-5555-5555-555555555555', 'Electrician', 'electrician', 'Zap', 'Wiring, switches, fan installations and fuse fixes', 5, 'MEMBERSHIP', 'DISPATCH', NULL, 799, 'trades', FALSE),
+('cat66666-6666-6666-6666-666666666666', 'AC Service & Repair', 'ac-service', 'Snowflake', 'Filter wash, jet cleaning, gas recharge, and inspection', 6, 'MEMBERSHIP', 'DISPATCH', NULL, 799, 'trades', FALSE);
+
+INSERT INTO service_types (
+  id, category_id, name, slug, description, pricing_model, base_price, estimated_duration_minutes, available_tasks
+) VALUES
+('a1111111-1111-1111-1111-111111111111', 'cat11111-1111-1111-1111-111111111111', 'Laundry pickup and care', 'laundry-care', 'Select laundry services from the platform rate table.', 'TICK_WHAT_YOU_WANT', 0, 45,
+ '[{"id":"task-laundry-wash","name":"Wash and fold per kg","basePrice":80,"estimatedMinutes":40},{"id":"task-laundry-press","name":"Steam press per five items","basePrice":100,"estimatedMinutes":25},{"id":"task-laundry-dryclean","name":"Dry clean per item","basePrice":150,"estimatedMinutes":30}]'::jsonb),
+('a2222222-2222-2222-2222-222222222222', 'cat22222-2222-2222-2222-222222222222', 'Today’s Tiffin menu', 'todays-tiffin-menu', 'Order a society kitchen menu before its cutoff.', 'FIXED', 0, 30, '[]'::jsonb),
+('a3333333-3333-3333-3333-333333333333', 'cat33333-3333-3333-3333-333333333333', 'Home deep cleaning', 'home-deep-clean', 'Select rooms and tasks from the platform rate table.', 'TICK_WHAT_YOU_WANT', 0, 60,
+ '[{"id":"task-clean-bathroom","name":"Bathroom deep clean","basePrice":499,"estimatedMinutes":60},{"id":"task-clean-kitchen","name":"Kitchen deep clean","basePrice":799,"estimatedMinutes":90},{"id":"task-clean-sofa","name":"Sofa cleaning","basePrice":599,"estimatedMinutes":60}]'::jsonb),
+('a4444444-4444-4444-4444-444444444444', 'cat44444-4444-4444-4444-444444444444', 'One-off doorstep car wash', 'one-off-car-wash', 'One-time wash or resident-owned recurring schedule.', 'TICK_WHAT_YOU_WANT', 249, 45,
+ '[{"id":"task-carwash-exterior","name":"Exterior wash","basePrice":0,"estimatedMinutes":30},{"id":"task-carwash-interior","name":"Interior vacuum","basePrice":100,"estimatedMinutes":20}]'::jsonb),
+('a5555555-5555-5555-5555-555555555555', 'cat55555-5555-5555-5555-555555555555', 'Electrician doorstep repair', 'electrician-fix', 'Flat-rate common electrical repairs.', 'TICK_WHAT_YOU_WANT', 199, 45,
+ '[{"id":"task-elec-switch","name":"Switch or socket repair","basePrice":99,"estimatedMinutes":20},{"id":"task-elec-fan","name":"Ceiling fan repair","basePrice":199,"estimatedMinutes":35},{"id":"task-elec-mcb","name":"MCB or fuse fix","basePrice":249,"estimatedMinutes":30}]'::jsonb),
+('a6666666-6666-6666-6666-666666666666', 'cat66666-6666-6666-6666-666666666666', 'AC service and repair', 'ac-service-repair', 'Flat-rate AC service and inspection.', 'TICK_WHAT_YOU_WANT', 299, 60,
+ '[{"id":"task-ac-service","name":"Standard AC service","basePrice":0,"estimatedMinutes":60},{"id":"task-ac-repair","name":"Repair inspection","basePrice":0,"estimatedMinutes":45}]'::jsonb);
 
 -- 3. Profiles (Customer, Provider, Admin)
 INSERT INTO profiles (id, email, full_name, phone, role, society_id, flat_number) VALUES
-('u1111111-1111-1111-1111-111111111111', 'rahul.sharma@example.com', 'Rahul Sharma', '+91 98765 43210', 'CUSTOMER', 's1111111-1111-1111-1111-111111111111', 'Tower A - 402'),
+('u1111111-1111-1111-1111-111111111111', 'rahul.sharma@example.com', 'Yash Khandagale', '+91 98765 43210', 'CUSTOMER', 's1111111-1111-1111-1111-111111111111', 'Tower A - 402'),
 ('u2222222-2222-2222-2222-222222222222', 'raj.laundry@example.com', 'Rajesh Kumar', '+91 98111 22334', 'PROVIDER', 's1111111-1111-1111-1111-111111111111', 'Shop 4, Commercial Complex'),
 ('u3333333-3333-3333-3333-333333333333', 'freshbite.tiffin@example.com', 'Sunita Patil', '+91 98222 33445', 'PROVIDER', 's1111111-1111-1111-1111-111111111111', 'Tower C - 104'),
 ('u4444444-4444-4444-4444-444444444444', 'admin@hyperlocal.app', 'Platform Admin', '+91 99999 00000', 'ADMIN', 's1111111-1111-1111-1111-111111111111', 'HQ Unit 1');
 
 -- 4. Commission Rules (Configurable Take Rate)
 INSERT INTO commission_rules (id, rule_type, commission_percentage, notes) VALUES
-('cr111111-1111-1111-1111-111111111111', 'DEFAULT', 10.00, 'Default platform take rate across all services'),
-('cr222222-2222-2222-2222-222222222222', 'CATEGORY', 12.00, 'Laundry category commission'),
-('cr333333-3333-3333-3333-333333333333', 'CATEGORY', 8.00, 'AC Repair category promotional commission');
+('cr111111-1111-1111-1111-111111111111', 'DEFAULT', 10.00, 'Fallback platform commission rate'),
+('cr222222-2222-2222-2222-222222222222', 'CATEGORY', 10.00, 'Flat Laundry category commission');
 
 -- 5. Providers
 INSERT INTO providers (id, user_id, business_name, category_id, description, status, verified_at, rating, review_count, completed_orders, on_time_rate, max_orders_per_day) VALUES
@@ -45,6 +62,23 @@ INSERT INTO providers (id, user_id, business_name, category_id, description, sta
 ('p5555555-5555-5555-5555-555555555555', NULL, 'CoolBreeze AC Care', 'cat66666-6666-6666-6666-666666666666', 'Certified inverter & split AC technicians. Transparent pricing: ₹299 inspection fee adjusted if full repair or service is booked.', 'VERIFIED', NOW() - INTERVAL '15 days', 4.70, 78, 280, 95.20, 10),
 ('p6666666-6666-6666-6666-666666666666', NULL, 'AutoGleam Doorstep Car Wash', 'cat44444-4444-4444-4444-444444444444', 'Daily/alternate day waterless car cleaning directly at your basement parking slot before 7:30 AM.', 'VERIFIED', NOW() - INTERVAL '20 days', 4.92, 184, 760, 99.50, 25),
 ('p7777777-7777-7777-7777-777777777777', NULL, 'Modern Woodcraft & Carpenters', NULL, 'Custom woodwork, door locks, furniture repairs. Free estimate visits.', 'PENDING', NULL, 0.00, 0, 0, 100.00, 6);
+
+INSERT INTO provider_service_capabilities (provider_id, service_type_id, task_ids) VALUES
+('p1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111', '["task-laundry-wash","task-laundry-press","task-laundry-dryclean"]'::jsonb),
+('p3333333-3333-3333-3333-333333333333', 'a3333333-3333-3333-3333-333333333333', '["task-clean-bathroom","task-clean-kitchen","task-clean-sofa"]'::jsonb),
+('p4444444-4444-4444-4444-444444444444', 'a5555555-5555-5555-5555-555555555555', '["task-elec-switch","task-elec-fan","task-elec-mcb"]'::jsonb),
+('p5555555-5555-5555-5555-555555555555', 'a6666666-6666-6666-6666-666666666666', '["task-ac-service","task-ac-repair"]'::jsonb),
+('p6666666-6666-6666-6666-666666666666', 'a4444444-4444-4444-4444-444444444444', '["task-carwash-exterior","task-carwash-interior"]'::jsonb);
+
+INSERT INTO provider_plans (id, category_group_id, name, monthly_fee, trial_days, grace_period_days) VALUES
+('b1111111-1111-1111-1111-111111111111', 'home-services', 'Home Services', 499, 60, 5),
+('b2222222-2222-2222-2222-222222222222', 'trades', 'Skilled Trades', 799, 60, 5),
+('b3333333-3333-3333-3333-333333333333', 'projects', 'Home Projects', 999, 60, 5);
+
+INSERT INTO provider_memberships (provider_id, category_group_id, status, monthly_fee, trial_start_date, trial_ends_at, current_billing_period_start, current_billing_period_end) VALUES
+('p3333333-3333-3333-3333-333333333333', 'home-services', 'TRIAL', 499, NOW(), NOW() + INTERVAL '60 days', NOW(), NOW() + INTERVAL '30 days'),
+('p4444444-4444-4444-4444-444444444444', 'trades', 'TRIAL', 799, NOW(), NOW() + INTERVAL '60 days', NOW(), NOW() + INTERVAL '30 days'),
+('p5555555-5555-5555-5555-555555555555', 'trades', 'TRIAL', 799, NOW(), NOW() + INTERVAL '60 days', NOW(), NOW() + INTERVAL '30 days');
 
 -- Link Providers to societies with full coverage metadata
 -- Raj Laundry: 5 km RADIUS from Whitefield, covers both Whitefield societies

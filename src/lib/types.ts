@@ -13,7 +13,9 @@ export type PricingModel =
   | 'PER_ITEM'
   | 'SUBSCRIPTION'
   | 'INSPECTION_VARIABLE'
-  | 'CUSTOM_QUOTATION';
+  | 'CUSTOM_QUOTATION'
+  | 'TICK_WHAT_YOU_WANT'
+  | 'LEAD_QUOTE';
 
 export type OrderStatus = 
   | 'PENDING'
@@ -69,6 +71,14 @@ export interface Society {
   isActive: boolean;
 }
 
+export interface ResidentBriefPreferences {
+  diet?: 'VEG' | 'NON_VEG' | 'JAIN' | 'VEGAN';
+  allergies?: string[];
+  noOnionGarlic?: boolean;
+  houseNotes?: string;
+  pets?: string;
+}
+
 export interface UserProfile {
   id: string;
   email: string;
@@ -82,6 +92,7 @@ export interface UserProfile {
   isOnboarded?: boolean;
   providerId?: string;
   walletBalance: number;
+  preferences?: ResidentBriefPreferences;
 }
 
 export type WalletTransactionType = 'EARNED' | 'REDEEMED' | 'EXPIRED' | 'ADJUSTMENT';
@@ -97,11 +108,10 @@ export interface WalletTransaction {
 }
 
 export type CommissionReason = 
-  | 'NEW_PROVIDER_PROMO' 
-  | 'REPEAT_CUSTOMER' 
   | 'SUBSCRIPTION' 
   | 'PROVIDER_RULE' 
   | 'CATEGORY_RULE' 
+  | 'MEMBERSHIP_TIER'
   | 'DEFAULT';
 
 export interface PlatformFeeRules {
@@ -146,6 +156,8 @@ export interface Provider {
   reviewCount: number;
   completedOrders: number;
   onTimeRate: number;
+  averageAcceptanceMinutes?: number;
+  acceptanceRate?: number;
   supportedSocieties: string[]; // Society IDs
   startingPrice: number;
   startingPriceUnit: string;
@@ -164,12 +176,26 @@ export interface Provider {
   };
   isVacationMode?: boolean;
   vacationReason?: string;
+  experienceYears?: number;
+  gender?: 'FEMALE' | 'MALE' | 'OTHER';
+  trustScore?: number;
+  enabledServiceTypeIds?: string[];
+  enabledTaskIds?: string[];
+  membership?: ProviderMembership;
   documents?: {
     type: string;
     url: string;
     verified: boolean;
   }[];
 }
+
+export type CategoryMonetization = 'COMMISSION' | 'MEMBERSHIP';
+
+export type CategoryMatching =
+  | 'DISPATCH'
+  | 'LEAD_QUOTE'
+  | 'BROWSE_ORDER'
+  | 'SUBSCRIPTION';
 
 export interface Category {
   id: string;
@@ -178,6 +204,219 @@ export interface Category {
   icon: string;
   description: string;
   sortOrder: number;
+  monetization: CategoryMonetization;
+  matching: CategoryMatching;
+  flatCommissionRate?: number;
+  membershipMonthlyFee?: number;
+  membershipGroupId?: string;
+  supportsOneOffDispatch?: boolean;
+  isActive?: boolean;
+}
+
+export interface ServiceTaskDefinition {
+  id: string;
+  name: string;
+  description?: string;
+  basePrice: number;
+  estimatedMinutes: number;
+}
+
+export interface ServiceTypeSizeBand {
+  label: string;
+  multiplier: number;
+  price: number;
+  minutes: number;
+}
+
+export interface ServiceType {
+  id: string;
+  categoryId: string;
+  name: string;
+  slug: string;
+  description: string;
+  pricingModel: PricingModel;
+  basePrice: number;
+  estimatedDurationMinutes: number;
+  availableTasks: ServiceTaskDefinition[];
+  sizeBands?: ServiceTypeSizeBand[];
+  tier?: 'BASIC' | 'SPECIAL' | 'CUSTOM';
+  categoryCommissionRate?: number;
+  isActive: boolean;
+}
+
+export interface ProviderPlan {
+  id: string;
+  categoryGroupId: string;
+  name: string;
+  monthlyFee: number;
+  trialDays: number;
+  gracePeriodDays: number;
+  isActive: boolean;
+}
+
+export type JobRequestStatus = 'OPEN' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
+
+export interface JobRequest {
+  id: string;
+  jobNumber: string;
+  societyId: string;
+  societyName: string;
+  flatNumber: string;
+  residentId: string;
+  residentName: string;
+  residentPhoneMasked: string;
+
+  serviceTypeId: string;
+  serviceTypeName: string;
+  categoryId: string;
+  categoryName: string;
+  pricingModel?: PricingModel;
+
+  status: JobRequestStatus;
+
+  selectedTaskIds: string[];
+  taskBreakdown: { id: string; name: string; price: number; minutes: number }[];
+  sizeBandInput?: string;
+  dishNotes?: string;
+  kitchenReadinessConfirmed?: boolean;
+  stylistGenderPreference?: 'ANY' | 'FEMALE' | 'MALE';
+  requestType?: 'DISPATCH' | 'LEAD';
+  requestNotes?: string;
+
+  scheduledDate: string;
+  scheduledSlot: string;
+  estimatedDurationMinutes: number;
+
+  lockedSubtotal: number;
+  platformFee: number;
+  totalResidentPrice: number;
+  platformCommission: number;
+  providerPayout: number;
+
+  residentPreferences: ResidentBriefPreferences;
+  doorOtp: string;
+
+  notifiedProviderIds: string[];
+  excludedProviderIds?: string[];
+  claimedByProviderId?: string;
+  claimedAt?: string;
+  expiresAt: string;
+  orderId?: string;
+
+  rejectionReason?: string;
+  cancelledBy?: string;
+  cancelReason?: string;
+
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface RecurringSchedule {
+  id: string;
+  scheduleNumber: string;
+  residentId: string;
+  residentName: string;
+  societyId: string;
+  flatNumber: string;
+  serviceTypeId: string;
+  serviceTypeName: string;
+  categoryId: string;
+
+  frequency: 'DAILY' | 'MON_TO_SAT' | 'WEEKLY' | 'ALTERNATE_DAYS';
+  preferredSlot: string;
+  selectedTaskIds: string[];
+  sizeBandInput?: string;
+  dishNotes?: string;
+  kitchenReadinessConfirmed?: boolean;
+  stylistGenderPreference?: 'ANY' | 'FEMALE' | 'MALE';
+  residentPreferences?: ResidentBriefPreferences;
+  quantity?: number;
+  historyOrderIds?: string[];
+
+  lockedPricePerVisit: number;
+  providerPayoutPerVisit: number;
+  status: 'ACTIVE' | 'PAUSED' | 'CANCELLED';
+
+  nextDispatchDate: string;
+  lastDispatchedJobId?: string;
+  historyJobIds: string[];
+
+  createdAt: string;
+}
+
+export type MembershipStatus = 'TRIAL' | 'ACTIVE' | 'GRACE' | 'LAPSED';
+
+export interface MembershipInvoice {
+  id: string;
+  invoiceNumber: string;
+  amount: number;
+  paidAt: string;
+  pdfUrl?: string;
+}
+
+export interface ProviderMembership {
+  id: string;
+  providerId: string;
+  categoryGroupId: string;
+  status: MembershipStatus;
+  monthlyFee: number;
+
+  trialStartDate: string;
+  trialEndsAt: string;
+  currentBillingPeriodStart: string;
+  currentBillingPeriodEnd: string;
+  gracePeriodEndsAt?: string;
+
+  autoRenew: boolean;
+  paymentMethodLast4?: string;
+  invoices: MembershipInvoice[];
+
+  updatedAt: string;
+}
+
+export interface ProviderDispatchNotification {
+  id: string;
+  providerId: string;
+  jobRequestId: string;
+  status: 'NEW' | 'VIEWED' | 'CLAIMED' | 'EXPIRED' | 'CANCELLED';
+  createdAt: string;
+}
+
+export type LeadQuoteStatus = 'SUBMITTED' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED';
+
+export interface LeadMilestone {
+  title: string;
+  amount: number;
+  completed: boolean;
+}
+
+export interface LeadQuote {
+  id: string;
+  jobId: string;
+  providerId: string;
+  providerName: string;
+  providerRating: number;
+  providerExperienceYears: number;
+  quotedAmount: number;
+  estimatedDays: number;
+  milestones: LeadMilestone[];
+  scopeNotes: string;
+  status: LeadQuoteStatus;
+  createdAt: string;
+}
+
+export interface TiffinMenu {
+  id: string;
+  providerId: string;
+  societyIds: string[];
+  mealName: string;
+  description: string;
+  price: number;
+  deliveryDate: string;
+  cutoffAt: string;
+  availableQuantity: number;
+  isActive: boolean;
+  createdAt: string;
 }
 
 export interface Service {
@@ -233,6 +472,11 @@ export interface Order {
   paymentStatus: 'PAID' | 'PENDING' | 'REFUNDED';
   walletDiscount?: number;
   rejectionReason?: string;
+  doorOtp?: string;
+  jobRequestId?: string;
+  isDoorOtpVerified?: boolean;
+  mealPhotoUrl?: string;
+  cookMissingIngredients?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -356,6 +600,7 @@ export interface MarketplaceAnalytics {
   activeProviders: number;
   disputeRatePct: number;
   repeatOrderRatePct: number;
+  membershipMonthlyRevenue?: number;
 }
 
 export interface SocietyServiceRequest {

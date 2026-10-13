@@ -2,10 +2,10 @@
 
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { 
-  Building2, Home, ShieldCheck, Tag, 
-  Phone, ArrowRight, CheckCircle2, AlertCircle, 
-  MapPin, Clock, Sparkles 
+import {
+  Building2, Home, ShieldCheck, Tag,
+  Phone, ArrowRight, CheckCircle2, AlertCircle,
+  MapPin, Clock, Sparkles
 } from 'lucide-react';
 
 export default function ResidentOnboarding() {
@@ -39,8 +39,8 @@ export default function ResidentOnboarding() {
   };
 
   return (
-    <div style={{ 
-      minHeight: '100vh', 
+    <div style={{
+      minHeight: '100vh',
       background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
       display: 'flex',
       flexDirection: 'column',
@@ -49,7 +49,7 @@ export default function ResidentOnboarding() {
       padding: '24px 16px'
     }}>
       <div className="card" style={{ maxWidth: 'min(580px, 95vw)', width: '100%', padding: '24px 18px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff', boxSizing: 'border-box' }}>
-        
+
         {/* Step Indicator */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px', gap: '8px' }}>
           <div>
@@ -60,8 +60,8 @@ export default function ResidentOnboarding() {
               {step === 1 ? 'Verify Your Society Residence' : 'Welcome to Greenfield Heights!'}
             </h2>
           </div>
-          <button 
-            type="button" 
+          <button
+            type="button"
             onClick={logout}
             style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline', minHeight: '36px', minWidth: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
           >
@@ -82,7 +82,7 @@ export default function ResidentOnboarding() {
                 type="text"
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
-                placeholder="e.g. Rahul Sharma"
+                placeholder="e.g. Yash Khandagale"
                 className="form-input"
                 required
               />

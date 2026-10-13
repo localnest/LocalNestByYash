@@ -10,6 +10,7 @@ import {
   X, Plus, FileText, RefreshCw, DollarSign, 
   Users, CheckCircle2, Sliders, Bell, Megaphone, Wrench, AlertCircle, Eye, EyeOff, MapPin, Navigation, Compass
 } from 'lucide-react';
+import AdminDispatchWorkbench from './AdminDispatchWorkbench';
 
 export default function AdminPanel() {
   const { 
@@ -40,7 +41,7 @@ export default function AdminPanel() {
   } = useMarketplace();
 
   // Navigation Tab
-  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'commission' | 'coupons' | 'disputes' | 'societies' | 'notices' | 'leakage' | 'coverage'>('overview');
+  const [activeTab, setActiveTab] = useState<'overview' | 'providers' | 'commission' | 'coupons' | 'disputes' | 'societies' | 'notices' | 'leakage' | 'coverage' | 'dispatch'>('overview');
   const [oneTimeFeeInput, setOneTimeFeeInput] = useState<number>(platformFeeRules?.oneTimeFee ?? 20);
   const [subFeeInput, setSubFeeInput] = useState<number>(platformFeeRules?.subscriptionFee ?? 10);
   const [feeSaveSuccess, setFeeSaveSuccess] = useState<string>('');
@@ -238,6 +239,7 @@ export default function AdminPanel() {
               { id: 'notices', label: `Notices (${notices.filter(n => n.isActive).length})`, icon: Megaphone },
               { id: 'leakage', label: `Leakage Alerts (${chatMessages.filter(m => m.isFlagged && !m.flaggedReason?.startsWith('[REVIEWED]')).length})`, icon: AlertCircle },
               { id: 'coverage', label: 'Supply Gap Matrix', icon: MapPin },
+              { id: 'dispatch', label: 'Dispatch Ops', icon: RefreshCw },
             ].map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -258,6 +260,7 @@ export default function AdminPanel() {
       </div>
 
       <div className="container" style={{ marginTop: '24px' }}>
+        {activeTab === 'dispatch' && <AdminDispatchWorkbench />}
         
         {/* ============================================================== */}
         {/* TAB 1: OVERVIEW & GMV ANALYTICS */}

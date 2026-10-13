@@ -9,7 +9,7 @@ const mockDefaultRules = [
   { id: 'rule-prov-vip', ruleType: 'PROVIDER', targetId: 'prov-vip', targetName: 'VIP Provider', commissionPercentage: 7, isActive: true, notes: 'VIP Provider override' }
 ];
 
-test('Commission: new provider promotional tier gives 0%', () => {
+test('Commission: new provider trial does not discount flat category commission', () => {
   const futurePromo = new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString();
   const res = resolveCommissionRate({
     categoryId: 'cat-cleaning',
@@ -20,11 +20,11 @@ test('Commission: new provider promotional tier gives 0%', () => {
     commissionRules: mockDefaultRules,
   });
 
-  assert.equal(res.rate, 0);
-  assert.equal(res.reason, 'NEW_PROVIDER_PROMO');
+  assert.equal(res.rate, 12);
+  assert.equal(res.reason, 'CATEGORY_RULE');
 });
 
-test('Commission: subscription orders receive 5% default rate', () => {
+test('Commission: recurring orders use the flat category commission', () => {
   const expiredPromo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
   const res = resolveCommissionRate({
     categoryId: 'cat-cleaning',
@@ -35,11 +35,11 @@ test('Commission: subscription orders receive 5% default rate', () => {
     commissionRules: mockDefaultRules,
   });
 
-  assert.equal(res.rate, PLATFORM_CONFIG.SUBSCRIPTION_DEFAULT_COMMISSION_RATE);
-  assert.equal(res.reason, 'SUBSCRIPTION');
+  assert.equal(res.rate, 12);
+  assert.equal(res.reason, 'CATEGORY_RULE');
 });
 
-test('Commission: repeat customer orders receive 4% rate', () => {
+test('Commission: rotating/repeat orders fall back to standard category/default rate (no repeat favoritism)', () => {
   const expiredPromo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
   const existingOrders = [
     {
@@ -60,11 +60,11 @@ test('Commission: repeat customer orders receive 4% rate', () => {
     commissionRules: mockDefaultRules,
   });
 
-  assert.equal(res.rate, PLATFORM_CONFIG.REPEAT_CUSTOMER_COMMISSION_RATE);
-  assert.equal(res.reason, 'REPEAT_CUSTOMER');
+  assert.equal(res.rate, PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE);
+  assert.equal(res.reason, 'DEFAULT');
 });
 
-test('Commission: provider rule override takes precedence over repeat and category', () => {
+test('Commission: category rate applies consistently regardless of provider rules', () => {
   const expiredPromo = new Date(Date.now() - 10 * 24 * 3600 * 1000).toISOString();
   const existingOrders = [
     {
@@ -85,9 +85,8 @@ test('Commission: provider rule override takes precedence over repeat and catego
     commissionRules: mockDefaultRules,
   });
 
-  // rule-prov-vip sets rate to 7%
-  assert.equal(res.rate, 7);
-  assert.equal(res.reason, 'PROVIDER_RULE');
+  assert.equal(res.rate, 12);
+  assert.equal(res.reason, 'CATEGORY_RULE');
 });
 
 test('Commission: category rule takes precedence over default', () => {

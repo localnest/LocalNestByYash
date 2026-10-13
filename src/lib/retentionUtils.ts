@@ -27,51 +27,22 @@ export function filterContactDetails(text: string): { blocked: boolean; reason?:
 // Tiered commission calculation
 export function resolveCommissionRate(params: {
   categoryId?: string;
+  categoryRate?: number;
+  monetization?: 'COMMISSION' | 'MEMBERSHIP';
   provider?: Pick<Provider, 'id' | 'promoEndsAt' | 'verifiedAt'> | null;
   customerId: string;
   pricingModel: PricingModel;
   existingOrders: Order[];
   commissionRules: CommissionRule[];
 }): { rate: number; reason: CommissionReason } {
-  const { categoryId, provider, customerId, pricingModel, existingOrders, commissionRules } = params;
+  const { categoryId, categoryRate, monetization, commissionRules } = params;
 
-  // 1. New provider promo (0% for first 60 days)
-  if (provider?.promoEndsAt && new Date() < new Date(provider.promoEndsAt)) {
-    return { rate: 0, reason: 'NEW_PROVIDER_PROMO' };
-  }
-  if (provider?.verifiedAt && !provider.promoEndsAt) {
-    const daysSinceVerified = (Date.now() - new Date(provider.verifiedAt).getTime()) / (1000 * 60 * 60 * 24);
-    if (daysSinceVerified <= PLATFORM_CONFIG.NEW_PROVIDER_PROMO_DAYS) {
-      return { rate: 0, reason: 'NEW_PROVIDER_PROMO' };
-    }
-  }
+  if (monetization === 'MEMBERSHIP') return { rate: 0, reason: 'MEMBERSHIP_TIER' };
 
-  // 2. Subscription default rate (5%)
-  if (pricingModel === 'SUBSCRIPTION') {
-    const providerRule = commissionRules.find(r => r.ruleType === 'PROVIDER' && r.targetId === provider?.id && r.isActive);
-    if (providerRule) return { rate: providerRule.commissionPercentage, reason: 'PROVIDER_RULE' };
-    return { rate: PLATFORM_CONFIG.SUBSCRIPTION_DEFAULT_COMMISSION_RATE, reason: 'SUBSCRIPTION' };
-  }
-
-  // 3. Repeat customer rate (4%) — if customer has >= 1 completed order with this provider
-  const hasRepeatOrder = existingOrders.some(
-    o => o.customerId === customerId && o.providerId === provider?.id && o.status === 'COMPLETED'
-  );
-  if (hasRepeatOrder) {
-    const providerRule = commissionRules.find(r => r.ruleType === 'PROVIDER' && r.targetId === provider?.id && r.isActive);
-    if (providerRule) return { rate: providerRule.commissionPercentage, reason: 'PROVIDER_RULE' };
-    return { rate: PLATFORM_CONFIG.REPEAT_CUSTOMER_COMMISSION_RATE, reason: 'REPEAT_CUSTOMER' };
-  }
-
-  // 4. Provider rule
-  const providerRule = commissionRules.find(r => r.ruleType === 'PROVIDER' && r.targetId === provider?.id && r.isActive);
-  if (providerRule) return { rate: providerRule.commissionPercentage, reason: 'PROVIDER_RULE' };
-
-  // 5. Category rule
   const catRule = commissionRules.find(r => r.ruleType === 'CATEGORY' && r.targetId === categoryId && r.isActive);
   if (catRule) return { rate: catRule.commissionPercentage, reason: 'CATEGORY_RULE' };
+  if (categoryRate !== undefined) return { rate: categoryRate, reason: 'CATEGORY_RULE' };
 
-  // 6. Default
   const defaultRule = commissionRules.find(r => r.ruleType === 'DEFAULT' && r.isActive);
   return { rate: defaultRule ? defaultRule.commissionPercentage : PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE, reason: 'DEFAULT' };
 }

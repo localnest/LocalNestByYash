@@ -7,10 +7,7 @@ export const PLATFORM_CONFIG = {
   LOYALTY_STREAK_INTERVAL: 5, // every 5th completed order
   LOYALTY_STREAK_BONUS: 50, // ₹50 bonus credits
 
-  // Tiered commission & promos
-  NEW_PROVIDER_PROMO_DAYS: 60, // 0% commission for first 60 days from verifiedAt
-  REPEAT_CUSTOMER_COMMISSION_RATE: 4, // 4% commission if customer has >=1 completed order with provider
-  SUBSCRIPTION_DEFAULT_COMMISSION_RATE: 5, // 5% default for subscriptions
+  // Commission fallback for categories without an explicit flat rate
   DEFAULT_COMMISSION_RATE: 10, // 10% platform fallback
 
   // Platform fees

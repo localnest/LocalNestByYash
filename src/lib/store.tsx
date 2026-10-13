@@ -1,22 +1,26 @@
 'use client';
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { 
-  UserRole, Society, Category, Provider, Service, Order, 
-  Subscription, Coupon, CommissionRule, Review, Complaint, 
+import {
+  UserRole, Society, Category, Provider, Service, Order,
+  Subscription, Coupon, CommissionRule, Review, Complaint,
   PricingModel, OrderStatus, SubscriptionStatus, ComplaintStatus,
   UserProfile, SocietyNotice, NoticeType, PayoutRecord,
   WalletTransaction, ChatMessage, PlatformFeeRules, CommissionReason,
-  ProviderLocation, CoverageMode, SocietyServiceRequest
+  ProviderLocation, CoverageMode, SocietyServiceRequest,
+  ServiceType, JobRequest, RecurringSchedule, ProviderMembership,
+  MembershipInvoice, LeadQuote, ResidentBriefPreferences, ProviderPlan, ProviderDispatchNotification, TiffinMenu
 } from './types';
 import { isSocietyCovered, calculateTravelCharge, calculateHaversineDistance } from './geo';
 export { isSocietyCovered, calculateTravelCharge, calculateHaversineDistance };
-import { 
-  INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS, 
-  INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS, 
-  INITIAL_COUPONS, INITIAL_COMMISSION_RULES, INITIAL_REVIEWS, 
+import {
+  INITIAL_SOCIETIES, INITIAL_CATEGORIES, INITIAL_PROVIDERS,
+  INITIAL_SERVICES, INITIAL_ORDERS, INITIAL_SUBSCRIPTIONS,
+  INITIAL_COUPONS, INITIAL_COMMISSION_RULES, INITIAL_REVIEWS,
   INITIAL_COMPLAINTS, INITIAL_PROFILES, INITIAL_NOTICES, INITIAL_PAYOUTS,
-  INITIAL_WALLET_TRANSACTIONS, INITIAL_CHAT_MESSAGES, INITIAL_PLATFORM_FEE_RULES
+  INITIAL_WALLET_TRANSACTIONS, INITIAL_CHAT_MESSAGES, INITIAL_PLATFORM_FEE_RULES,
+  INITIAL_SERVICE_TYPES, INITIAL_PROVIDER_MEMBERSHIPS, INITIAL_JOB_REQUESTS,
+  INITIAL_RECURRING_SCHEDULES, INITIAL_LEAD_QUOTES
 } from './mockData';
 import { PLATFORM_CONFIG } from './config';
 
@@ -24,7 +28,43 @@ import { filterContactDetails, resolveCommissionRate } from './retentionUtils';
 export { filterContactDetails };
 import { Language, TranslationDictionary, TRANSLATIONS } from './i18n';
 export type { Language, TranslationDictionary };
+import { atomicClaimJob } from './dispatchClaim';
+import { isProviderEligibleForJob, calculateTickWhatYouWantPricing, anonymizeFeedbackComment, calculateMissingIngredientsSettlement, resolveMembershipStatus, chooseRotatingTiffinMenu, parseSlotStartMinutes } from './dispatchUtils';
 
+function formatLocalDate(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+}
+
+function nextRecurringDate(dateString: string, frequency: RecurringSchedule['frequency']): string {
+  const interval = frequency === 'ALTERNATE_DAYS' ? 2 : frequency === 'WEEKLY' ? 7 : 1;
+  let nextDate = addDaysToDateString(dateString, interval);
+  if (frequency === 'MON_TO_SAT' && new Date(`${nextDate}T12:00:00`).getDay() === 0) {
+    nextDate = addDaysToDateString(nextDate, 1);
+  }
+  return nextDate;
+}
+
+function addDaysToDateString(dateString: string, days: number): string {
+  const date = new Date(`${dateString}T12:00:00`);
+  date.setDate(date.getDate() + days);
+  return formatLocalDate(date);
+}
+
+function validateAppointment(dateString: string, slot: string): string | undefined {
+  const date = new Date(`${dateString}T12:00:00`);
+  const today = formatLocalDate(new Date());
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateString) || !Number.isFinite(date.getTime()) ||
+      formatLocalDate(date) !== dateString || dateString < today) {
+    return 'Choose a valid date that is not in the past.';
+  }
+  const startMinute = parseSlotStartMinutes(slot);
+  if (!Number.isFinite(startMinute)) return 'Choose a valid time slot.';
+  const now = new Date();
+  if (dateString === today && startMinute <= now.getHours() * 60 + now.getMinutes()) {
+    return 'Choose a future time slot.';
+  }
+  return undefined;
+}
 
 interface MarketplaceContextType {
   // Auth & Session
@@ -35,17 +75,17 @@ interface MarketplaceContextType {
   register: (params: { email: string; password?: string; fullName: string; role: UserRole; phone?: string }) => { success: boolean; user?: UserProfile; message: string };
   logout: () => void;
   completeResidentOnboarding: (data: { societyId: string; towerWing: string; flatNumber: string; phone: string; fullName: string }) => void;
-  completeProviderOnboarding: (data: { 
-    businessName: string; 
-    categoryId: string; 
-    phone: string; 
-    supportedSocieties: string[]; 
-    description: string; 
-    serviceTitle: string; 
-    pricingModel: PricingModel; 
-    basePrice: number; 
-    unitName: string; 
-    documentType: string; 
+  completeProviderOnboarding: (data: {
+    businessName: string;
+    categoryId: string;
+    phone: string;
+    supportedSocieties: string[];
+    description: string;
+    serviceTitle: string;
+    pricingModel: PricingModel;
+    basePrice: number;
+    unitName: string;
+    documentType: string;
     documentName: string;
     acceptedTerms: boolean;
     baseLocation?: ProviderLocation;
@@ -136,9 +176,9 @@ interface MarketplaceContextType {
   // Actions: Support & Complaints
   createComplaint: (orderId: string, category: string, description: string) => { success: boolean; ticketNumber: string };
   updateComplaintStatus: (
-    ticketId: string, 
-    status: ComplaintStatus, 
-    resolution?: string, 
+    ticketId: string,
+    status: ComplaintStatus,
+    resolution?: string,
     adminNotes?: string,
     resolutionType?: 'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED',
     refundAmount?: number
@@ -166,13 +206,16 @@ interface MarketplaceContextType {
       maxTravelCharge?: number;
     }
   ) => void;
+  updateProviderCapabilities: (providerId: string, serviceTypeIds: string[], taskIds: string[]) => void;
+  settleCookMissingIngredients: (orderId: string) => { success: boolean; error?: string };
+  saveCookMealPhoto: (orderId: string, photoUrl: string) => { success: boolean; error?: string };
   serviceRequests: SocietyServiceRequest[];
   createServiceRequest: (params: { societyId: string; societyName: string; categoryId: string; categoryName: string; notes?: string }) => { success: boolean; message: string };
   addService: (newService: Omit<Service, 'id'>) => void;
   requestPayout: (
-    providerId: string, 
-    amount: number, 
-    method: 'UPI' | 'BANK_NEFT', 
+    providerId: string,
+    amount: number,
+    method: 'UPI' | 'BANK_NEFT',
     accountDetails: string
   ) => { success: boolean; message: string };
 
@@ -205,6 +248,59 @@ interface MarketplaceContextType {
   }) => void;
   deactivateNotice: (noticeId: string) => void;
 
+  // Uber-style Dispatch & Monetization
+  serviceTypes: ServiceType[];
+  jobRequests: JobRequest[];
+  recurringSchedules: RecurringSchedule[];
+  providerMemberships: ProviderMembership[];
+  providerPlans: ProviderPlan[];
+  tiffinMenus: TiffinMenu[];
+  dispatchNotifications: ProviderDispatchNotification[];
+  dispatchTimeoutMinutes: number;
+  leadQuotes: LeadQuote[];
+
+  createJobRequest: (params: {
+    serviceTypeId: string;
+    scheduledDate: string;
+    scheduledSlot: string;
+    selectedTaskIds?: string[];
+    sizeBandInput?: string;
+    dishNotes?: string;
+    kitchenReadinessConfirmed?: boolean;
+    stylistGenderPreference?: 'ANY' | 'FEMALE' | 'MALE';
+    residentPreferences?: ResidentBriefPreferences;
+    excludedProviderIds?: string[];
+  }) => { success: boolean; jobRequest?: JobRequest; error?: string };
+  createLeadRequest: (params: { serviceTypeId: string; scheduledDate: string; scheduledSlot: string; requestNotes: string }) => { success: boolean; jobRequest?: JobRequest; error?: string };
+  publishTiffinMenu: (menu: Omit<TiffinMenu, 'id' | 'providerId' | 'createdAt' | 'isActive'>) => { success: boolean; error?: string };
+  orderTiffinMenu: (menuId: string, quantity: number, deliveryDate?: string, societyId?: string) => { success: boolean; order?: Order; error?: string };
+
+  claimJob: (jobId: string, providerId: string) => { success: boolean; status: string; order?: Order; error?: string };
+  cancelJobRequest: (jobId: string, reason?: string) => void;
+  cancelClaimedJob: (jobId: string, providerId: string, reason?: string) => { success: boolean; error?: string };
+  cancelClaimedJobByResident: (jobId: string, reason?: string) => { success: boolean; error?: string };
+  expireJobRequest: (jobId: string) => boolean;
+  reDispatchJob: (jobId: string) => void;
+  verifyDoorOtp: (orderId: string, enteredOtp: string) => { success: boolean; error?: string };
+
+  createRecurringSchedule: (schedule: Omit<RecurringSchedule, 'id' | 'scheduleNumber' | 'createdAt' | 'historyJobIds'>) => RecurringSchedule;
+  updateRecurringSchedule: (id: string, updates: Partial<RecurringSchedule>) => void;
+  dispatchRecurringScheduleOccurrence: (scheduleId: string) => { success: boolean; jobRequest?: JobRequest; order?: Order; error?: string };
+
+  renewProviderMembership: (providerId: string, months?: number) => { success: boolean; invoice?: MembershipInvoice };
+  failProviderMembershipRenewal: (providerId: string) => { success: boolean; error?: string };
+  updateProviderPlan: (planId: string, updates: Partial<ProviderPlan>) => void;
+  updateProviderMembership: (providerId: string, updates: Partial<ProviderMembership>) => void;
+  updateDispatchTimeout: (minutes: number) => { success: boolean; error?: string };
+  moderateReview: (reviewId: string) => void;
+  updateCategoryFlags: (categoryId: string, updates: Partial<Category>) => void;
+  updateServiceType: (serviceTypeId: string, updates: Partial<ServiceType>) => void;
+  addServiceType: (serviceType: Omit<ServiceType, 'id'>) => void;
+  updateResidentPreferences: (residentId: string, prefs: ResidentBriefPreferences) => void;
+
+  submitLeadQuote: (quote: Omit<LeadQuote, 'id' | 'createdAt' | 'status'>) => LeadQuote | undefined;
+  acceptLeadQuote: (leadQuoteId: string) => { success: boolean; order?: Order };
+
   // Notifications
   notifications: string[];
   dismissNotification: (index: number) => void;
@@ -223,10 +319,23 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
   const [societies, setSocieties] = useState<Society[]>(INITIAL_SOCIETIES);
   const [selectedSociety, setSelectedSociety] = useState<Society>(INITIAL_SOCIETIES[0]);
-  const [categories] = useState<Category[]>(INITIAL_CATEGORIES);
+  const [categories, setCategories] = useState<Category[]>(INITIAL_CATEGORIES);
   const [providers, setProviders] = useState<Provider[]>(INITIAL_PROVIDERS);
   const [serviceRequests, setServiceRequests] = useState<SocietyServiceRequest[]>([]);
   const [services, setServices] = useState<Service[]>(INITIAL_SERVICES);
+  const [serviceTypes, setServiceTypes] = useState<ServiceType[]>(INITIAL_SERVICE_TYPES);
+  const [jobRequests, setJobRequests] = useState<JobRequest[]>(INITIAL_JOB_REQUESTS);
+  const [recurringSchedules, setRecurringSchedules] = useState<RecurringSchedule[]>(INITIAL_RECURRING_SCHEDULES);
+  const [providerMemberships, setProviderMemberships] = useState<ProviderMembership[]>(INITIAL_PROVIDER_MEMBERSHIPS);
+  const [providerPlans, setProviderPlans] = useState<ProviderPlan[]>([
+    { id: 'plan-home-services', categoryGroupId: 'home-services', name: 'Home Services', monthlyFee: 499, trialDays: 60, gracePeriodDays: 5, isActive: true },
+    { id: 'plan-trades', categoryGroupId: 'trades', name: 'Skilled Trades', monthlyFee: 799, trialDays: 60, gracePeriodDays: 5, isActive: true },
+    { id: 'plan-projects', categoryGroupId: 'projects', name: 'Home Projects', monthlyFee: 999, trialDays: 60, gracePeriodDays: 5, isActive: true },
+  ]);
+  const [dispatchNotifications, setDispatchNotifications] = useState<ProviderDispatchNotification[]>([]);
+  const [dispatchTimeoutMinutes, setDispatchTimeoutMinutes] = useState(15);
+  const [leadQuotes, setLeadQuotes] = useState<LeadQuote[]>(INITIAL_LEAD_QUOTES);
+  const [tiffinMenus, setTiffinMenus] = useState<TiffinMenu[]>([]);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
   const [subscriptions, setSubscriptions] = useState<Subscription[]>(INITIAL_SUBSCRIPTIONS);
   const [coupons, setCoupons] = useState<Coupon[]>(INITIAL_COUPONS);
@@ -305,6 +414,49 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         setProviders(merged);
       }
 
+      const savedCategories = localStorage.getItem('hg_categories');
+      if (savedCategories) {
+        const parsedCats = JSON.parse(savedCategories);
+        // Ensure new categories exist
+        const mergedCats = INITIAL_CATEGORIES.map(ic => {
+          const found = parsedCats.find((pc: any) => pc.id === ic.id);
+          return found ? { ...ic, ...found } : ic;
+        });
+        setCategories(mergedCats);
+      }
+
+      const savedServiceTypes = localStorage.getItem('hg_service_types');
+      if (savedServiceTypes) setServiceTypes(JSON.parse(savedServiceTypes));
+
+      const savedJobRequests = localStorage.getItem('hg_job_requests');
+      if (savedJobRequests) setJobRequests(JSON.parse(savedJobRequests));
+
+      const savedSchedules = localStorage.getItem('hg_recurring_schedules');
+      if (savedSchedules) setRecurringSchedules(JSON.parse(savedSchedules));
+
+      const savedMemberships = localStorage.getItem('hg_provider_memberships');
+      if (savedMemberships) setProviderMemberships(JSON.parse(savedMemberships));
+
+      const savedPlans = localStorage.getItem('hg_provider_plans');
+      if (savedPlans) setProviderPlans(JSON.parse(savedPlans));
+
+      const savedDispatchNotifications = localStorage.getItem('hg_dispatch_notifications');
+      if (savedDispatchNotifications) setDispatchNotifications(JSON.parse(savedDispatchNotifications));
+
+      const savedDispatchTimeout = localStorage.getItem('hg_dispatch_timeout');
+      if (savedDispatchTimeout) {
+        const parsedTimeout = Number(savedDispatchTimeout);
+        if (Number.isFinite(parsedTimeout) && parsedTimeout >= 10 && parsedTimeout <= 15) {
+          setDispatchTimeoutMinutes(parsedTimeout);
+        }
+      }
+
+      const savedLeadQuotes = localStorage.getItem('hg_lead_quotes');
+      if (savedLeadQuotes) setLeadQuotes(JSON.parse(savedLeadQuotes));
+
+      const savedTiffinMenus = localStorage.getItem('hg_tiffin_menus');
+      if (savedTiffinMenus) setTiffinMenus(JSON.parse(savedTiffinMenus));
+
       const savedRequests = localStorage.getItem('hg_service_requests');
       if (savedRequests) setServiceRequests(JSON.parse(savedRequests));
 
@@ -345,6 +497,16 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       localStorage.setItem('hg_subs', JSON.stringify(subscriptions));
       localStorage.setItem('hg_providers', JSON.stringify(providers));
       localStorage.setItem('hg_services', JSON.stringify(services));
+      localStorage.setItem('hg_categories', JSON.stringify(categories));
+      localStorage.setItem('hg_service_types', JSON.stringify(serviceTypes));
+      localStorage.setItem('hg_job_requests', JSON.stringify(jobRequests));
+      localStorage.setItem('hg_recurring_schedules', JSON.stringify(recurringSchedules));
+      localStorage.setItem('hg_provider_memberships', JSON.stringify(providerMemberships));
+      localStorage.setItem('hg_provider_plans', JSON.stringify(providerPlans));
+      localStorage.setItem('hg_dispatch_notifications', JSON.stringify(dispatchNotifications));
+      localStorage.setItem('hg_dispatch_timeout', String(dispatchTimeoutMinutes));
+      localStorage.setItem('hg_lead_quotes', JSON.stringify(leadQuotes));
+      localStorage.setItem('hg_tiffin_menus', JSON.stringify(tiffinMenus));
       localStorage.setItem('hg_wallet_txns', JSON.stringify(walletTransactions));
       localStorage.setItem('hg_chat_messages', JSON.stringify(chatMessages));
       localStorage.setItem('hg_fee_rules', JSON.stringify(platformFeeRules));
@@ -353,7 +515,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     } catch {
       // ignore
     }
-  }, [currentUser, users, orders, subscriptions, providers, services, walletTransactions, chatMessages, platformFeeRules, serviceRequests, reviews]);
+  }, [currentUser, users, orders, subscriptions, providers, services, categories, serviceTypes, jobRequests, recurringSchedules, providerMemberships, providerPlans, dispatchNotifications, dispatchTimeoutMinutes, leadQuotes, tiffinMenus, walletTransactions, chatMessages, platformFeeRules, serviceRequests, reviews]);
 
 
   const addNotification = (msg: string) => {
@@ -440,10 +602,10 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
         flaggedReason: text, // store original text for admin
       };
       setChatMessages(prev => [...prev, flaggedMsg]);
-      return { 
-        success: false, 
-        blocked: true, 
-        message: 'For your safety and to keep your booking protected, please keep contact details inside LocalNest.' 
+      return {
+        success: false,
+        blocked: true,
+        message: 'For your safety and to keep your booking protected, please keep contact details inside LocalNest.'
       };
     }
 
@@ -469,7 +631,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const markFlaggedReviewed = (messageId: string) => {
-    setChatMessages(prev => prev.map(m => 
+    setChatMessages(prev => prev.map(m =>
       m.id === messageId ? { ...m, flaggedReason: `[REVIEWED] ${m.flaggedReason}` } : m
     ));
   };
@@ -504,7 +666,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
   const loginWithGoogle = (roleChoice: 'CUSTOMER' | 'PROVIDER', googleEmail?: string, googleName?: string) => {
     const email = (googleEmail || (roleChoice === 'CUSTOMER' ? 'rahul.google@gmail.com' : 'rajesh.google@gmail.com')).toLowerCase();
-    const name = googleName || (roleChoice === 'CUSTOMER' ? 'Rahul Sharma' : 'Rajesh Kumar');
+    const name = googleName || (roleChoice === 'CUSTOMER' ? 'Yash Khandagale' : 'Rajesh Kumar');
 
     const existing = users.find(u => u.email.toLowerCase() === email);
     if (existing) {
@@ -591,17 +753,17 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification(`Welcome to ${soc.name}! Welcome coupon WELCOME100 is ready to use on your first booking.`);
   };
 
-  const completeProviderOnboarding = (data: { 
-    businessName: string; 
-    categoryId: string; 
-    phone: string; 
-    supportedSocieties: string[]; 
-    description: string; 
-    serviceTitle: string; 
-    pricingModel: PricingModel; 
-    basePrice: number; 
-    unitName: string; 
-    documentType: string; 
+  const completeProviderOnboarding = (data: {
+    businessName: string;
+    categoryId: string;
+    phone: string;
+    supportedSocieties: string[];
+    description: string;
+    serviceTitle: string;
+    pricingModel: PricingModel;
+    basePrice: number;
+    unitName: string;
+    documentType: string;
     documentName: string;
     acceptedTerms: boolean;
     baseLocation?: ProviderLocation;
@@ -618,7 +780,6 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const newProviderId = `prov-${Date.now()}`;
     const cat = categories.find(c => c.id === data.categoryId);
     const now = new Date().toISOString();
-    const promoEndsAt = new Date(Date.now() + PLATFORM_CONFIG.NEW_PROVIDER_PROMO_DAYS * 24 * 3600 * 1000).toISOString();
 
     const newProv: Provider = {
       id: newProviderId,
@@ -636,7 +797,6 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       supportedSocieties: data.supportedSocieties.length > 0 ? data.supportedSocieties : [selectedSociety.id],
       startingPrice: data.basePrice,
       startingPriceUnit: data.unitName,
-      promoEndsAt,
       acceptedTermsAt: data.acceptedTerms ? now : undefined,
       baseLocation: data.baseLocation,
       maxServiceDistanceKm: data.maxServiceDistanceKm ?? 10,
@@ -692,8 +852,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     existingOrders: Order[]
   ): { rate: number; reason: CommissionReason } => {
     const provider = providers.find(p => p.id === providerId);
+    const category = categories.find(c => c.id === categoryId);
     return resolveCommissionRate({
       categoryId,
+      categoryRate: category?.flatCommissionRate,
+      monetization: category?.monetization,
       provider,
       customerId,
       pricingModel,
@@ -720,10 +883,10 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       return { valid: false, discount: 0, message: 'Coupon only applies to selected service categories.' };
     }
     if (subtotal < coupon.minOrderValue) {
-      return { 
-        valid: false, 
-        discount: 0, 
-        message: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon.` 
+      return {
+        valid: false,
+        discount: 0,
+        message: `Minimum order value of ₹${coupon.minOrderValue} required for this coupon.`
       };
     }
     if (coupon.usageLimit && coupon.currentUsage >= coupon.usageLimit) {
@@ -770,14 +933,14 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const provider = providers.find(p => p.id === service.providerId);
     if (!provider) return { success: false, message: 'Provider not found.' };
 
-    const custName = currentUser?.fullName || 'Rahul Sharma';
+    const custName = currentUser?.fullName || 'Yash Khandagale';
     const custPhone = currentUser?.phone || '+91 98765 43210';
     const custFlat = currentUser?.flatNumber || 'Tower A - 402';
     const custId = currentUser?.id || 'usr-customer-1';
 
     // Platform fee from configurable rules
-    const platformFee = params.isSubscription 
-      ? platformFeeRules.subscriptionFee 
+    const platformFee = params.isSubscription
+      ? platformFeeRules.subscriptionFee
       : platformFeeRules.oneTimeFee;
 
     const travelCharge = params.travelCharge || 0;
@@ -908,7 +1071,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     setOrders(prev => prev.map(ord => {
       if (ord.id === orderId) {
         if (newStatus === 'COMPLETED' && ord.status !== 'COMPLETED') {
-          setProviders(pList => pList.map(p => 
+          setProviders(pList => pList.map(p =>
             p.id === ord.providerId ? { ...p, completedOrders: p.completedOrders + 1 } : p
           ));
           // Earn wallet credits: 3% of subtotal, rounded down
@@ -968,7 +1131,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const updateSubscriptionStatus = (subscriptionId: string, status: SubscriptionStatus) => {
-    setSubscriptions(prev => prev.map(sub => 
+    setSubscriptions(prev => prev.map(sub =>
       sub.id === subscriptionId ? { ...sub, status } : sub
     ));
     addNotification(`Subscription status updated to ${status}.`);
@@ -990,8 +1153,8 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
   const skipNextDelivery = (subscriptionId: string, dateToSkip: string) => {
     setSubscriptions(prev => prev.map(sub =>
-      sub.id === subscriptionId 
-        ? { ...sub, skippedDates: [...(sub.skippedDates || []), dateToSkip] } 
+      sub.id === subscriptionId
+        ? { ...sub, skippedDates: [...(sub.skippedDates || []), dateToSkip] }
         : sub
     ));
     addNotification(`Delivery on ${new Date(dateToSkip).toLocaleDateString()} has been skipped.`);
@@ -1023,8 +1186,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     const privacyOption = isObj ? orderIdOrParams.privacyOption : 'FULL_FLAT';
 
     const order = orders.find(o => o.id === orderId);
-    if (!order || order.status !== 'COMPLETED') {
+    if (currentUser?.role !== 'CUSTOMER' || !order || order.customerId !== currentUser.id || order.status !== 'COMPLETED') {
       return { success: false, message: 'Reviews can only be submitted for completed orders.' };
+    }
+    if (!Number.isInteger(rating) || rating < 1 || rating > 5 || providerId !== order.providerId) {
+      return { success: false, message: 'Review rating or provider is invalid.' };
     }
     const alreadyReviewed = reviews.some(r => r.orderId === orderId);
     if (alreadyReviewed) {
@@ -1054,7 +1220,10 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       serviceName: order.serviceName,
       providerId,
       rating,
-      comment,
+      comment: anonymizeFeedbackComment(comment, [
+        ...users.map(user => user.fullName),
+        ...providers.map(provider => provider.businessName),
+      ]),
       tags: tags && tags.length > 0 ? tags : undefined,
       isVerifiedPurchase: true,
       createdAt: new Date().toISOString(),
@@ -1082,6 +1251,11 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const respondToReview = (reviewId: string, replyComment: string) => {
     if (!replyComment.trim()) {
       return { success: false, message: 'Response cannot be empty.' };
+    }
+    const review = reviews.find(item => item.id === reviewId);
+    if (currentUser?.role !== 'PROVIDER' || !review ||
+        providers.find(provider => provider.id === review.providerId)?.id !== currentUser.providerId) {
+      return { success: false, message: 'Only the reviewed provider can respond to this feedback.' };
     }
     setReviews(prev => prev.map(r => {
       if (r.id === reviewId) {
@@ -1128,18 +1302,18 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const updateComplaintStatus = (
-    ticketId: string, 
-    status: ComplaintStatus, 
-    resolution?: string, 
+    ticketId: string,
+    status: ComplaintStatus,
+    resolution?: string,
     adminNotes?: string,
     resolutionType?: 'FULL_REFUND' | 'PARTIAL_REFUND' | 'FREE_REWORK' | 'MEDIATED_DISMISSED',
     refundAmount?: number
   ) => {
     const complaint = complaints.find(c => c.id === ticketId);
-    setComplaints(prev => prev.map(c => 
-      c.id === ticketId ? { 
-        ...c, 
-        status, 
+    setComplaints(prev => prev.map(c =>
+      c.id === ticketId ? {
+        ...c,
+        status,
         resolution: resolution || c.resolution,
         adminNotes: adminNotes || c.adminNotes,
         resolutionType: resolutionType || c.resolutionType,
@@ -1209,6 +1383,66 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification('Service area and travel distance settings updated.');
   };
 
+  const updateProviderCapabilities = (providerId: string, serviceTypeIds: string[], taskIds: string[]) => {
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== providerId || activeProviderId !== providerId) return;
+    setProviders(prev => prev.map(provider => provider.id === providerId
+      ? { ...provider, enabledServiceTypeIds: [...new Set(serviceTypeIds)], enabledTaskIds: [...new Set(taskIds)] }
+      : provider));
+    addNotification('Provider service types and skills updated.');
+  };
+
+  const settleCookMissingIngredients = (orderId: string) => {
+    const order = orders.find(item => item.id === orderId);
+    if (currentUser?.role !== 'PROVIDER' || !order || order.providerId !== activeProviderId ||
+        order.status !== 'COMPLETED' || order.cookMissingIngredients || order.pricingModel !== 'TICK_WHAT_YOU_WANT') {
+      return { success: false, error: 'This completed cook job is not eligible for an ingredient settlement.' };
+    }
+    const job = jobRequests.find(item => item.orderId === orderId);
+    if (job?.categoryId !== 'cat-cook') return { success: false, error: 'This settlement only applies to Cook (Basic) jobs.' };
+    const settlement = calculateMissingIngredientsSettlement(order.totalAmount, order.providerEarnings);
+    setOrders(prev => prev.map(item => item.id === orderId ? {
+      ...item,
+      cookMissingIngredients: true,
+      providerEarnings: settlement.adjustedProviderPayout,
+      updatedAt: new Date().toISOString(),
+    } : item));
+    addWalletTransaction({
+      userId: order.customerId,
+      type: 'ADJUSTMENT',
+      amount: settlement.residentCredit,
+      orderId,
+      note: 'Partial LocalNest credit: ingredients were not ready for the cook visit.',
+    });
+    addNotification(`Cook settlement applied: ₹${settlement.residentCredit} resident credit; provider payout reduced.`);
+    return { success: true };
+  };
+
+  const saveCookMealPhoto = (orderId: string, photoUrl: string) => {
+    const order = orders.find(item => item.id === orderId);
+    const job = jobRequests.find(item => item.orderId === orderId);
+    const isInlineImage = /^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/]+=*$/i.test(photoUrl) &&
+      photoUrl.length <= 160_000;
+    let validUrl = false;
+    if (!isInlineImage) {
+      try {
+        const url = new URL(photoUrl);
+        validUrl = ['https:', 'http:'].includes(url.protocol);
+      } catch {
+        validUrl = false;
+      }
+    }
+    if (currentUser?.role !== 'PROVIDER' || !order || order.providerId !== activeProviderId ||
+        order.status !== 'COMPLETED' || job?.categoryId !== 'cat-cook' ||
+        (!isInlineImage && !validUrl)) {
+      return { success: false, error: 'Only the assigned provider can add a finished-meal photo to a completed Cook job.' };
+    }
+    setOrders(prev => prev.map(item => item.id === orderId
+      ? { ...item, mealPhotoUrl: photoUrl, updatedAt: new Date().toISOString() }
+      : item));
+    addNotification(`Finished-meal photo saved for order ${order.orderNumber}.`);
+    return { success: true };
+  };
+
   const createServiceRequest = (params: {
     societyId: string;
     societyName: string;
@@ -1245,16 +1479,16 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       vacationReason: vacationReason !== undefined ? vacationReason : p.vacationReason,
     } : p));
     addNotification(
-      isVacationMode 
-        ? 'Vacation Mode enabled. New bookings are paused.' 
+      isVacationMode
+        ? 'Vacation Mode enabled. New bookings are paused.'
         : 'Provider working hours and active schedule updated.'
     );
   };
 
   const requestPayout = (
-    providerId: string, 
-    amount: number, 
-    method: 'UPI' | 'BANK_NEFT', 
+    providerId: string,
+    amount: number,
+    method: 'UPI' | 'BANK_NEFT',
     accountDetails: string
   ) => {
     const prov = providers.find(p => p.id === providerId);
@@ -1275,16 +1509,39 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const updateProviderStatus = (providerId: string, status: Provider['status'], reason?: string) => {
-    setProviders(prev => prev.map(p => 
+    const provider = providers.find(item => item.id === providerId);
+    const category = provider && categories.find(item => item.id === provider.categoryId);
+    setProviders(prev => prev.map(p =>
       p.id === providerId ? {
         ...p,
         status,
         verifiedAt: status === 'VERIFIED' ? new Date().toISOString() : p.verifiedAt,
-        promoEndsAt: status === 'VERIFIED' && !p.promoEndsAt 
-          ? new Date(Date.now() + PLATFORM_CONFIG.NEW_PROVIDER_PROMO_DAYS * 24 * 3600 * 1000).toISOString()
-          : p.promoEndsAt,
       } : p
     ));
+    if (status === 'VERIFIED' && category?.monetization === 'MEMBERSHIP' &&
+      !providerMemberships.some(membership => membership.providerId === providerId)) {
+      const now = new Date();
+      const trialEnd = new Date(now);
+      trialEnd.setDate(trialEnd.getDate() + 60);
+      const plan = providerPlans.find(item => item.categoryGroupId === (category.membershipGroupId || 'trades')) ||
+        providerPlans.find(item => item.isActive);
+      const membership: ProviderMembership = {
+        id: `mem-${providerId}`,
+        providerId,
+        categoryGroupId: category.membershipGroupId || plan?.categoryGroupId || 'trades',
+        status: 'TRIAL',
+        monthlyFee: plan?.monthlyFee ?? category.membershipMonthlyFee ?? 799,
+        trialStartDate: now.toISOString().slice(0, 10),
+        trialEndsAt: trialEnd.toISOString(),
+        currentBillingPeriodStart: now.toISOString(),
+        currentBillingPeriodEnd: trialEnd.toISOString(),
+        gracePeriodEndsAt: new Date(trialEnd.getTime() + (plan?.gracePeriodDays ?? 5) * 24 * 60 * 60 * 1000).toISOString(),
+        autoRenew: true,
+        invoices: [],
+        updatedAt: now.toISOString(),
+      };
+      setProviderMemberships(prev => [...prev, membership]);
+    }
     addNotification(`Provider verification status updated to ${status}.`);
   };
 
@@ -1295,7 +1552,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const updateCommissionRule = (ruleId: string, percentage: number) => {
-    setCommissionRules(prev => prev.map(r => 
+    setCommissionRules(prev => prev.map(r =>
       r.id === ruleId ? { ...r, commissionPercentage: percentage } : r
     ));
     addNotification(`Commission rate updated to ${percentage}%.`);
@@ -1308,7 +1565,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   };
 
   const toggleCouponActive = (couponId: string) => {
-    setCoupons(prev => prev.map(c => 
+    setCoupons(prev => prev.map(c =>
       c.id === couponId ? { ...c, isActive: !c.isActive } : c
     ));
   };
@@ -1355,6 +1612,828 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     addNotification('Notice has been deactivated.');
   };
 
+  // --------------------------------------------------------------------------
+  // UBER-STYLE DISPATCH & MONETIZATION ACTIONS
+  // --------------------------------------------------------------------------
+  const createJobRequest = (params: {
+    serviceTypeId: string;
+    scheduledDate: string;
+    scheduledSlot: string;
+    selectedTaskIds?: string[];
+    sizeBandInput?: string;
+    dishNotes?: string;
+    kitchenReadinessConfirmed?: boolean;
+    stylistGenderPreference?: 'ANY' | 'FEMALE' | 'MALE';
+    residentPreferences?: ResidentBriefPreferences;
+    excludedProviderIds?: string[];
+    residentId?: string;
+    societyId?: string;
+    flatNumber?: string;
+  }) => {
+    if (currentUser?.role !== 'CUSTOMER') return { success: false, error: 'Sign in as a resident to request a service.' };
+    const sType = serviceTypes.find(st => st.id === params.serviceTypeId);
+    if (!sType) return { success: false, error: 'Service type not found.' };
+
+    const cat = categories.find(c => c.id === sType.categoryId);
+    if (!cat) return { success: false, error: 'Category not found.' };
+    if (cat.isActive === false || sType.isActive === false) return { success: false, error: 'This service is currently unavailable.' };
+    if (cat.matching !== 'DISPATCH' && !cat.supportsOneOffDispatch) return { success: false, error: 'This category uses a different booking flow.' };
+    const scheduleError = validateAppointment(params.scheduledDate, params.scheduledSlot);
+    if (scheduleError) return { success: false, error: scheduleError };
+
+    const resident = users.find(u => u.id === params.residentId) || currentUser;
+    const resId = resident?.id || 'usr-customer-1';
+    const soc = societies.find(society => society.id === params.societyId) || selectedSociety;
+    const resFlat = params.flatNumber || resident?.flatNumber || 'Tower A - 402';
+    const selectedTaskIds = [...new Set(params.selectedTaskIds || [])];
+    const availableTaskIds = new Set(sType.availableTasks.map(task => task.id));
+    if (selectedTaskIds.some(taskId => !availableTaskIds.has(taskId))) {
+      return { success: false, error: 'One or more selected tasks are no longer available.' };
+    }
+    if (sType.pricingModel === 'TICK_WHAT_YOU_WANT' && sType.availableTasks.length && !selectedTaskIds.length) {
+      return { success: false, error: 'Select at least one task.' };
+    }
+    if (sType.categoryId === 'cat-cook' && !params.kitchenReadinessConfirmed) {
+      return { success: false, error: 'Confirm that ingredients, gas and cookware will be ready.' };
+    }
+
+    const pricing = calculateTickWhatYouWantPricing(
+      sType,
+      selectedTaskIds,
+      params.sizeBandInput,
+      params.dishNotes
+    );
+
+    if (sType.sizeBands?.length && !sType.sizeBands.some(band => band.label === params.sizeBandInput)) {
+      return { success: false, error: 'Choose a valid household size.' };
+    }
+    const platformFee = platformFeeRules.oneTimeFee;
+    const lockedSubtotal = pricing.subtotal;
+    const totalResidentPrice = lockedSubtotal + platformFee;
+
+    const categoryRule = commissionRules.find(rule => rule.ruleType === 'CATEGORY' && rule.targetId === cat.id && rule.isActive);
+    const commissionPct = cat.monetization === 'COMMISSION'
+      ? (cat.flatCommissionRate ?? categoryRule?.commissionPercentage ?? PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE)
+      : 0;
+    const platformCommission = Math.round((lockedSubtotal * commissionPct) / 100);
+    const providerPayout = lockedSubtotal - platformCommission;
+
+    const doorOtp = Math.floor(1000 + Math.random() * 9000).toString();
+    const now = new Date().toISOString();
+    const jobId = `job-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    const jobNumber = `JOB-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newJob: JobRequest = {
+      id: jobId,
+      jobNumber,
+      societyId: soc.id,
+      societyName: soc.name,
+      flatNumber: resFlat,
+      residentId: resId,
+      residentName: 'Resident',
+      residentPhoneMasked: 'Contact available after acceptance in LocalNest',
+      serviceTypeId: sType.id,
+      serviceTypeName: sType.name,
+      categoryId: cat.id,
+      categoryName: cat.name,
+      pricingModel: sType.pricingModel,
+      status: 'OPEN',
+      selectedTaskIds,
+      taskBreakdown: pricing.taskBreakdown,
+      sizeBandInput: params.sizeBandInput,
+      dishNotes: params.dishNotes,
+      kitchenReadinessConfirmed: params.kitchenReadinessConfirmed,
+      stylistGenderPreference: params.stylistGenderPreference,
+      excludedProviderIds: params.excludedProviderIds,
+      scheduledDate: params.scheduledDate,
+      scheduledSlot: params.scheduledSlot,
+      estimatedDurationMinutes: pricing.durationMinutes,
+      lockedSubtotal,
+      platformFee,
+      totalResidentPrice,
+      platformCommission,
+      providerPayout,
+      residentPreferences: params.residentPreferences || resident?.preferences || {},
+      doorOtp,
+      notifiedProviderIds: [],
+      expiresAt: new Date(Date.now() + dispatchTimeoutMinutes * 60 * 1000).toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    };
+
+    const allCommitments = orders
+      .filter(order => !['CANCELLED', 'REJECTED', 'REFUNDED'].includes(order.status))
+      .map(order => ({
+        providerId: order.providerId,
+        date: order.scheduledDate,
+        slot: order.scheduledSlot,
+        durationMinutes: jobRequests.find(j => j.orderId === order.id)?.estimatedDurationMinutes || 60,
+      }));
+
+    const eligibleProviders = providers.filter(p => {
+      if (params.excludedProviderIds?.includes(p.id)) return false;
+      const mem = providerMemberships.find(m => m.providerId === p.id) || p.membership;
+      const res = isProviderEligibleForJob(
+        p,
+        mem,
+        newJob,
+        cat,
+        allCommitments,
+        societies
+      );
+      return res.eligible;
+    });
+
+    newJob.notifiedProviderIds = eligibleProviders.map(provider => provider.id);
+
+    setJobRequests(prev => [newJob, ...prev]);
+    setDispatchNotifications(prev => [
+      ...eligibleProviders.map(provider => ({
+        id: `dn-${jobId}-${provider.id}`,
+        providerId: provider.id,
+        jobRequestId: jobId,
+        status: 'NEW' as const,
+        createdAt: now,
+      })),
+      ...prev,
+    ]);
+    addNotification(eligibleProviders.length
+      ? `Request ${jobNumber} broadcast to ${eligibleProviders.length} eligible providers.`
+      : `Request ${jobNumber} is open, but no provider currently matches this slot. You can choose another time.`);
+    return { success: true, jobRequest: newJob };
+  };
+
+  const createLeadRequest = (params: { serviceTypeId: string; scheduledDate: string; scheduledSlot: string; requestNotes: string }) => {
+    const service = serviceTypes.find(item => item.id === params.serviceTypeId);
+    const category = service && categories.find(item => item.id === service.categoryId);
+    if (currentUser?.role !== 'CUSTOMER' || !service || !category ||
+        category.isActive === false || service.isActive === false || category.matching !== 'LEAD_QUOTE') {
+      return { success: false, error: 'Choose an active lead / quote service.' };
+    }
+    if (!params.requestNotes.trim()) return { success: false, error: 'Describe the project scope for providers.' };
+    const scheduleError = validateAppointment(params.scheduledDate, params.scheduledSlot);
+    if (scheduleError) return { success: false, error: scheduleError };
+    const now = new Date().toISOString();
+    const eligibleProviderIds = providers.filter(provider => {
+      if (provider.status !== 'VERIFIED' || provider.isVacationMode) return false;
+      if (!provider.enabledServiceTypeIds?.includes(service.id)) return false;
+      if (!isSocietyCovered(provider, selectedSociety, societies)) return false;
+      const membership = providerMemberships.find(item => item.providerId === provider.id) || provider.membership;
+      return category.monetization !== 'MEMBERSHIP' || Boolean(membership && ['ACTIVE', 'TRIAL', 'GRACE'].includes(resolveMembershipStatus(membership)));
+    }).map(provider => provider.id);
+    const job: JobRequest = {
+      id: `lead-job-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      jobNumber: `LEAD-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      societyId: selectedSociety.id,
+      societyName: selectedSociety.name,
+      flatNumber: currentUser.flatNumber,
+      residentId: currentUser.id,
+      residentName: 'Resident',
+      residentPhoneMasked: 'Contact through LocalNest',
+      serviceTypeId: service.id,
+      serviceTypeName: service.name,
+      categoryId: category.id,
+      categoryName: category.name,
+      pricingModel: 'LEAD_QUOTE',
+      requestType: 'LEAD',
+      requestNotes: params.requestNotes.trim(),
+      status: 'OPEN',
+      selectedTaskIds: [],
+      taskBreakdown: [],
+      scheduledDate: params.scheduledDate,
+      scheduledSlot: params.scheduledSlot,
+      estimatedDurationMinutes: service.estimatedDurationMinutes,
+      lockedSubtotal: 0,
+      platformFee: 0,
+      totalResidentPrice: 0,
+      platformCommission: 0,
+      providerPayout: 0,
+      residentPreferences: currentUser.preferences || {},
+      doorOtp: '',
+      notifiedProviderIds: eligibleProviderIds,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: now,
+      updatedAt: now,
+    };
+    setJobRequests(prev => [job, ...prev]);
+    addNotification(`Project ${job.jobNumber} shared with ${eligibleProviderIds.length} eligible providers. Up to three quotes can respond.`);
+    return { success: true, jobRequest: job };
+  };
+
+  const publishTiffinMenu = (menu: Omit<TiffinMenu, 'id' | 'providerId' | 'createdAt' | 'isActive'>) => {
+    const provider = providers.find(item => item.id === activeProviderId);
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== provider?.id ||
+        !provider || provider.status !== 'VERIFIED' || provider.categoryId !== 'cat-tiffin') {
+      return { success: false, error: 'Only a verified Tiffin provider can publish a menu.' };
+    }
+    const deliveryDate = new Date(`${menu.deliveryDate}T12:00:00`);
+    if (!menu.mealName.trim() || menu.price <= 0 || !Number.isInteger(menu.availableQuantity) || menu.availableQuantity < 1 ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(menu.deliveryDate) || menu.deliveryDate < formatLocalDate(new Date()) ||
+        !Number.isFinite(deliveryDate.getTime()) || formatLocalDate(deliveryDate) !== menu.deliveryDate ||
+        !Number.isFinite(new Date(menu.cutoffAt).getTime()) || new Date(menu.cutoffAt).getTime() <= Date.now() ||
+        new Date(menu.cutoffAt).getTime() > new Date(`${menu.deliveryDate}T23:59:59`).getTime() || !menu.societyIds.length) {
+      return { success: false, error: 'Provide a meal name, positive price, stock, a society, a delivery date from today onward and a future cutoff no later than delivery day.' };
+    }
+    const created: TiffinMenu = {
+      ...menu,
+      id: `menu-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+      providerId: provider.id,
+      isActive: true,
+      createdAt: new Date().toISOString(),
+    };
+    setTiffinMenus(prev => [created, ...prev]);
+    addNotification('Today’s Tiffin menu is available to residents in the selected societies.');
+    return { success: true };
+  };
+
+  const orderTiffinMenu = (
+    menuId: string,
+    quantity: number,
+    deliveryDate = formatLocalDate(new Date()),
+    societyId = selectedSociety.id
+  ) => {
+    const menu = tiffinMenus.find(item => item.id === menuId);
+    const provider = menu && providers.find(item => item.id === menu.providerId);
+    if (currentUser?.role !== 'CUSTOMER' || !menu || !provider || provider.status !== 'VERIFIED' || !menu.isActive) return { success: false, error: 'Menu is unavailable.' };
+    if (!menu.societyIds.includes(societyId)) return { success: false, error: 'This menu is not available in the resident’s society.' };
+    const cutoffAt = new Date(menu.cutoffAt).getTime();
+    if (menu.deliveryDate !== deliveryDate || deliveryDate < formatLocalDate(new Date()) ||
+        !Number.isFinite(cutoffAt) || cutoffAt <= Date.now()) {
+      return { success: false, error: 'The ordering cutoff for this menu has passed.' };
+    }
+    if (!Number.isInteger(quantity) || quantity < 1 || quantity > menu.availableQuantity) {
+      return { success: false, error: 'Requested quantity is not available.' };
+    }
+    const category = categories.find(item => item.id === 'cat-tiffin');
+    const society = societies.find(item => item.id === societyId);
+    if (!society) return { success: false, error: 'The resident’s society could not be found.' };
+    const subtotal = menu.price * quantity;
+    const commissionRate = category?.flatCommissionRate ?? PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE;
+    const now = new Date().toISOString();
+    const order: Order = {
+      id: `ord-menu-${Date.now()}`,
+      orderNumber: `TIF-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerId: currentUser.id,
+      customerName: 'Resident',
+      customerPhone: 'Contact through LocalNest',
+      customerFlat: currentUser.flatNumber,
+      providerId: provider.id,
+      providerName: provider.businessName,
+      serviceId: menu.id,
+      serviceName: menu.mealName,
+      categoryName: category?.name || 'Daily Tiffin',
+      societyId: society.id,
+      societyName: society.name,
+      status: 'ACCEPTED',
+      scheduledDate: menu.deliveryDate,
+      scheduledSlot: 'Meal delivery',
+      deliveryAddress: `${currentUser.flatNumber}, ${society.name}`,
+      pricingModel: 'FIXED',
+      itemQuantity: quantity,
+      subtotal,
+      platformFee: platformFeeRules.oneTimeFee,
+      totalAmount: subtotal + platformFeeRules.oneTimeFee,
+      commissionPercentage: commissionRate,
+      commissionReason: 'CATEGORY_RULE',
+      platformCommission: Math.round(subtotal * commissionRate / 100),
+      providerEarnings: subtotal - Math.round(subtotal * commissionRate / 100),
+      paymentStatus: 'PAID',
+      discountAmount: 0,
+      discountSource: 'PLATFORM',
+      createdAt: now,
+      updatedAt: now,
+    };
+    setTiffinMenus(prev => prev.map(item => item.id === menuId
+      ? { ...item, availableQuantity: item.availableQuantity - quantity, isActive: item.availableQuantity - quantity > 0 }
+      : item));
+    setOrders(prev => [order, ...prev]);
+    addNotification(`Tiffin order ${order.orderNumber} confirmed in mock escrow.`);
+    return { success: true, order };
+  };
+
+  const claimJob = (jobId: string, providerId: string) => {
+    const provider = providers.find(p => p.id === providerId);
+    if (!provider) return { success: false, status: 'NOT_FOUND', error: 'Provider not found.' };
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== providerId || activeProviderId !== providerId) {
+      return { success: false, status: 'INELIGIBLE', error: 'Only the signed-in provider can accept this request.' };
+    }
+    const job = jobRequests.find(request => request.id === jobId);
+    if (!job) return { success: false, status: 'NOT_FOUND', error: 'Job request not found.' };
+    if (!job.notifiedProviderIds.includes(providerId)) {
+      return { success: false, status: 'INELIGIBLE', error: 'This request was not offered to this provider.' };
+    }
+    const category = categories.find(item => item.id === job.categoryId);
+    if (!category) return { success: false, status: 'INELIGIBLE', error: 'The job category is unavailable.' };
+    const commitments = orders
+      .filter(order => order.providerId === providerId && !['CANCELLED', 'REJECTED', 'REFUNDED'].includes(order.status))
+      .map(order => ({
+        providerId: order.providerId,
+        date: order.scheduledDate,
+        slot: order.scheduledSlot,
+        durationMinutes: jobRequests.find(request => request.orderId === order.id)?.estimatedDurationMinutes || 60,
+      }));
+    const eligibility = isProviderEligibleForJob(
+      provider,
+      providerMemberships.find(membership => membership.providerId === providerId) || provider.membership,
+      job,
+      category,
+      commitments,
+      societies
+    );
+    if (!eligibility.eligible) {
+      return { success: false, status: 'INELIGIBLE', error: `This request is no longer available to you (${eligibility.reason || 'eligibility changed'}).` };
+    }
+
+    const result = atomicClaimJob(
+      jobId,
+      providerId,
+      provider,
+      jobRequests,
+      orders,
+      (updatedJobs, newOrder) => {
+        setJobRequests(updatedJobs);
+        setOrders(prev => [newOrder, ...prev]);
+        setDispatchNotifications(prev => prev.map(notification =>
+          notification.jobRequestId === jobId
+            ? { ...notification, status: providerId === notification.providerId ? 'CLAIMED' : 'EXPIRED' }
+            : notification
+        ));
+      }
+    );
+
+    if (result.success && result.createdOrder) {
+      addNotification(`You accepted Job #${result.claimedJob?.jobNumber}! Assigned to ${result.claimedJob?.flatNumber}. Door OTP required on entry.`);
+      return { success: true, status: 'CLAIMED', order: result.createdOrder };
+    } else {
+      return { success: false, status: result.status, error: result.message };
+    }
+  };
+
+  const verifyDoorOtp = (orderId: string, enteredOtp: string) => {
+    const order = orders.find(o => o.id === orderId);
+    if (!order) return { success: false, error: 'Order not found.' };
+    if (currentUser?.role !== 'PROVIDER' || order.providerId !== activeProviderId) {
+      return { success: false, error: 'Only the assigned provider can verify the door OTP.' };
+    }
+    const job = jobRequests.find(request => request.orderId === orderId);
+
+    if (!job || job.status !== 'CLAIMED' || job.claimedByProviderId !== activeProviderId || order.status !== 'ACCEPTED') {
+      return { success: false, error: 'This order is not awaiting OTP verification.' };
+    }
+    if (!/^\d{4}$/.test(enteredOtp.trim()) || !job.doorOtp || job.doorOtp.trim() !== enteredOtp.trim()) {
+      return { success: false, error: 'Incorrect 4-digit Door OTP. Ask the resident for the code on their screen.' };
+    }
+
+    setOrders(prev => prev.map(o => o.id === orderId ? {
+      ...o,
+      isDoorOtpVerified: true,
+      status: 'IN_PROGRESS',
+    } : o));
+
+    addNotification(`Door OTP verified for order ${order.orderNumber}! Service started.`);
+    return { success: true };
+  };
+
+  const cancelJobRequest = (jobId: string, reason?: string) => {
+    const job = jobRequests.find(request => request.id === jobId);
+    if (!job || job.status !== 'OPEN' || job.residentId !== currentUser?.id) return;
+    const now = new Date().toISOString();
+    setJobRequests(prev => prev.map(j => j.id === jobId ? {
+      ...j, status: 'CANCELLED', cancelledBy: 'RESIDENT',
+      cancelReason: reason || 'Cancelled by resident', updatedAt: now,
+    } : j));
+    setDispatchNotifications(prev => prev.map(n => n.jobRequestId === jobId ? { ...n, status: 'CANCELLED' } : n));
+    addNotification(`Job request cancelled.`);
+  };
+
+  const expireJobRequest = (jobId: string) => {
+    const job = jobRequests.find(request => request.id === jobId);
+    if (!job || job.status !== 'OPEN' || new Date(job.expiresAt).getTime() > Date.now()) return false;
+    if (walletTransactions.some(transaction => transaction.orderId === jobId && transaction.note.includes('mock escrow refund'))) return false;
+    const now = new Date().toISOString();
+    setJobRequests(prev => prev.map(request => request.id === jobId
+      ? { ...request, status: 'EXPIRED', updatedAt: now }
+      : request));
+    setDispatchNotifications(prev => prev.map(n => n.jobRequestId === jobId ? { ...n, status: 'EXPIRED' } : n));
+    addWalletTransaction({
+      userId: job.residentId,
+      type: 'ADJUSTMENT',
+      amount: job.totalResidentPrice,
+      orderId: job.id,
+      note: `Dispatch request ${job.jobNumber} expired; mock escrow refund`,
+    });
+    addNotification(`Request ${job.jobNumber} expired. ₹${job.totalResidentPrice} was returned as LocalNest credit; choose another slot to retry.`);
+    return true;
+  };
+
+  const cancelClaimedJob = (jobId: string, providerId: string, reason?: string) => {
+    const job = jobRequests.find(request => request.id === jobId);
+    const order = job?.orderId ? orders.find(item => item.id === job.orderId) : undefined;
+    const provider = providers.find(item => item.id === providerId);
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== providerId || activeProviderId !== providerId ||
+        !job || job.status !== 'CLAIMED' || job.claimedByProviderId !== providerId || !order || !provider) {
+      return { success: false, error: 'This accepted request cannot be cancelled by this provider.' };
+    }
+    const now = new Date().toISOString();
+    const updatedJob: JobRequest = {
+      ...job,
+      status: 'OPEN',
+      claimedByProviderId: undefined,
+      claimedAt: undefined,
+      orderId: undefined,
+      notifiedProviderIds: [],
+      expiresAt: new Date(Date.now() + dispatchTimeoutMinutes * 60 * 1000).toISOString(),
+      rejectionReason: reason || 'Provider cancelled after accepting',
+      updatedAt: now,
+    };
+    const category = categories.find(item => item.id === job.categoryId);
+    if (!category) return { success: false, error: 'Job category not found.' };
+    const commitments = orders
+      .filter(item => item.providerId !== providerId || item.id !== order.id)
+      .filter(item => !['CANCELLED', 'REJECTED', 'REFUNDED'].includes(item.status))
+      .map(item => ({
+        providerId: item.providerId,
+        date: item.scheduledDate,
+        slot: item.scheduledSlot,
+        durationMinutes: jobRequests.find(request => request.orderId === item.id)?.estimatedDurationMinutes || 60,
+      }));
+    const eligibleProviderIds = providers
+      .filter(candidate => candidate.id !== providerId)
+      .filter(candidate => isProviderEligibleForJob(
+        candidate,
+        providerMemberships.find(membership => membership.providerId === candidate.id) || candidate.membership,
+        updatedJob,
+        category,
+        commitments,
+        societies
+      ).eligible)
+      .map(candidate => candidate.id);
+    updatedJob.notifiedProviderIds = eligibleProviderIds;
+    setProviders(prev => prev.map(item => item.id === providerId
+      ? { ...item, trustScore: Math.max(0, (item.trustScore ?? 100) - 10) }
+      : item));
+    setOrders(prev => prev.map(item => item.id === order.id
+      ? { ...item, status: 'CANCELLED', updatedAt: now, rejectionReason: reason || 'Provider cancelled after accepting' }
+      : item));
+    setJobRequests(prev => prev.map(item => item.id === jobId ? updatedJob : item));
+    setDispatchNotifications(prev => [
+      ...eligibleProviderIds.map(id => ({
+        id: `dn-${jobId}-${Date.now()}-${id}`,
+        providerId: id,
+        jobRequestId: jobId,
+        status: 'NEW' as const,
+        createdAt: now,
+      })),
+      ...prev.filter(notification => notification.jobRequestId !== jobId),
+    ]);
+    addNotification(`Provider cancellation was recorded, a reliability penalty applied, and ${eligibleProviderIds.length} other providers were notified.`);
+    return { success: true };
+  };
+
+  const cancelClaimedJobByResident = (jobId: string, reason?: string) => {
+    const job = jobRequests.find(request => request.id === jobId);
+    if (!job || job.status !== 'CLAIMED' || job.residentId !== currentUser?.id || !job.orderId) {
+      return { success: false, error: 'This request cannot be cancelled from this account.' };
+    }
+    cancelOrder(job.orderId, reason || 'Resident requested cancellation');
+    setJobRequests(prev => prev.map(request => request.id === jobId
+      ? { ...request, status: 'CANCELLED', cancelledBy: 'RESIDENT', cancelReason: reason || 'Resident requested cancellation', updatedAt: new Date().toISOString() }
+      : request));
+    setDispatchNotifications(prev => prev.map(notification =>
+      notification.jobRequestId === jobId ? { ...notification, status: 'CANCELLED' } : notification));
+    return { success: true };
+  };
+
+  const reDispatchJob = (jobId: string) => {
+    const job = jobRequests.find(request => request.id === jobId);
+    if (!job || !['OPEN', 'EXPIRED'].includes(job.status)) return;
+    const now = new Date().toISOString();
+    const retried: JobRequest = {
+      ...job,
+      status: 'OPEN',
+      notifiedProviderIds: [],
+      expiresAt: new Date(Date.now() + dispatchTimeoutMinutes * 60 * 1000).toISOString(),
+      updatedAt: now,
+    };
+    const category = categories.find(item => item.id === retried.categoryId);
+    if (!category) return;
+    const pool = providers.filter(provider => isProviderEligibleForJob(
+      provider,
+      providerMemberships.find(membership => membership.providerId === provider.id) || provider.membership,
+      retried,
+      category,
+      orders
+        .filter(order => !['CANCELLED', 'REJECTED', 'REFUNDED'].includes(order.status))
+        .map(order => ({
+          providerId: order.providerId,
+          date: order.scheduledDate,
+          slot: order.scheduledSlot,
+          durationMinutes: jobRequests.find(request => request.orderId === order.id)?.estimatedDurationMinutes || 60,
+        })),
+      societies
+    ).eligible);
+    retried.notifiedProviderIds = pool.map(provider => provider.id);
+    setJobRequests(prev => prev.map(item => item.id === jobId ? retried : item));
+    setDispatchNotifications(prev => [
+      ...pool.map(provider => ({
+        id: `dn-${jobId}-${Date.now()}-${provider.id}`,
+        providerId: provider.id,
+        jobRequestId: jobId,
+        status: 'NEW' as const,
+        createdAt: now,
+      })),
+      ...prev.filter(notification => notification.jobRequestId !== jobId),
+    ]);
+    addNotification(`Request re-broadcast to ${pool.length} eligible providers.`);
+  };
+
+  const createRecurringSchedule = (schedule: Omit<RecurringSchedule, 'id' | 'scheduleNumber' | 'createdAt' | 'historyJobIds'>) => {
+    const newSchedule: RecurringSchedule = {
+      ...schedule,
+      id: `rec-${Date.now()}`,
+      scheduleNumber: `SCH-2026-${Math.floor(1000 + Math.random() * 9000)}`,
+      historyJobIds: [],
+      historyOrderIds: schedule.historyOrderIds || [],
+      createdAt: new Date().toISOString(),
+    };
+    setRecurringSchedules(prev => [newSchedule, ...prev]);
+    addNotification(`Recurring schedule ${newSchedule.scheduleNumber} created! Services will dispatch automatically.`);
+    return newSchedule;
+  };
+
+  const updateRecurringSchedule = (id: string, updates: Partial<RecurringSchedule>) => {
+    const schedule = recurringSchedules.find(item => item.id === id);
+    if (!schedule || (currentUser?.role !== 'ADMIN' &&
+        (currentUser?.role !== 'CUSTOMER' || schedule.residentId !== currentUser.id))) return;
+    setRecurringSchedules(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const dispatchRecurringScheduleOccurrence = (scheduleId: string) => {
+    const s = recurringSchedules.find(rec => rec.id === scheduleId);
+    if (!s) return { success: false, error: 'Schedule not found.' };
+    if (s.status !== 'ACTIVE') return { success: false, error: 'This recurring schedule is paused or cancelled.' };
+    if (currentUser?.role !== 'CUSTOMER' || currentUser.id !== s.residentId) {
+      return { success: false, error: 'Only the resident who owns this schedule can dispatch it.' };
+    }
+    const nextOccurrenceTime = new Date(`${s.nextDispatchDate}T00:00:00`).getTime();
+    if (!Number.isFinite(nextOccurrenceTime) || nextOccurrenceTime - Date.now() > 8 * 60 * 60 * 1000) {
+      return { success: false, error: 'Recurring occurrences are dispatched the night before their scheduled date.' };
+    }
+    const category = categories.find(item => item.id === s.categoryId);
+    if (!category) return { success: false, error: 'Schedule category not found.' };
+    if (category.matching === 'BROWSE_ORDER') {
+      const previousOrders = (s.historyOrderIds || [])
+        .map(id => orders.find(order => order.id === id))
+        .filter((order): order is Order => Boolean(order));
+      const existingOrder = previousOrders.find(order => order.scheduledDate === s.nextDispatchDate);
+      if (existingOrder) return { success: true, order: existingOrder };
+      const menu = chooseRotatingTiffinMenu(
+        tiffinMenus,
+        s.societyId,
+        s.nextDispatchDate,
+        previousOrders[previousOrders.length - 1]?.providerId,
+        Date.now(),
+        s.quantity || 1,
+      );
+      if (!menu) {
+        updateRecurringSchedule(scheduleId, {
+          nextDispatchDate: nextRecurringDate(s.nextDispatchDate, s.frequency),
+        });
+        addNotification(`No Tiffin kitchen had stock for ${s.nextDispatchDate}; the resident was notified and no payment was captured.`);
+        return { success: false, error: 'No Tiffin kitchen had an available menu for this occurrence.' };
+      }
+      const tiffinOrder = orderTiffinMenu(menu.id, s.quantity || 1, s.nextDispatchDate, s.societyId);
+      if (!tiffinOrder.success || !tiffinOrder.order) return { success: false, error: tiffinOrder.error || 'Tiffin order failed.' };
+      updateRecurringSchedule(scheduleId, {
+        historyOrderIds: [...(s.historyOrderIds || []), tiffinOrder.order.id],
+        nextDispatchDate: nextRecurringDate(s.nextDispatchDate, s.frequency),
+      });
+      return { success: true, order: tiffinOrder.order };
+    }
+    const existingOccurrence = s.historyJobIds
+      .map(id => jobRequests.find(job => job.id === id))
+      .find(job => job?.scheduledDate === s.nextDispatchDate);
+    if (existingOccurrence) return { success: true, jobRequest: existingOccurrence };
+
+    const previousJobs = s.historyJobIds
+      .map(id => jobRequests.find(job => job.id === id))
+      .filter((job): job is JobRequest => Boolean(job));
+    const res = createJobRequest({
+      serviceTypeId: s.serviceTypeId,
+      scheduledDate: s.nextDispatchDate,
+      scheduledSlot: s.preferredSlot,
+      selectedTaskIds: s.selectedTaskIds,
+      sizeBandInput: s.sizeBandInput,
+      dishNotes: s.dishNotes,
+      kitchenReadinessConfirmed: s.kitchenReadinessConfirmed,
+      stylistGenderPreference: s.stylistGenderPreference,
+      residentPreferences: s.residentPreferences,
+      residentId: s.residentId,
+      societyId: s.societyId,
+      flatNumber: s.flatNumber,
+      excludedProviderIds: previousJobs.map(job => job.claimedByProviderId).filter((id): id is string => Boolean(id)),
+    });
+
+    if (res.success && res.jobRequest) {
+      const nextDate = nextRecurringDate(s.nextDispatchDate, s.frequency);
+      updateRecurringSchedule(scheduleId, {
+        lastDispatchedJobId: res.jobRequest.id,
+        historyJobIds: [...s.historyJobIds, res.jobRequest.id],
+        nextDispatchDate: nextDate,
+      });
+      return { success: true, jobRequest: res.jobRequest };
+    }
+    return { success: false, error: res.error };
+  };
+
+  const renewProviderMembership = (providerId: string, months = 1) => {
+    const mem = providerMemberships.find(m => m.providerId === providerId);
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== providerId || !mem ||
+        !Number.isInteger(months) || months < 1 || months > 12) return { success: false };
+
+    const invId = `inv-mem-${Date.now()}`;
+    const invNumber = `INV-MEM-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const fee = (mem.monthlyFee || 499) * months;
+
+    const invoice: MembershipInvoice = {
+      id: invId,
+      invoiceNumber: invNumber,
+      amount: fee,
+      paidAt: new Date().toISOString(),
+      pdfUrl: '#',
+    };
+
+    const currentEnd = new Date(mem.currentBillingPeriodEnd > new Date().toISOString() ? mem.currentBillingPeriodEnd : new Date());
+    currentEnd.setMonth(currentEnd.getMonth() + months);
+
+    setProviderMemberships(prev => prev.map(m => m.providerId === providerId ? {
+      ...m,
+      status: 'ACTIVE',
+      currentBillingPeriodEnd: currentEnd.toISOString().split('T')[0],
+      gracePeriodEndsAt: undefined,
+      invoices: [invoice, ...m.invoices],
+      updatedAt: new Date().toISOString(),
+    } : m));
+
+    addNotification(`Membership renewed successfully for ₹${fee}. Active until ${currentEnd.toISOString().split('T')[0]}.`);
+    return { success: true, invoice };
+  };
+
+  const failProviderMembershipRenewal = (providerId: string) => {
+    const membership = providerMemberships.find(item => item.providerId === providerId);
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== providerId || !membership) {
+      return { success: false, error: 'Membership not found for this provider.' };
+    }
+    const plan = providerPlans.find(item => item.categoryGroupId === membership.categoryGroupId);
+    const graceEnd = new Date();
+    graceEnd.setDate(graceEnd.getDate() + (plan?.gracePeriodDays ?? 5));
+    setProviderMemberships(prev => prev.map(item => item.providerId === providerId ? {
+      ...item,
+      status: 'GRACE',
+      gracePeriodEndsAt: graceEnd.toISOString(),
+      updatedAt: new Date().toISOString(),
+    } : item));
+    addNotification(`Membership renewal failed. Grace period ends ${graceEnd.toLocaleDateString()}.`);
+    return { success: true };
+  };
+
+  const updateCategoryFlags = (categoryId: string, updates: Partial<Category>) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    setCategories(prev => prev.map(c => c.id === categoryId ? { ...c, ...updates } : c));
+    addNotification(`Category settings updated.`);
+  };
+
+  const updateServiceType = (serviceTypeId: string, updates: Partial<ServiceType>) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    setServiceTypes(prev => prev.map(st => st.id === serviceTypeId ? { ...st, ...updates } : st));
+    addNotification(`Service catalog updated.`);
+  };
+
+  const addServiceType = (serviceType: Omit<ServiceType, 'id'>) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    const created = { ...serviceType, id: `st-${Date.now()}-${Math.random().toString(36).slice(2, 7)}` };
+    setServiceTypes(prev => [created, ...prev]);
+    addNotification(`Service type "${created.name}" added to the platform catalog.`);
+  };
+
+  const updateProviderPlan = (planId: string, updates: Partial<ProviderPlan>) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    setProviderPlans(prev => prev.map(plan => plan.id === planId ? { ...plan, ...updates } : plan));
+    addNotification('Provider membership plan updated.');
+  };
+
+  const updateProviderMembership = (providerId: string, updates: Partial<ProviderMembership>) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    setProviderMemberships(prev => prev.map(membership => membership.providerId === providerId
+      ? { ...membership, ...updates, updatedAt: new Date().toISOString() }
+      : membership));
+    addNotification('Provider membership adjusted by an administrator.');
+  };
+
+  const updateDispatchTimeout = (minutes: number) => {
+    if (currentUser?.role !== 'ADMIN') return { success: false, error: 'Only an administrator can change dispatch timeout.' };
+    if (!Number.isInteger(minutes) || minutes < 10 || minutes > 15) {
+      return { success: false, error: 'Timeout must be between 10 and 15 minutes.' };
+    }
+    setDispatchTimeoutMinutes(minutes);
+    addNotification(`Dispatch timeout set to ${minutes} minutes.`);
+    return { success: true };
+  };
+
+  const moderateReview = (reviewId: string) => {
+    if (currentUser?.role !== 'ADMIN') return;
+    setReviews(prev => prev.filter(review => review.id !== reviewId));
+    addNotification('Review removed from resident-visible feedback.');
+  };
+  const updateResidentPreferences = (residentId: string, prefs: ResidentBriefPreferences) => {
+    if (currentUser && currentUser.id === residentId) {
+      setCurrentUser(prev => prev ? { ...prev, preferences: prefs } : null);
+    }
+    setUsers(prev => prev.map(u => u.id === residentId ? { ...u, preferences: prefs } : u));
+    addNotification(`Household brief preferences saved.`);
+  };
+
+  const submitLeadQuote = (quote: Omit<LeadQuote, 'id' | 'createdAt' | 'status'>): LeadQuote | undefined => {
+    const job = jobRequests.find(request => request.id === quote.jobId && request.requestType === 'LEAD');
+    const provider = providers.find(item => item.id === quote.providerId);
+    const category = job && categories.find(item => item.id === job.categoryId);
+    if (!job || job.status !== 'OPEN' || !provider || !job.notifiedProviderIds.includes(provider.id)) return undefined;
+    if (leadQuotes.filter(existing => existing.jobId === quote.jobId && existing.status === 'SUBMITTED').length >= 3) return undefined;
+    if (leadQuotes.some(existing => existing.jobId === quote.jobId && existing.providerId === quote.providerId)) return undefined;
+    const membership = providerMemberships.find(item => item.providerId === provider.id) || provider.membership;
+    if (currentUser?.role !== 'PROVIDER' || currentUser.providerId !== provider.id ||
+        (category?.monetization === 'MEMBERSHIP' && (!membership || !['ACTIVE', 'TRIAL', 'GRACE'].includes(resolveMembershipStatus(membership))))) return undefined;
+    if (quote.quotedAmount <= 0 || !Number.isInteger(quote.estimatedDays) || quote.estimatedDays < 1) return undefined;
+    const newLeadQuote: LeadQuote = {
+      ...quote,
+      id: `lq-${Date.now()}`,
+      status: 'SUBMITTED',
+      createdAt: new Date().toISOString(),
+    };
+    setLeadQuotes(prev => [newLeadQuote, ...prev]);
+    addNotification(`Quotation bid of ₹${quote.quotedAmount} submitted.`);
+    return newLeadQuote;
+  };
+
+  const acceptLeadQuote = (leadQuoteId: string) => {
+    const quote = leadQuotes.find(q => q.id === leadQuoteId);
+    const job = quote && jobRequests.find(request => request.id === quote.jobId);
+    if (!quote || !job || job.status !== 'OPEN' || job.residentId !== currentUser?.id || quote.status !== 'SUBMITTED') return { success: false };
+    const provider = providers.find(item => item.id === quote.providerId);
+    if (!provider) return { success: false };
+
+    const orderNumber = `ORD-QUOTE-2026-${Math.floor(1000 + Math.random() * 9000)}`;
+    const newOrder: Order = {
+      id: `ord-lead-${Date.now()}`,
+      orderNumber,
+      customerId: currentUser?.id || 'usr-customer-1',
+      customerName: 'Resident',
+      customerPhone: 'Contact through LocalNest',
+      customerFlat: job.flatNumber,
+      providerId: quote.providerId,
+      providerName: provider.businessName,
+      serviceId: job.serviceTypeId,
+      serviceName: job.serviceTypeName,
+      categoryName: job.categoryName,
+      societyId: job.societyId,
+      societyName: job.societyName,
+      scheduledDate: job.scheduledDate,
+      scheduledSlot: job.scheduledSlot,
+      pricingModel: 'LEAD_QUOTE',
+      itemQuantity: 1,
+      subtotal: quote.quotedAmount,
+      platformFee: 0,
+      totalAmount: quote.quotedAmount,
+      platformCommission: 0,
+      providerEarnings: quote.quotedAmount,
+      commissionPercentage: 0,
+      commissionReason: 'MEMBERSHIP_TIER',
+      discountAmount: 0,
+      discountSource: 'PLATFORM',
+      deliveryAddress: `${job.flatNumber}, ${job.societyName}`,
+      specialInstructions: `${job.requestNotes}\nMilestones: ${quote.milestones.map(milestone => `${milestone.title}: ₹${milestone.amount}`).join('; ')}`,
+      status: 'ACCEPTED',
+      paymentStatus: 'PAID',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+
+    const acceptedAt = new Date().toISOString();
+    setLeadQuotes(prev => prev.map(item => item.jobId === job.id
+      ? { ...item, status: item.id === quote.id ? 'ACCEPTED' : 'REJECTED' }
+      : item));
+    setJobRequests(prev => prev.map(item => item.id === job.id ? {
+      ...item,
+      status: 'CLAIMED',
+      claimedByProviderId: provider.id,
+      claimedAt: acceptedAt,
+      orderId: newOrder.id,
+      updatedAt: acceptedAt,
+    } : item));
+    setOrders(prev => [newOrder, ...prev]);
+    addNotification(`Quote accepted! A mock milestone escrow order was created under ${orderNumber}.`);
+    return { success: true, order: newOrder };
+  };
+
   return (
     <MarketplaceContext.Provider value={{
       currentUser,
@@ -1373,6 +2452,41 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       categories,
       providers,
       services,
+      serviceTypes,
+      jobRequests,
+      recurringSchedules,
+      providerMemberships,
+      providerPlans,
+      tiffinMenus,
+      dispatchNotifications,
+      dispatchTimeoutMinutes,
+      leadQuotes,
+      createJobRequest,
+      createLeadRequest,
+      publishTiffinMenu,
+      orderTiffinMenu,
+      claimJob,
+      cancelJobRequest,
+      cancelClaimedJob,
+      cancelClaimedJobByResident,
+      expireJobRequest,
+      reDispatchJob,
+      verifyDoorOtp,
+      createRecurringSchedule,
+      updateRecurringSchedule,
+      dispatchRecurringScheduleOccurrence,
+      renewProviderMembership,
+      failProviderMembershipRenewal,
+      updateProviderPlan,
+      updateProviderMembership,
+      updateDispatchTimeout,
+      moderateReview,
+      updateCategoryFlags,
+      updateServiceType,
+      addServiceType,
+      updateResidentPreferences,
+      submitLeadQuote,
+      acceptLeadQuote,
       orders,
       subscriptions,
       coupons,
@@ -1398,6 +2512,9 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
       updateProviderStatus,
       updateProviderAvailability,
       updateProviderServiceArea,
+      updateProviderCapabilities,
+      settleCookMissingIngredients,
+      saveCookMealPhoto,
       serviceRequests,
       createServiceRequest,
       addService,

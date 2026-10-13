@@ -5,9 +5,9 @@ import { useMarketplace } from '@/lib/store';
 import AuthScreen from '@/components/AuthScreen';
 import ResidentOnboarding from '@/components/ResidentOnboarding';
 import ProviderOnboarding from '@/components/ProviderOnboarding';
-import CustomerPortal from '@/components/CustomerPortal';
 import ProviderDashboard from '@/components/ProviderDashboard';
 import AdminPanel from '@/components/AdminPanel';
+import CustomerPortal from '@/components/CustomerPortal';
 
 export default function HomePage() {
   const { currentUser } = useMarketplace();
@@ -34,6 +34,5 @@ export default function HomePage() {
     return <AdminPanel />;
   }
 
-  // Default: Resident / Customer portal
   return <CustomerPortal />;
 }
