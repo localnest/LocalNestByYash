@@ -1,0 +1,8 @@
+# Commits to ignore in git blame (one-time formatting passes).
+# Usage: git config blame.ignoreRevsFile .git-blame-ignore-revs
+# Or set it globally: git config --global blame.ignoreRevsFile .git-blame-ignore-revs
+#
+# After merging a format-only commit, paste its full SHA below.
+# You can get it with: git log --oneline --grep="one-time prettier"
+#
+# <paste the SHA of "chore: one-time prettier format of whole repo" after merge>
