@@ -30,40 +30,101 @@ every push to `main`, so violations show up in the Actions tab even if they can'
 
 ---
 
-## Onboarding message (send this when inviting developers)
+## Getting Started
 
-> Read `CONTRIBUTING.md` before writing code. Branch protection isn't enforced by GitHub on our
-> plan, so we enforce it ourselves: never push to `main`, work on a branch and open a PR, get a
-> review from the other developer or me, and never merge while CI or Sonar is red. Run
-> `npm install` after cloning so the pre-commit hook is set up. Direct pushes to `main` or
-> merging a failing PR will be reverted, and repeated violations lose Write access.
+```bash
+git clone https://github.com/localnest/LocalNestByYash.git
+cd LocalNestByYash
+npm ci                         # installs deps and activates Husky pre-commit hook
+cp .env.example .env.local     # fill in your local Supabase keys (never commit this file)
+npm run dev                    # starts dev server at http://localhost:3000
+```
 
 ---
 
-## Workflow
+## Branch Naming
 
-1. Branch from `main`: `feat/short-name`, `fix/short-name`, `chore/short-name`.
-2. Keep PRs small: one feature or fix, ideally under ~400 changed lines.
-3. Run `npm run verify` (types, tests, build) before pushing. Commits auto-format with Prettier.
-4. Open a PR using the template. CI (typecheck, lint on changed files, dup check, coverage, build)
-   and the SonarQube quality gate must pass; at least one review from another team member is
-   required.
-5. Squash-merge. Never push to `main` directly.
+Format: `type/sNN-N-short-description`
 
-## Code rules
+| Type       | When to use                               |
+| ---------- | ----------------------------------------- |
+| `feat`     | New user-facing feature                   |
+| `fix`      | Bug fix                                   |
+| `chore`    | Tooling, config, CI, dependencies         |
+| `refactor` | Code restructure with no behaviour change |
+| `docs`     | Documentation only                        |
+| `test`     | Adding or fixing tests only               |
 
-- **No duplicate logic.** Search first. Shared logic goes in `src/lib`, shared UI in `src/components/ui`.
+**Examples:** `feat/s04-1-add-missing-tables`, `fix/s03-2-booking-modal-crash`, `docs/s01-3-team-rules`
+
+The sprint number `sNN` keeps branches sortable. The task number `-N` separates parallel tasks in the same sprint.
+
+---
+
+## Workflow Rules
+
+1. **One task = one branch = one PR.** Keep PRs small (aim for < 400 changed lines).
+2. **Always branch from the latest `main`.** Before opening a PR, rebase onto `main`:
+   ```bash
+   git fetch origin
+   git rebase origin/main
+   ```
+3. **Run `npm run verify` before pushing** (`typecheck + test + build`).
+4. **Never push directly to `main`.** All CI checks must be green before merge. The lead merges.
+5. **Reviews:** reply within 24 hours. Approve only if you've read the diff.
+6. **The lead squash-merges** all PRs. Never use a merge commit or rebase merge.
+
+---
+
+## Files You Must Not Edit (Until Told Otherwise)
+
+These files are being split into smaller components. Do not modify them unless your task
+explicitly says so — coordinate with the lead first:
+
+- `src/lib/store.tsx` — global state; one person restructures this first
+- `src/components/CustomerPortal.tsx` — being split into sub-components
+- `src/components/ProviderDashboard.tsx` — being split into sub-components
+- `src/components/AdminPanel.tsx` — being split into sub-components
+
+**Backend work** lives in `supabase/` and Supabase Edge Functions — not in `src/`.
+
+---
+
+## Secrets & Environment Variables
+
+- **Never commit secrets.** Use `.env.local` (gitignored). Never commit it.
+- **Server-only keys never get the `NEXT_PUBLIC_` prefix.** If it starts with `NEXT_PUBLIC_`, it
+  ships to the browser and must be safe to expose publicly.
+- Copy `.env.example` to `.env.local` and fill in your local Supabase project keys.
+- Production and staging keys live in the team password manager — never in Git, never in chat.
+
+---
+
+## Code Rules
+
+- **No duplicate logic.** Search first. Shared logic → `src/lib`, shared UI → `src/components/ui`.
 - **Business rules are pure functions** in `src/lib` with unit tests (see `src/lib/__tests__`).
 - **No `any`.** Type everything; validate external data at the boundary.
-- **Never compute money, OTPs, or job claims in the browser** for production paths. They belong on the server.
-- Files over ~600 lines or functions with complexity over 20 trigger warnings. Split them.
-- Do not add dependencies without a reason in the PR description.
-- Secrets live in env vars. Copy `.env.example` to `.env.local`. Never commit real keys.
+- **Never compute money, OTPs, or job claims in the browser** for production paths. Server only.
+- Files over ~600 lines or functions with cyclomatic complexity > 20 will trigger CI warnings. Split them.
+- Do not add dependencies without a reason written in the PR description.
 
-## Definition of done
+---
 
-Works on mobile width, handles loading/error/empty states, has tests, passes CI, no new Sonar issues.
+## Definition of Done
+
+A task is done when it:
+
+- Works on mobile width (375 px minimum)
+- Handles loading, error, and empty states
+- Has unit tests for any new pure logic in `src/lib`
+- Passes all CI checks (typecheck, lint, dup, coverage, build)
+- Has no new Sonar blocker or critical issues
+- Has been reviewed and approved by at least one other team member
+
+---
 
 ## Database
 
-All schema changes go through migration files in a PR. Nobody edits staging or production by hand.
+All schema changes go through migration files in a PR (`supabase/migrations/`).
+Nobody edits staging or production databases by hand.
