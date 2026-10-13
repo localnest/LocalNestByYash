@@ -3,7 +3,7 @@
 export const PLATFORM_CONFIG = {
   // Loyalty wallet
   LOYALTY_EARN_RATE: 0.03, // 3% of subtotal
-  LOYALTY_REDEMPTION_CAP_RATIO: 0.20, // max 20% of subtotal can be paid with credits
+  LOYALTY_REDEMPTION_CAP_RATIO: 0.2, // max 20% of subtotal can be paid with credits
   LOYALTY_STREAK_INTERVAL: 5, // every 5th completed order
   LOYALTY_STREAK_BONUS: 50, // ₹50 bonus credits
 

@@ -29,63 +29,70 @@ if (!fs.existsSync(resultsDir)) {
 }
 
 async function auditPageOverflow(page, viewName, pageLabel) {
-  return await page.evaluate(({ viewName, pageLabel }) => {
-    const docScrollWidth = document.documentElement.scrollWidth;
-    const bodyScrollWidth = document.body.scrollWidth;
-    const winWidth = window.innerWidth;
-    const hasOverflow = docScrollWidth > winWidth;
+  return await page.evaluate(
+    ({ viewName, pageLabel }) => {
+      const docScrollWidth = document.documentElement.scrollWidth;
+      const bodyScrollWidth = document.body.scrollWidth;
+      const winWidth = window.innerWidth;
+      const hasOverflow = docScrollWidth > winWidth;
 
-    const overflowingElements = [];
-    const elements = document.querySelectorAll('*');
-    for (const el of elements) {
-      const rect = el.getBoundingClientRect();
-      if (rect.right > winWidth + 1 && rect.width > 0 && rect.height > 0) {
-        const style = window.getComputedStyle(el);
-        if (style.display !== 'none' && style.visibility !== 'hidden') {
-          // Check if contained within a scrollable or clipped ancestor
-          let isContained = false;
-          let parent = el.parentElement;
-          while (parent && parent !== document.body && parent !== document.documentElement) {
-            const pStyle = window.getComputedStyle(parent);
-            if (pStyle.overflowX === 'auto' || pStyle.overflowX === 'scroll' || pStyle.overflowX === 'hidden') {
-              isContained = true;
-              break;
+      const overflowingElements = [];
+      const elements = document.querySelectorAll('*');
+      for (const el of elements) {
+        const rect = el.getBoundingClientRect();
+        if (rect.right > winWidth + 1 && rect.width > 0 && rect.height > 0) {
+          const style = window.getComputedStyle(el);
+          if (style.display !== 'none' && style.visibility !== 'hidden') {
+            // Check if contained within a scrollable or clipped ancestor
+            let isContained = false;
+            let parent = el.parentElement;
+            while (parent && parent !== document.body && parent !== document.documentElement) {
+              const pStyle = window.getComputedStyle(parent);
+              if (
+                pStyle.overflowX === 'auto' ||
+                pStyle.overflowX === 'scroll' ||
+                pStyle.overflowX === 'hidden'
+              ) {
+                isContained = true;
+                break;
+              }
+              parent = parent.parentElement;
             }
-            parent = parent.parentElement;
-          }
 
-          if (!isContained) {
-            overflowingElements.push({
-              tag: el.tagName.toLowerCase(),
-              className: el.className ? String(el.className).substring(0, 50) : '',
-              id: el.id || '',
-              text: (el.innerText || '').substring(0, 30).trim(),
-              rectRight: Math.round(rect.right),
-              rectWidth: Math.round(rect.width),
-              scrollWidth: el.scrollWidth,
-              clientWidth: el.clientWidth,
-            });
+            if (!isContained) {
+              overflowingElements.push({
+                tag: el.tagName.toLowerCase(),
+                className: el.className ? String(el.className).substring(0, 50) : '',
+                id: el.id || '',
+                text: (el.innerText || '').substring(0, 30).trim(),
+                rectRight: Math.round(rect.right),
+                rectWidth: Math.round(rect.width),
+                scrollWidth: el.scrollWidth,
+                clientWidth: el.clientWidth,
+              });
+            }
           }
         }
       }
-    }
 
-    return {
-      pageLabel,
-      viewName,
-      winWidth,
-      docScrollWidth,
-      bodyScrollWidth,
-      hasOverflow,
-      overflowingElements: overflowingElements.slice(0, 10),
-    };
-  }, { viewName, pageLabel });
+      return {
+        pageLabel,
+        viewName,
+        winWidth,
+        docScrollWidth,
+        bodyScrollWidth,
+        hasOverflow,
+        overflowingElements: overflowingElements.slice(0, 10),
+      };
+    },
+    { viewName, pageLabel },
+  );
 }
 
 async function runAudit() {
   const browser = await chromium.launch({
     executablePath: 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-    headless: true
+    headless: true,
   });
 
   const allIssues = [];
@@ -94,7 +101,7 @@ async function runAudit() {
   for (const vp of VIEWPORTS) {
     console.log(`\nTesting Viewport: ${vp.name} (${vp.width}x${vp.height})`);
     const context = await browser.newContext({
-      viewport: { width: vp.width, height: vp.height }
+      viewport: { width: vp.width, height: vp.height },
     });
     const page = await context.newPage();
 
@@ -112,11 +119,16 @@ async function runAudit() {
     const authRes = await auditPageOverflow(page, vp.name, 'Auth Screen - Resident Tab');
     if (authRes.hasOverflow) {
       allIssues.push(authRes);
-      console.log(`  [OVERFLOW] Auth Resident: docWidth=${authRes.docScrollWidth} > winWidth=${authRes.winWidth}`);
+      console.log(
+        `  [OVERFLOW] Auth Resident: docWidth=${authRes.docScrollWidth} > winWidth=${authRes.winWidth}`,
+      );
     }
 
     if (vp.width === 320 || vp.width === 375 || vp.width === 768 || vp.width === 1440) {
-      await page.screenshot({ path: path.join(resultsDir, `auth-${vp.name}.png`), fullPage: false });
+      await page.screenshot({
+        path: path.join(resultsDir, `auth-${vp.name}.png`),
+        fullPage: false,
+      });
     }
 
     // Provider Auth Tab
@@ -161,11 +173,16 @@ async function runAudit() {
       const custHomeRes = await auditPageOverflow(page, vp.name, 'Resident Portal - Home');
       if (custHomeRes.hasOverflow) {
         allIssues.push(custHomeRes);
-        console.log(`  [OVERFLOW] Resident Home: docWidth=${custHomeRes.docScrollWidth} > winWidth=${custHomeRes.winWidth}`);
+        console.log(
+          `  [OVERFLOW] Resident Home: docWidth=${custHomeRes.docScrollWidth} > winWidth=${custHomeRes.winWidth}`,
+        );
       }
 
       if (vp.width === 320 || vp.width === 375 || vp.width === 768 || vp.width === 1440) {
-        await page.screenshot({ path: path.join(resultsDir, `resident-home-${vp.name}.png`), fullPage: false });
+        await page.screenshot({
+          path: path.join(resultsDir, `resident-home-${vp.name}.png`),
+          fullPage: false,
+        });
       }
 
       // Explore Services Tab
@@ -199,7 +216,9 @@ async function runAudit() {
       }
 
       // Booking Modal
-      const bookNowBtn = await page.$('button:has-text("Book Now"), button:has-text("Select Plan")');
+      const bookNowBtn = await page.$(
+        'button:has-text("Book Now"), button:has-text("Select Plan")',
+      );
       if (bookNowBtn) {
         await bookNowBtn.click();
         await page.waitForTimeout(400);
@@ -207,9 +226,14 @@ async function runAudit() {
         const modalRes = await auditPageOverflow(page, vp.name, 'Resident Portal - Booking Modal');
         if (modalRes.hasOverflow) allIssues.push(modalRes);
         if (vp.width === 320 || vp.width === 375) {
-          await page.screenshot({ path: path.join(resultsDir, `booking-modal-${vp.name}.png`), fullPage: false });
+          await page.screenshot({
+            path: path.join(resultsDir, `booking-modal-${vp.name}.png`),
+            fullPage: false,
+          });
         }
-        const closeBtn = await page.$('.modal-content button:has-text("×"), .modal-overlay button:has-text("✕"), .modal-overlay [aria-label="Close"], .modal-content button:has(svg)');
+        const closeBtn = await page.$(
+          '.modal-content button:has-text("×"), .modal-overlay button:has-text("✕"), .modal-overlay [aria-label="Close"], .modal-content button:has(svg)',
+        );
         if (closeBtn) await closeBtn.click();
         await page.waitForTimeout(200);
       }
@@ -230,13 +254,22 @@ async function runAudit() {
       await page.waitForTimeout(600);
 
       totalChecks++;
-      const provOverviewRes = await auditPageOverflow(page, vp.name, 'Provider Dashboard - Overview');
+      const provOverviewRes = await auditPageOverflow(
+        page,
+        vp.name,
+        'Provider Dashboard - Overview',
+      );
       if (provOverviewRes.hasOverflow) {
         allIssues.push(provOverviewRes);
-        console.log(`  [OVERFLOW] Provider Overview: docWidth=${provOverviewRes.docScrollWidth} > winWidth=${provOverviewRes.winWidth}`);
+        console.log(
+          `  [OVERFLOW] Provider Overview: docWidth=${provOverviewRes.docScrollWidth} > winWidth=${provOverviewRes.winWidth}`,
+        );
       }
       if (vp.width === 320 || vp.width === 375 || vp.width === 768 || vp.width === 1440) {
-        await page.screenshot({ path: path.join(resultsDir, `provider-overview-${vp.name}.png`), fullPage: false });
+        await page.screenshot({
+          path: path.join(resultsDir, `provider-overview-${vp.name}.png`),
+          fullPage: false,
+        });
       }
 
       // Delivery Sheet Tab
@@ -245,12 +278,18 @@ async function runAudit() {
         await deliveryTab.click();
         await page.waitForTimeout(300);
         totalChecks++;
-        const delivRes = await auditPageOverflow(page, vp.name, 'Provider Dashboard - Delivery Sheet');
+        const delivRes = await auditPageOverflow(
+          page,
+          vp.name,
+          'Provider Dashboard - Delivery Sheet',
+        );
         if (delivRes.hasOverflow) allIssues.push(delivRes);
       }
 
       // Earnings Tab
-      const earnTab = await page.$('button:has-text("Earnings & Payouts"), button:has-text("Earnings")');
+      const earnTab = await page.$(
+        'button:has-text("Earnings & Payouts"), button:has-text("Earnings")',
+      );
       if (earnTab) {
         await earnTab.click();
         await page.waitForTimeout(300);
@@ -278,14 +317,21 @@ async function runAudit() {
       const adminOverviewRes = await auditPageOverflow(page, vp.name, 'Admin Panel - Overview');
       if (adminOverviewRes.hasOverflow) {
         allIssues.push(adminOverviewRes);
-        console.log(`  [OVERFLOW] Admin Overview: docWidth=${adminOverviewRes.docScrollWidth} > winWidth=${adminOverviewRes.winWidth}`);
+        console.log(
+          `  [OVERFLOW] Admin Overview: docWidth=${adminOverviewRes.docScrollWidth} > winWidth=${adminOverviewRes.winWidth}`,
+        );
       }
       if (vp.width === 320 || vp.width === 375 || vp.width === 768 || vp.width === 1440) {
-        await page.screenshot({ path: path.join(resultsDir, `admin-overview-${vp.name}.png`), fullPage: false });
+        await page.screenshot({
+          path: path.join(resultsDir, `admin-overview-${vp.name}.png`),
+          fullPage: false,
+        });
       }
 
       // Admin Provider Queue tab
-      const queueTab = await page.$('button:has-text("Provider Verification"), button:has-text("Provider Queue")');
+      const queueTab = await page.$(
+        'button:has-text("Provider Verification"), button:has-text("Provider Queue")',
+      );
       if (queueTab) {
         await queueTab.click();
         await page.waitForTimeout(300);
@@ -310,10 +356,7 @@ async function runAudit() {
 
   await browser.close();
 
-  fs.writeFileSync(
-    path.join(resultsDir, 'audit_report.json'),
-    JSON.stringify(allIssues, null, 2)
-  );
+  fs.writeFileSync(path.join(resultsDir, 'audit_report.json'), JSON.stringify(allIssues, null, 2));
 
   console.log(`\n======================================================`);
   console.log(`Audit After completed across ${VIEWPORTS.length} viewports!`);
@@ -323,7 +366,7 @@ async function runAudit() {
   return allIssues;
 }
 
-runAudit().catch(err => {
+runAudit().catch((err) => {
   console.error('Audit run error:', err);
   process.exit(1);
 });

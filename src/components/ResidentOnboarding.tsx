@@ -3,9 +3,17 @@
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import {
-  Building2, Home, ShieldCheck, Tag,
-  Phone, ArrowRight, CheckCircle2, AlertCircle,
-  MapPin, Clock, Sparkles
+  Building2,
+  Home,
+  ShieldCheck,
+  Tag,
+  Phone,
+  ArrowRight,
+  CheckCircle2,
+  AlertCircle,
+  MapPin,
+  Clock,
+  Sparkles,
 } from 'lucide-react';
 
 export default function ResidentOnboarding() {
@@ -20,7 +28,7 @@ export default function ResidentOnboarding() {
   const [acceptedGuidelines, setAcceptedGuidelines] = useState<boolean>(true);
   const [step, setStep] = useState<1 | 2>(1);
 
-  const selectedSociety = societies.find(s => s.id === societyId) || societies[0];
+  const selectedSociety = societies.find((s) => s.id === societyId) || societies[0];
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -39,19 +47,41 @@ export default function ResidentOnboarding() {
   };
 
   return (
-    <div style={{
-      minHeight: '100vh',
-      background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      padding: '24px 16px'
-    }}>
-      <div className="card" style={{ maxWidth: 'min(580px, 95vw)', width: '100%', padding: '24px 18px', boxShadow: 'var(--shadow-xl)', border: '1px solid rgba(255,255,255,0.15)', background: '#fff', boxSizing: 'border-box' }}>
-
+    <div
+      style={{
+        minHeight: '100vh',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: '24px 16px',
+      }}
+    >
+      <div
+        className="card"
+        style={{
+          maxWidth: 'min(580px, 95vw)',
+          width: '100%',
+          padding: '24px 18px',
+          boxShadow: 'var(--shadow-xl)',
+          border: '1px solid rgba(255,255,255,0.15)',
+          background: '#fff',
+          boxSizing: 'border-box',
+        }}
+      >
         {/* Step Indicator */}
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px', borderBottom: '1px solid var(--border-light)', paddingBottom: '14px', gap: '8px' }}>
+        <div
+          style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: '20px',
+            borderBottom: '1px solid var(--border-light)',
+            paddingBottom: '14px',
+            gap: '8px',
+          }}
+        >
           <div>
             <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
               Step {step} of 2 • Resident Onboarding
@@ -63,7 +93,16 @@ export default function ResidentOnboarding() {
           <button
             type="button"
             onClick={logout}
-            style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textDecoration: 'underline', minHeight: '36px', minWidth: '44px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+            style={{
+              fontSize: '0.75rem',
+              color: 'var(--text-muted)',
+              textDecoration: 'underline',
+              minHeight: '36px',
+              minWidth: '44px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
             Cancel & Sign Out
           </button>
@@ -71,9 +110,13 @@ export default function ResidentOnboarding() {
 
         {/* STEP 1: INFORMATION TAKEN FROM RESIDENT */}
         {step === 1 && (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
             <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-              To ensure services are delivered right to your doorstep, please provide your exact flat and community details:
+              To ensure services are delivered right to your doorstep, please provide your exact
+              flat and community details:
             </p>
 
             <div>
@@ -107,7 +150,7 @@ export default function ResidentOnboarding() {
                 onChange={(e) => setSocietyId(e.target.value)}
                 className="form-input"
               >
-                {societies.map(soc => (
+                {societies.map((soc) => (
                   <option key={soc.id} value={soc.id}>
                     {soc.name} ({soc.totalFlats.toLocaleString()} flats) — {soc.addressLine}
                   </option>
@@ -115,7 +158,13 @@ export default function ResidentOnboarding() {
               </select>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: '12px' }}>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                gap: '12px',
+              }}
+            >
               <div>
                 <label className="form-label">Tower / Wing / Block</label>
                 <select
@@ -143,7 +192,11 @@ export default function ResidentOnboarding() {
               </div>
             </div>
 
-            <button type="submit" className="btn btn-primary btn-full btn-lg" style={{ marginTop: '10px' }}>
+            <button
+              type="submit"
+              className="btn btn-primary btn-full btn-lg"
+              style={{ marginTop: '10px' }}
+            >
               Review Society Perks & Complete <ArrowRight size={16} />
             </button>
           </form>
@@ -151,61 +204,163 @@ export default function ResidentOnboarding() {
 
         {/* STEP 2: INFORMATION PROVIDED BY US TO RESIDENT */}
         {step === 2 && (
-          <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            <div style={{ background: 'var(--primary-light)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--primary-glow)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: 'var(--primary-hover)', fontWeight: 700, fontSize: '0.95rem' }}>
+          <form
+            onSubmit={handleSubmit}
+            style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}
+          >
+            <div
+              style={{
+                background: 'var(--primary-light)',
+                padding: '14px',
+                borderRadius: 'var(--radius-md)',
+                border: '1px solid var(--primary-glow)',
+              }}
+            >
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: 'var(--primary-hover)',
+                  fontWeight: 700,
+                  fontSize: '0.95rem',
+                }}
+              >
                 <Sparkles size={18} />
-                <span>Confirmed Location: {towerWing} - {flatNumber}, {selectedSociety.name}</span>
+                <span>
+                  Confirmed Location: {towerWing} - {flatNumber}, {selectedSociety.name}
+                </span>
               </div>
             </div>
 
             {/* Information & Perks Provided by Platform */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-              <div style={{ display: 'flex', gap: '12px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-emerald-light)', color: 'var(--accent-emerald)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  background: 'var(--bg-subtle)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-emerald-light)',
+                    color: 'var(--accent-emerald)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <Tag size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>Welcome Gift: Flat ₹100 Off</strong>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                    Welcome Gift: Flat ₹100 Off
+                  </strong>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Use code <strong>WELCOME100</strong> on your first laundry pickup, meal subscription, or deep clean order.
+                    Use code <strong>WELCOME100</strong> on your first laundry pickup, meal
+                    subscription, or deep clean order.
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-blue-light)', color: 'var(--accent-blue)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  background: 'var(--bg-subtle)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-blue-light)',
+                    color: 'var(--accent-blue)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <ShieldCheck size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>100% Escrow Payment Protection</strong>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                    100% Escrow Payment Protection
+                  </strong>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    Your payment is held safely by Razorpay and released to the local provider only after service completion.
+                    Your payment is held safely by Razorpay and released to the local provider only
+                    after service completion.
                   </p>
                 </div>
               </div>
 
-              <div style={{ display: 'flex', gap: '12px', background: 'var(--bg-subtle)', padding: '12px', borderRadius: 'var(--radius-md)' }}>
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--accent-amber-light)', color: 'var(--accent-amber)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  gap: '12px',
+                  background: 'var(--bg-subtle)',
+                  padding: '12px',
+                  borderRadius: 'var(--radius-md)',
+                }}
+              >
+                <div
+                  style={{
+                    width: '36px',
+                    height: '36px',
+                    borderRadius: '50%',
+                    background: 'var(--accent-amber-light)',
+                    color: 'var(--accent-amber)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
                   <Building2 size={18} />
                 </div>
                 <div>
-                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>Society Security Gate Passes</strong>
+                  <strong style={{ fontSize: '0.88rem', color: 'var(--text-main)' }}>
+                    Society Security Gate Passes
+                  </strong>
                   <p style={{ fontSize: '0.78rem', color: 'var(--text-muted)' }}>
-                    All local providers have pre-cleared society gate passes and adhere to morning/evening noise regulations.
+                    All local providers have pre-cleared society gate passes and adhere to
+                    morning/evening noise regulations.
                   </p>
                 </div>
               </div>
             </div>
 
-            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8rem', color: 'var(--text-muted)', cursor: 'pointer', marginTop: '6px' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                marginTop: '6px',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={acceptedGuidelines}
                 onChange={(e) => setAcceptedGuidelines(e.target.checked)}
                 required
               />
-              <span>I agree to {selectedSociety.name} neighbor marketplace guidelines and fair usage.</span>
+              <span>
+                I agree to {selectedSociety.name} neighbor marketplace guidelines and fair usage.
+              </span>
             </label>
 
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
@@ -228,7 +383,6 @@ export default function ResidentOnboarding() {
             </div>
           </form>
         )}
-
       </div>
     </div>
   );

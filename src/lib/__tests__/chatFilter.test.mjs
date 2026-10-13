@@ -7,7 +7,7 @@ test('Chat Filter: blocks phone numbers', () => {
     'My number is 9876543210 call me',
     'Reach me at +91 98765 43210',
     'Call 98765-43210 anytime',
-    'Phone: 987 654 3210'
+    'Phone: 987 654 3210',
   ];
 
   for (const text of cases) {
@@ -17,10 +17,7 @@ test('Chat Filter: blocks phone numbers', () => {
 });
 
 test('Chat Filter: blocks email addresses', () => {
-  const cases = [
-    'Email me at test@example.com',
-    'Send invoice to rahul.sharma@domain.co.in'
-  ];
+  const cases = ['Email me at test@example.com', 'Send invoice to rahul.sharma@domain.co.in'];
 
   for (const text of cases) {
     const res = filterContactDetails(text);
@@ -32,7 +29,7 @@ test('Chat Filter: blocks external URLs', () => {
   const cases = [
     'Check out https://mysite.com/pay',
     'Visit http://external-link.org',
-    'Go to www.freelancehub.in'
+    'Go to www.freelancehub.in',
   ];
 
   for (const text of cases) {
@@ -48,7 +45,7 @@ test('Chat Filter: blocks off-platform bypass phrases', () => {
     'You can pay directly to my account',
     'Let us pay outside the platform to avoid fees',
     'Offline payment is preferred',
-    'Make a direct payment via UPI'
+    'Make a direct payment via UPI',
   ];
 
   for (const text of cases) {
@@ -62,7 +59,7 @@ test('Chat Filter: permits normal society service conversations', () => {
     'Hello, I am at Tower B gate right now.',
     'Could you deliver the laundry at 5 PM instead?',
     'Please keep the clean shirts on the door hanger.',
-    'Thank you so much for the swift service!'
+    'Thank you so much for the swift service!',
   ];
 
   for (const text of allowed) {

@@ -3,10 +3,10 @@ import type { CommissionReason, CommissionRule, Order, PricingModel, Provider } 
 
 // Contact-detail filter patterns
 export const CONTACT_FILTER_PATTERNS = [
-  /\d[\d\s\-().]{6,}\d/,                    // 7+ digit phone numbers (spaced/hyphenated)
-  /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/,  // emails
-  /https?:\/\/\S+/i,                          // URLs
-  /www\.\S+/i,                                // www URLs
+  /\d[\d\s\-().]{6,}\d/, // 7+ digit phone numbers (spaced/hyphenated)
+  /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/, // emails
+  /https?:\/\/\S+/i, // URLs
+  /www\.\S+/i, // www URLs
   /call me/i,
   /whatsapp/i,
   /pay directly/i,
@@ -39,12 +39,17 @@ export function resolveCommissionRate(params: {
 
   if (monetization === 'MEMBERSHIP') return { rate: 0, reason: 'MEMBERSHIP_TIER' };
 
-  const catRule = commissionRules.find(r => r.ruleType === 'CATEGORY' && r.targetId === categoryId && r.isActive);
+  const catRule = commissionRules.find(
+    (r) => r.ruleType === 'CATEGORY' && r.targetId === categoryId && r.isActive,
+  );
   if (catRule) return { rate: catRule.commissionPercentage, reason: 'CATEGORY_RULE' };
   if (categoryRate !== undefined) return { rate: categoryRate, reason: 'CATEGORY_RULE' };
 
-  const defaultRule = commissionRules.find(r => r.ruleType === 'DEFAULT' && r.isActive);
-  return { rate: defaultRule ? defaultRule.commissionPercentage : PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE, reason: 'DEFAULT' };
+  const defaultRule = commissionRules.find((r) => r.ruleType === 'DEFAULT' && r.isActive);
+  return {
+    rate: defaultRule ? defaultRule.commissionPercentage : PLATFORM_CONFIG.DEFAULT_COMMISSION_RATE,
+    reason: 'DEFAULT',
+  };
 }
 
 // Wallet loyalty helpers
@@ -58,5 +63,7 @@ export function calculateMaxRedeemableCredits(subtotal: number, balance: number)
 }
 
 export function isStreakBonusEligible(completedOrderCount: number): boolean {
-  return completedOrderCount > 0 && completedOrderCount % PLATFORM_CONFIG.LOYALTY_STREAK_INTERVAL === 0;
+  return (
+    completedOrderCount > 0 && completedOrderCount % PLATFORM_CONFIG.LOYALTY_STREAK_INTERVAL === 0
+  );
 }

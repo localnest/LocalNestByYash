@@ -1,8 +1,25 @@
-import { 
-  Society, UserProfile, Category, Provider, Service, Order, 
-  Subscription, Coupon, CommissionRule, Review, Complaint, SocietyNotice, PayoutRecord,
-  WalletTransaction, ChatMessage, PlatformFeeRules,
-  ServiceType, JobRequest, RecurringSchedule, ProviderMembership, LeadQuote
+import {
+  Society,
+  UserProfile,
+  Category,
+  Provider,
+  Service,
+  Order,
+  Subscription,
+  Coupon,
+  CommissionRule,
+  Review,
+  Complaint,
+  SocietyNotice,
+  PayoutRecord,
+  WalletTransaction,
+  ChatMessage,
+  PlatformFeeRules,
+  ServiceType,
+  JobRequest,
+  RecurringSchedule,
+  ProviderMembership,
+  LeadQuote,
 } from './types';
 
 export const INITIAL_SOCIETIES: Society[] = [
@@ -14,8 +31,8 @@ export const INITIAL_SOCIETIES: Society[] = [
     locality: 'Whitefield',
     city: 'Bengaluru',
     pincode: '560066',
-    latitude: 12.9830,
-    longitude: 77.7510,
+    latitude: 12.983,
+    longitude: 77.751,
     totalFlats: 1790,
     isActive: true,
   },
@@ -64,7 +81,8 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Cook (Basic)',
     slug: 'cook-basic',
     icon: 'ChefHat',
-    description: 'Basic labor-only home cook for breakfast, lunch & dinner. You supply ingredients.',
+    description:
+      'Basic labor-only home cook for breakfast, lunch & dinner. You supply ingredients.',
     sortOrder: 2,
     monetization: 'COMMISSION',
     matching: 'DISPATCH',
@@ -180,7 +198,8 @@ export const INITIAL_CATEGORIES: Category[] = [
     name: 'Renovation & Civil Work',
     slug: 'painting-civil',
     icon: 'Paintbrush',
-    description: 'Full-flat painting, waterproofing, tile laying and masonry work with 3-quote bids',
+    description:
+      'Full-flat painting, waterproofing, tile laying and masonry work with 3-quote bids',
     sortOrder: 12,
     monetization: 'MEMBERSHIP',
     matching: 'LEAD_QUOTE',
@@ -283,7 +302,8 @@ export const INITIAL_PROFILES: UserProfile[] = [
     role: 'CUSTOMER',
     societyId: 'soc-1',
     flatNumber: 'Tower A - 402',
-    avatarUrl: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     walletBalance: 75,
   },
@@ -296,7 +316,8 @@ export const INITIAL_PROFILES: UserProfile[] = [
     role: 'PROVIDER',
     societyId: 'soc-1',
     flatNumber: 'Commercial Shop #4',
-    avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     providerId: 'prov-raj-laundry',
     walletBalance: 0,
@@ -310,7 +331,8 @@ export const INITIAL_PROFILES: UserProfile[] = [
     role: 'PROVIDER',
     societyId: 'soc-1',
     flatNumber: 'Tower C - 104',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     providerId: 'prov-freshbite',
     walletBalance: 0,
@@ -324,7 +346,8 @@ export const INITIAL_PROFILES: UserProfile[] = [
     role: 'ADMIN',
     societyId: 'soc-1',
     flatNumber: 'HQ Command Suite',
-    avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=120&auto=format&fit=crop&q=80',
     isOnboarded: true,
     walletBalance: 0,
   },
@@ -337,8 +360,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'Raj Laundry & Dry Cleaners',
     categoryId: 'cat-laundry',
     categoryName: 'Laundry & Dry Clean',
-    description: 'Serving Greenfield Heights for 3+ years. Free pickup & doorstep delivery within 24 hours. Antimicrobial wash, organic softener, and crisp steam pressing.',
-    avatarUrl: 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Serving Greenfield Heights for 3+ years. Free pickup & doorstep delivery within 24 hours. Antimicrobial wash, organic softener, and crisp steam pressing.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98111 22334',
     status: 'VERIFIED',
     verifiedAt: '2025-11-10T10:00:00Z',
@@ -349,7 +374,12 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 40,
     startingPriceUnit: 'per item',
-    baseLocation: { label: 'Whitefield (Channasandra)', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Whitefield (Channasandra)',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 5,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -364,7 +394,7 @@ export const INITIAL_PROVIDERS: Provider[] = [
     enabledTaskIds: ['task-laundry-wash', 'task-laundry-press', 'task-laundry-dryclean'],
     documents: [
       { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-raj.pdf', verified: true },
-      { type: 'Trade License', url: 'trade-lic-raj.pdf', verified: true }
+      { type: 'Trade License', url: 'trade-lic-raj.pdf', verified: true },
     ],
   },
   {
@@ -372,19 +402,26 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'FreshBite Tiffin & Home Meals',
     categoryId: 'cat-tiffin',
     categoryName: 'Daily Tiffin & Meals',
-    description: 'Homestyle pure vegetarian & North/South Indian meals prepared fresh with cold-pressed oils, organic pulses and low spice. Delivered in hot insulated meal boxes.',
-    avatarUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Homestyle pure vegetarian & North/South Indian meals prepared fresh with cold-pressed oils, organic pulses and low spice. Delivered in hot insulated meal boxes.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98222 33445',
     status: 'VERIFIED',
     verifiedAt: '2025-10-15T09:00:00Z',
-    rating: 4.90,
+    rating: 4.9,
     reviewCount: 218,
     completedOrders: 890,
     onTimeRate: 99.1,
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 3000,
     startingPriceUnit: 'per month',
-    baseLocation: { label: 'Varthur Kodi Kitchen', pincode: '560066', latitude: 12.9601, longitude: 77.7472 },
+    baseLocation: {
+      label: 'Varthur Kodi Kitchen',
+      pincode: '560066',
+      latitude: 12.9601,
+      longitude: 77.7472,
+    },
     maxServiceDistanceKm: 4,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -398,7 +435,7 @@ export const INITIAL_PROVIDERS: Provider[] = [
     enabledServiceTypeIds: ['st-tiffin'],
     documents: [
       { type: 'FSSAI License', url: 'fssai-freshbite.pdf', verified: true },
-      { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-sunita.pdf', verified: true }
+      { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-sunita.pdf', verified: true },
     ],
   },
   {
@@ -406,8 +443,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'SparkleHome Deep Cleaning',
     categoryId: 'cat-cleaning',
     categoryName: 'Home Deep Cleaning',
-    description: 'Background-verified cleaning pros equipped with Karcher steam vacuum machinery and eco-friendly disinfectants. Complete bathroom, sofa, kitchen & balcony care.',
-    avatarUrl: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Background-verified cleaning pros equipped with Karcher steam vacuum machinery and eco-friendly disinfectants. Complete bathroom, sofa, kitchen & balcony care.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1581578731548-c64695cc6952?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98333 44556',
     status: 'VERIFIED',
     verifiedAt: '2025-12-01T11:30:00Z',
@@ -418,7 +457,12 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 499,
     startingPriceUnit: 'per service',
-    baseLocation: { label: 'Bellandur / Outer Ring Road', pincode: '560103', latitude: 12.9304, longitude: 77.6784 },
+    baseLocation: {
+      label: 'Bellandur / Outer Ring Road',
+      pincode: '560103',
+      latitude: 12.9304,
+      longitude: 77.6784,
+    },
     maxServiceDistanceKm: 15,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -428,17 +472,17 @@ export const INITIAL_PROVIDERS: Provider[] = [
     freeServiceRadiusKm: 3,
     travelChargePerKm: 15,
     maxTravelCharge: 150,
-    documents: [
-      { type: 'Police Verification', url: 'police-verif-sparkle.pdf', verified: true }
-    ],
+    documents: [{ type: 'Police Verification', url: 'police-verif-sparkle.pdf', verified: true }],
   },
   {
     id: 'prov-autogleam',
     businessName: 'AutoGleam Doorstep Car Wash',
     categoryId: 'cat-carwash',
     categoryName: 'Doorstep Car Wash',
-    description: 'Daily waterless microfiber dust cleaning & alternate-day liquid wax polishing done right at your allocated parking slot between 5:30 AM and 7:30 AM.',
-    avatarUrl: 'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Daily waterless microfiber dust cleaning & alternate-day liquid wax polishing done right at your allocated parking slot between 5:30 AM and 7:30 AM.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1601362840469-51e4d8d58785?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98444 55667',
     status: 'VERIFIED',
     verifiedAt: '2026-01-05T08:00:00Z',
@@ -449,35 +493,45 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1'],
     startingPrice: 500,
     startingPriceUnit: 'per month',
-    baseLocation: { label: 'Greenfield Heights Basement', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Greenfield Heights Basement',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 1,
     coverageMode: 'SELECTED_SOCIETIES',
     excludedSocietyIds: [],
     maxOrdersPerDay: 25,
     enabledServiceTypeIds: ['st-carwash'],
     enabledTaskIds: ['task-carwash-exterior', 'task-carwash-interior'],
-    documents: [
-      { type: 'Society Gate Pass', url: 'gatepass-autogleam.pdf', verified: true }
-    ],
+    documents: [{ type: 'Society Gate Pass', url: 'gatepass-autogleam.pdf', verified: true }],
   },
   {
     id: 'prov-profix',
     businessName: 'ProFix Electricals & Handyman',
     categoryId: 'cat-electrician',
     categoryName: 'Electrician',
-    description: 'Licensed ITI technicians living inside the community sector. 15-minute response for MCB tripping, fan capacitor replacement, chandelier & inverter wiring.',
-    avatarUrl: 'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Licensed ITI technicians living inside the community sector. 15-minute response for MCB tripping, fan capacitor replacement, chandelier & inverter wiring.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1621905251189-08b45d6a269e?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98555 66778',
     status: 'VERIFIED',
     verifiedAt: '2025-11-20T14:00:00Z',
-    rating: 4.80,
+    rating: 4.8,
     reviewCount: 160,
     completedOrders: 620,
     onTimeRate: 97.8,
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 300,
     startingPriceUnit: 'per hour',
-    baseLocation: { label: 'Whitefield Cluster Hub', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Whitefield Cluster Hub',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 8,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -493,19 +547,26 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'CoolBreeze AC Care',
     categoryId: 'cat-ac',
     categoryName: 'AC Service & Repair',
-    description: 'Certified Daikin/Voltas technicians. Jet foam service, PCB diagnosis, coil leakage check and eco gas refill. Fixed ₹299 diagnosis with upfront rate card for parts.',
-    avatarUrl: 'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Certified Daikin/Voltas technicians. Jet foam service, PCB diagnosis, coil leakage check and eco gas refill. Fixed ₹299 diagnosis with upfront rate card for parts.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1621905252507-b35492cc74b4?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98666 77889',
     status: 'VERIFIED',
     verifiedAt: '2026-02-14T12:00:00Z',
-    rating: 4.70,
+    rating: 4.7,
     reviewCount: 78,
     completedOrders: 280,
     onTimeRate: 95.2,
     supportedSocieties: ['soc-1', 'soc-3'],
     startingPrice: 299,
     startingPriceUnit: 'inspection fee',
-    baseLocation: { label: 'Marathahalli Depot', pincode: '560037', latitude: 12.9550, longitude: 77.7010 },
+    baseLocation: {
+      label: 'Marathahalli Depot',
+      pincode: '560037',
+      latitude: 12.955,
+      longitude: 77.701,
+    },
     maxServiceDistanceKm: 12,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -521,8 +582,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'Modern Woodcraft & Carpenters',
     categoryId: 'cat-carpentry',
     categoryName: 'Carpentry & Furniture',
-    description: 'Custom modular woodwork, sliding door rollers, Godrej lock installations, hinges alignment and child safety latches.',
-    avatarUrl: 'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Custom modular woodwork, sliding door rollers, Godrej lock installations, hinges alignment and child safety latches.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1540555700478-4be289fbecef?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98777 88990',
     status: 'PENDING',
     rating: 0,
@@ -532,22 +595,27 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1'],
     startingPrice: 250,
     startingPriceUnit: 'inspection',
-    baseLocation: { label: 'Channasandra Workshop', pincode: '560066', latitude: 12.9850, longitude: 77.7530 },
+    baseLocation: {
+      label: 'Channasandra Workshop',
+      pincode: '560066',
+      latitude: 12.985,
+      longitude: 77.753,
+    },
     maxServiceDistanceKm: 3,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
     maxOrdersPerDay: 4,
-    documents: [
-      { type: 'Aadhaar / ID Card', url: 'doc-aadhaar-carpenter.pdf', verified: false }
-    ],
+    documents: [{ type: 'Aadhaar / ID Card', url: 'doc-aadhaar-carpenter.pdf', verified: false }],
   },
   {
     id: 'prov-sunita-maid',
     businessName: 'Sunita Maid & Domestic Care',
     categoryId: 'cat-maid',
     categoryName: 'House Maid',
-    description: 'Specialist in floor mopping, utensil hygiene and deep kitchen cleaning. Police verified.',
-    avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Specialist in floor mopping, utensil hygiene and deep kitchen cleaning. Police verified.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98888 11223',
     status: 'VERIFIED',
     verifiedAt: '2025-10-10T10:00:00Z',
@@ -558,7 +626,12 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 150,
     startingPriceUnit: 'per task',
-    baseLocation: { label: 'Whitefield Cluster', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Whitefield Cluster',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 10,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -566,7 +639,13 @@ export const INITIAL_PROVIDERS: Provider[] = [
     experienceYears: 6,
     trustScore: 98,
     enabledServiceTypeIds: ['st-maid'],
-    enabledTaskIds: ['task-sweep-mop', 'task-dishes', 'task-wash-clothes', 'task-dusting', 'task-bathroom-wash'],
+    enabledTaskIds: [
+      'task-sweep-mop',
+      'task-dishes',
+      'task-wash-clothes',
+      'task-dusting',
+      'task-bathroom-wash',
+    ],
     workingHours: { start: '07:00 AM', end: '07:00 PM', daysOff: [] },
     isVacationMode: false,
     documents: [{ type: 'Police Verification', url: 'doc-police-sunita.pdf', verified: true }],
@@ -576,8 +655,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'Anita Sharma (Homestyle Chef)',
     categoryId: 'cat-cook',
     categoryName: 'Cook (Basic)',
-    description: 'Expert home cook delivering satvik, pure veg, North and South Indian recipes. Resident supplies groceries.',
-    avatarUrl: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Expert home cook delivering satvik, pure veg, North and South Indian recipes. Resident supplies groceries.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98888 22334',
     status: 'VERIFIED',
     verifiedAt: '2025-09-01T10:00:00Z',
@@ -588,7 +669,7 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 300,
     startingPriceUnit: 'per meal',
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     maxServiceDistanceKm: 8,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -606,8 +687,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'GlowNest Doorstep Salon (Priya M.)',
     categoryId: 'cat-salon',
     categoryName: 'Salon at Home',
-    description: 'Certified aesthetician. Disposable kits, sanitization and premium organic waxing & facials.',
-    avatarUrl: 'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Certified aesthetician. Disposable kits, sanitization and premium organic waxing & facials.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1580489944761-15a19d654956?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98888 33445',
     status: 'VERIFIED',
     verifiedAt: '2025-11-01T10:00:00Z',
@@ -618,7 +701,7 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 349,
     startingPriceUnit: 'per service',
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     maxServiceDistanceKm: 12,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -627,7 +710,15 @@ export const INITIAL_PROVIDERS: Provider[] = [
     trustScore: 99,
     gender: 'FEMALE',
     enabledServiceTypeIds: ['st-salon'],
-    enabledTaskIds: ['task-salon-haircut', 'task-salon-shave', 'task-salon-beard', 'task-salon-facial', 'task-salon-pedicure', 'task-salon-waxing', 'task-salon-eyebrow'],
+    enabledTaskIds: [
+      'task-salon-haircut',
+      'task-salon-shave',
+      'task-salon-beard',
+      'task-salon-facial',
+      'task-salon-pedicure',
+      'task-salon-waxing',
+      'task-salon-eyebrow',
+    ],
     workingHours: { start: '09:00 AM', end: '07:00 PM', daysOff: ['Tuesday'] },
     isVacationMode: false,
     documents: [{ type: 'Cosmetology Certificate', url: 'doc-cosmo-priya.pdf', verified: true }],
@@ -637,8 +728,10 @@ export const INITIAL_PROVIDERS: Provider[] = [
     businessName: 'Suresh Express Plumbing',
     categoryId: 'cat-plumber',
     categoryName: 'Plumber',
-    description: 'Master plumber with 12 years experience. Rapid doorstep service for leaks, faucets & flush tanks.',
-    avatarUrl: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
+    description:
+      'Master plumber with 12 years experience. Rapid doorstep service for leaks, faucets & flush tanks.',
+    avatarUrl:
+      'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=400&auto=format&fit=crop&q=80',
     phone: '+91 98888 44556',
     status: 'VERIFIED',
     verifiedAt: '2025-08-15T10:00:00Z',
@@ -649,7 +742,7 @@ export const INITIAL_PROVIDERS: Provider[] = [
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 199,
     startingPriceUnit: 'per visit',
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     maxServiceDistanceKm: 10,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -671,7 +764,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-raj-laundry',
     categoryId: 'cat-laundry',
     name: 'Wash & Fold + Steam Press',
-    description: 'Everyday wear clothes washed with premium fabric care liquids, tumble-dried and steam-pressed with wrinkle-free finish.',
+    description:
+      'Everyday wear clothes washed with premium fabric care liquids, tumble-dried and steam-pressed with wrinkle-free finish.',
     pricingModel: 'PER_ITEM',
     basePrice: 40,
     unitName: 'item',
@@ -681,7 +775,7 @@ export const INITIAL_SERVICES: Service[] = [
       { name: 'Trousers / Jeans', price: 45, unit: 'piece' },
       { name: 'Bed Sheet / Blanket', price: 90, unit: 'piece' },
       { name: 'Steam Iron Only', price: 20, unit: 'piece' },
-      { name: 'Dry Cleaning (Suit / Saree)', price: 150, unit: 'piece' }
+      { name: 'Dry Cleaning (Suit / Saree)', price: 150, unit: 'piece' },
     ],
     isActive: true,
   },
@@ -691,14 +785,15 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-freshbite',
     categoryId: 'cat-tiffin',
     name: 'Deluxe Homestyle Lunch Subscription',
-    description: '4 Whole Wheat Phulkas, Seasonal Dal Tadka, Special Veggie Gravy, Steamed Basmati Rice, Fresh Kachumber Salad & Homemade Dessert. Mon to Sat delivery.',
+    description:
+      '4 Whole Wheat Phulkas, Seasonal Dal Tadka, Special Veggie Gravy, Steamed Basmati Rice, Fresh Kachumber Salad & Homemade Dessert. Mon to Sat delivery.',
     pricingModel: 'SUBSCRIPTION',
     basePrice: 3000,
     unitName: 'month',
     isSubscriptionSupported: true,
     pricingItems: [
       { name: 'Standard 26-Day Lunch (Mon - Sat)', price: 3000, unit: 'month' },
-      { name: 'Lunch + Dinner Combo (26 Days)', price: 5500, unit: 'month' }
+      { name: 'Lunch + Dinner Combo (26 Days)', price: 5500, unit: 'month' },
     ],
     isActive: true,
   },
@@ -708,7 +803,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-sparkle',
     categoryId: 'cat-cleaning',
     name: 'Intensive Bathroom Scrubbing & Descaling',
-    description: 'Deep tile grout scrubbing, hard water deposit removal, glass partition descaling, mirror shine, and antibacterial fumigation.',
+    description:
+      'Deep tile grout scrubbing, hard water deposit removal, glass partition descaling, mirror shine, and antibacterial fumigation.',
     pricingModel: 'FIXED',
     basePrice: 499,
     unitName: 'bathroom',
@@ -720,7 +816,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-sparkle',
     categoryId: 'cat-cleaning',
     name: 'Full 3BHK Deep Apartment Cleaning',
-    description: 'Complete floor scrubbing, kitchen chimney & cabinet degreasing, bathroom descaling, balcony wash, window track vacuuming.',
+    description:
+      'Complete floor scrubbing, kitchen chimney & cabinet degreasing, bathroom descaling, balcony wash, window track vacuuming.',
     pricingModel: 'FIXED',
     basePrice: 3499,
     unitName: 'flat',
@@ -733,7 +830,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-profix',
     categoryId: 'cat-electrician',
     name: 'General Electrical Diagnostic & Fix',
-    description: 'First hour ₹300. Includes diagnosis and labor for switches, fans, MCB tripping, lights. Materials and spare parts charged at actual MRP.',
+    description:
+      'First hour ₹300. Includes diagnosis and labor for switches, fans, MCB tripping, lights. Materials and spare parts charged at actual MRP.',
     pricingModel: 'HOURLY',
     basePrice: 300,
     unitName: 'hour',
@@ -746,7 +844,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-coolbreeze',
     categoryId: 'cat-ac',
     name: 'AC Jet Cleaning & Diagnostic Check',
-    description: '₹299 inspection visit fee. Thorough pressure washer foam cleaning, indoor filter flush, gas level check. Replacement parts & gas refilling quoted upfront.',
+    description:
+      '₹299 inspection visit fee. Thorough pressure washer foam cleaning, indoor filter flush, gas level check. Replacement parts & gas refilling quoted upfront.',
     pricingModel: 'INSPECTION_VARIABLE',
     basePrice: 299,
     unitName: 'visit',
@@ -759,14 +858,15 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-autogleam',
     categoryId: 'cat-carwash',
     name: 'Daily Basement Parking Car Care',
-    description: 'Daily morning exterior dust wipe, alternate-day waterless shine, and weekend alloy wheel & tire polishing directly at your allocated parking stall.',
+    description:
+      'Daily morning exterior dust wipe, alternate-day waterless shine, and weekend alloy wheel & tire polishing directly at your allocated parking stall.',
     pricingModel: 'SUBSCRIPTION',
     basePrice: 500,
     unitName: 'month',
     isSubscriptionSupported: true,
     pricingItems: [
       { name: 'Hatchback / Sedan (Daily Mon-Sat)', price: 500, unit: 'month' },
-      { name: 'SUV / Compact SUV (Daily Mon-Sat)', price: 650, unit: 'month' }
+      { name: 'SUV / Compact SUV (Daily Mon-Sat)', price: 650, unit: 'month' },
     ],
     isActive: true,
   },
@@ -776,7 +876,8 @@ export const INITIAL_SERVICES: Service[] = [
     providerId: 'prov-woodcraft-new',
     categoryId: 'cat-electrician',
     name: 'Custom Carpentry & Wood Repair',
-    description: 'Visit to inspect wardrobes, hydraulic hinges, bed storage or custom cabinetry. Free inspection with binding written quote.',
+    description:
+      'Visit to inspect wardrobes, hydraulic hinges, bed storage or custom cabinetry. Free inspection with binding written quote.',
     pricingModel: 'CUSTOM_QUOTATION',
     basePrice: 0,
     unitName: 'custom quote',
@@ -804,7 +905,8 @@ export const INITIAL_ORDERS: Order[] = [
     scheduledDate: '2026-10-06',
     scheduledSlot: '10:00 AM - 12:00 PM',
     deliveryAddress: 'Tower A - 402, Greenfield Heights, Whitefield',
-    specialInstructions: 'Please ring bell twice. Cotton formal shirts need crisp steam hanger pressing.',
+    specialInstructions:
+      'Please ring bell twice. Cotton formal shirts need crisp steam hanger pressing.',
     pricingModel: 'PER_ITEM',
     itemQuantity: 12,
     subtotal: 480,
@@ -886,7 +988,7 @@ export const INITIAL_ORDERS: Order[] = [
     paymentStatus: 'PAID',
     createdAt: '2026-10-05T12:00:00Z',
     updatedAt: '2026-10-05T16:30:00Z',
-  }
+  },
 ];
 
 export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
@@ -931,7 +1033,7 @@ export const INITIAL_SUBSCRIPTIONS: Subscription[] = [
     monthlyPrice: 500,
     autoRenew: true,
     createdAt: '2026-09-28T14:30:00Z',
-  }
+  },
 ];
 
 export const INITIAL_COUPONS: Coupon[] = [
@@ -1034,11 +1136,13 @@ export const INITIAL_REVIEWS: Review[] = [
     serviceName: 'Bathroom Deep Cleaning',
     providerId: 'prov-sparkle',
     rating: 5,
-    comment: 'Spotless clean! The hard water marks on my master bathroom glass shower screen were completely gone. The 2-man crew wore shoe covers, brought professional descaling equipment, and finished in exactly 1.5 hours.',
+    comment:
+      'Spotless clean! The hard water marks on my master bathroom glass shower screen were completely gone. The 2-man crew wore shoe covers, brought professional descaling equipment, and finished in exactly 1.5 hours.',
     tags: ['✨ Spotless Clean', '🥾 Wore Shoe Covers', '⏰ On-Time Arrival'],
     isVerifiedPurchase: true,
     providerResponse: {
-      comment: 'Thank you so much Rahul ji! We always prioritize resident safety and spotless descaling for Greenfield homes.',
+      comment:
+        'Thank you so much Rahul ji! We always prioritize resident safety and spotless descaling for Greenfield homes.',
       respondedAt: '2026-10-02T19:15:00Z',
     },
     createdAt: '2026-10-02T17:30:00Z',
@@ -1054,7 +1158,8 @@ export const INITIAL_REVIEWS: Review[] = [
     serviceName: 'Wash & Steam Iron (Per Kg)',
     providerId: 'prov-raj-laundry',
     rating: 5,
-    comment: 'Unbeatable convenience for society residents. Clothes picked up from my doorstep in the morning and returned crisp-pressed by evening. Great steam ironing!',
+    comment:
+      'Unbeatable convenience for society residents. Clothes picked up from my doorstep in the morning and returned crisp-pressed by evening. Great steam ironing!',
     tags: ['⏰ On-Time Arrival', '💬 Polite & Respectful', '💰 Transparent Pricing'],
     isVerifiedPurchase: true,
     providerResponse: {
@@ -1074,7 +1179,8 @@ export const INITIAL_REVIEWS: Review[] = [
     serviceName: 'Home Style Veg Meal Subscription',
     providerId: 'prov-freshbite',
     rating: 5,
-    comment: 'Super healthy everyday tiffin. Just like home food: warm soft rotis, light dal with zero excess oil. Punctual doorstep delivery before 1:00 PM every weekday.',
+    comment:
+      'Super healthy everyday tiffin. Just like home food: warm soft rotis, light dal with zero excess oil. Punctual doorstep delivery before 1:00 PM every weekday.',
     tags: ['🍲 Homemade Quality', '⏰ On-Time Arrival', '👍 Highly Recommended'],
     isVerifiedPurchase: true,
     createdAt: '2026-09-30T13:45:00Z',
@@ -1090,7 +1196,8 @@ export const INITIAL_REVIEWS: Review[] = [
     serviceName: 'Full Home Deep Cleaning (2 BHK)',
     providerId: 'prov-sparkle',
     rating: 5,
-    comment: 'Booked before Diwali deep clean. They cleaned behind all heavy wardrobes, balcony sliding rails, and ceiling fans. Very polite staff and no hidden charges.',
+    comment:
+      'Booked before Diwali deep clean. They cleaned behind all heavy wardrobes, balcony sliding rails, and ceiling fans. Very polite staff and no hidden charges.',
     tags: ['✨ Spotless Clean', '💬 Polite & Respectful', '💰 Transparent Pricing'],
     isVerifiedPurchase: true,
     createdAt: '2026-10-04T16:20:00Z',
@@ -1106,7 +1213,8 @@ export const INITIAL_REVIEWS: Review[] = [
     serviceName: 'Dry Cleaning - Heavy Silk Saree',
     providerId: 'prov-raj-laundry',
     rating: 4,
-    comment: 'Delicate zari work on my wife’s Kanjeevaram saree was handled very carefully with protective packaging. Took one extra day for packaging, but worth the wait.',
+    comment:
+      'Delicate zari work on my wife’s Kanjeevaram saree was handled very carefully with protective packaging. Took one extra day for packaging, but worth the wait.',
     tags: ['👔 Fabric Care', '👍 Highly Recommended'],
     isVerifiedPurchase: true,
     createdAt: '2026-10-01T11:10:00Z',
@@ -1124,12 +1232,14 @@ export const INITIAL_COMPLAINTS: Complaint[] = [
     orderId: 'ord-prev-old',
     orderNumber: 'ORD-2026-0814',
     category: 'Missing Item',
-    description: 'One white linen collar shirt was missing from the returned laundry bundle last week.',
+    description:
+      'One white linen collar shirt was missing from the returned laundry bundle last week.',
     status: 'RESOLVED',
-    adminNotes: 'Provider contacted resident; shirt was located in separate dry-clean batch and hand-delivered within 4 hours. Resident confirmed receipt.',
+    adminNotes:
+      'Provider contacted resident; shirt was located in separate dry-clean batch and hand-delivered within 4 hours. Resident confirmed receipt.',
     resolution: 'Delivered missing garment and credited ₹100 goodwill wallet voucher.',
     createdAt: '2026-09-22T10:15:00Z',
-  }
+  },
 ];
 
 export const INITIAL_NOTICES: SocietyNotice[] = [
@@ -1138,7 +1248,8 @@ export const INITIAL_NOTICES: SocietyNotice[] = [
     societyId: 'soc-1', // Greenfield Heights
     societyName: 'Greenfield Heights',
     title: 'Water Tank Annual Cleaning & Morning Car Wash Slot Adjustment',
-    content: 'Scheduled maintenance for overhead water tanks in Tower A & B on Thursday. Basement doorstep car wash sessions will run between 05:30 AM and 07:00 AM without interruption.',
+    content:
+      'Scheduled maintenance for overhead water tanks in Tower A & B on Thursday. Basement doorstep car wash sessions will run between 05:30 AM and 07:00 AM without interruption.',
     type: 'MAINTENANCE',
     priority: 'URGENT',
     authorName: 'Marketplace Operations Team',
@@ -1150,7 +1261,8 @@ export const INITIAL_NOTICES: SocietyNotice[] = [
     societyId: 'soc-1', // Greenfield Heights
     societyName: 'Greenfield Heights',
     title: 'Festive Season Extra Laundry Pickup Slots Added',
-    content: 'Due to festive demand, Raj Laundry has added an extra evening doorstep pickup slot (06:00 PM – 08:00 PM) for all towers. Remember to use coupon LAUNDRY10 for 10% off.',
+    content:
+      'Due to festive demand, Raj Laundry has added an extra evening doorstep pickup slot (06:00 PM – 08:00 PM) for all towers. Remember to use coupon LAUNDRY10 for 10% off.',
     type: 'SERVICE_UPDATE',
     priority: 'NORMAL',
     authorName: 'Marketplace Operations Team',
@@ -1162,7 +1274,8 @@ export const INITIAL_NOTICES: SocietyNotice[] = [
     societyId: 'soc-2', // Silver Oak Palms
     societyName: 'Silver Oak Palms',
     title: 'New Eco-Friendly Doorstep Car Wash Now Live',
-    content: 'AutoGleam waterless doorstep car care is now accepting subscriptions for basement parking lots at Silver Oak Palms.',
+    content:
+      'AutoGleam waterless doorstep car care is now accepting subscriptions for basement parking lots at Silver Oak Palms.',
     type: 'ANNOUNCEMENT',
     priority: 'NORMAL',
     authorName: 'Marketplace Operations Team',
@@ -1198,7 +1311,6 @@ export const INITIAL_PAYOUTS: PayoutRecord[] = [
   },
 ];
 
-
 export const INITIAL_PLATFORM_FEE_RULES = { oneTimeFee: 20, subscriptionFee: 0 };
 export const INITIAL_WALLET_TRANSACTIONS = [];
 export const INITIAL_CHAT_MESSAGES = [];
@@ -1233,7 +1345,8 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     categoryId: 'cat-cook',
     name: 'Basic Labor-Only Home Cook',
     slug: 'cook-basic',
-    description: 'Basic labor-only cooking: roti/chapati, dal, rice and simple sabzi. Resident supplies ingredients.',
+    description:
+      'Basic labor-only cooking: roti/chapati, dal, rice and simple sabzi. Resident supplies ingredients.',
     pricingModel: 'TICK_WHAT_YOU_WANT',
     basePrice: 0,
     estimatedDurationMinutes: 60,
@@ -1266,7 +1379,12 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
       { id: 'task-salon-beard', name: 'Beard trim', basePrice: 149, estimatedMinutes: 20 },
       { id: 'task-salon-facial', name: 'Facial', basePrice: 449, estimatedMinutes: 40 },
       { id: 'task-salon-waxing', name: 'Waxing', basePrice: 499, estimatedMinutes: 45 },
-      { id: 'task-salon-pedicure', name: 'Manicure / pedicure', basePrice: 549, estimatedMinutes: 50 },
+      {
+        id: 'task-salon-pedicure',
+        name: 'Manicure / pedicure',
+        basePrice: 549,
+        estimatedMinutes: 50,
+      },
       { id: 'task-salon-eyebrow', name: 'Eyebrow threading', basePrice: 79, estimatedMinutes: 15 },
     ],
     isActive: true,
@@ -1281,9 +1399,24 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     basePrice: 0,
     estimatedDurationMinutes: 45,
     availableTasks: [
-      { id: 'task-laundry-wash', name: 'Wash and fold (per kg)', basePrice: 80, estimatedMinutes: 40 },
-      { id: 'task-laundry-press', name: 'Steam press (per 5 items)', basePrice: 100, estimatedMinutes: 25 },
-      { id: 'task-laundry-dryclean', name: 'Dry clean (per item)', basePrice: 150, estimatedMinutes: 30 },
+      {
+        id: 'task-laundry-wash',
+        name: 'Wash and fold (per kg)',
+        basePrice: 80,
+        estimatedMinutes: 40,
+      },
+      {
+        id: 'task-laundry-press',
+        name: 'Steam press (per 5 items)',
+        basePrice: 100,
+        estimatedMinutes: 25,
+      },
+      {
+        id: 'task-laundry-dryclean',
+        name: 'Dry clean (per item)',
+        basePrice: 150,
+        estimatedMinutes: 30,
+      },
     ],
     isActive: true,
   },
@@ -1298,7 +1431,12 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     estimatedDurationMinutes: 45,
     availableTasks: [
       { id: 'task-carwash-exterior', name: 'Exterior wash', basePrice: 0, estimatedMinutes: 30 },
-      { id: 'task-carwash-interior', name: 'Interior vacuum', basePrice: 100, estimatedMinutes: 20 },
+      {
+        id: 'task-carwash-interior',
+        name: 'Interior vacuum',
+        basePrice: 100,
+        estimatedMinutes: 20,
+      },
     ],
     isActive: true,
   },
@@ -1324,9 +1462,24 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     basePrice: 199,
     estimatedDurationMinutes: 45,
     availableTasks: [
-      { id: 'task-elec-switch', name: 'Switch / Socket Repair', basePrice: 99, estimatedMinutes: 20 },
-      { id: 'task-elec-fan', name: 'Ceiling Fan Repair / Regulating', basePrice: 199, estimatedMinutes: 35 },
-      { id: 'task-elec-mcb', name: 'MCB / Fuse Tripping Fix', basePrice: 249, estimatedMinutes: 30 },
+      {
+        id: 'task-elec-switch',
+        name: 'Switch / Socket Repair',
+        basePrice: 99,
+        estimatedMinutes: 20,
+      },
+      {
+        id: 'task-elec-fan',
+        name: 'Ceiling Fan Repair / Regulating',
+        basePrice: 199,
+        estimatedMinutes: 35,
+      },
+      {
+        id: 'task-elec-mcb',
+        name: 'MCB / Fuse Tripping Fix',
+        basePrice: 249,
+        estimatedMinutes: 30,
+      },
     ],
     isActive: true,
   },
@@ -1340,9 +1493,24 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     basePrice: 199,
     estimatedDurationMinutes: 40,
     availableTasks: [
-      { id: 'task-plumb-tap', name: 'Tap / Faucet Replacement', basePrice: 120, estimatedMinutes: 25 },
-      { id: 'task-plumb-flush', name: 'Flush Tank / Cistern Leakage', basePrice: 180, estimatedMinutes: 35 },
-      { id: 'task-plumb-block', name: 'Sink / Basin Drain Clearing', basePrice: 220, estimatedMinutes: 30 },
+      {
+        id: 'task-plumb-tap',
+        name: 'Tap / Faucet Replacement',
+        basePrice: 120,
+        estimatedMinutes: 25,
+      },
+      {
+        id: 'task-plumb-flush',
+        name: 'Flush Tank / Cistern Leakage',
+        basePrice: 180,
+        estimatedMinutes: 35,
+      },
+      {
+        id: 'task-plumb-block',
+        name: 'Sink / Basin Drain Clearing',
+        basePrice: 220,
+        estimatedMinutes: 30,
+      },
     ],
     isActive: true,
   },
@@ -1356,8 +1524,18 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     basePrice: 0,
     estimatedDurationMinutes: 60,
     availableTasks: [
-      { id: 'task-clean-bathroom', name: 'Bathroom deep clean', basePrice: 499, estimatedMinutes: 60 },
-      { id: 'task-clean-kitchen', name: 'Kitchen deep clean', basePrice: 799, estimatedMinutes: 90 },
+      {
+        id: 'task-clean-bathroom',
+        name: 'Bathroom deep clean',
+        basePrice: 499,
+        estimatedMinutes: 60,
+      },
+      {
+        id: 'task-clean-kitchen',
+        name: 'Kitchen deep clean',
+        basePrice: 799,
+        estimatedMinutes: 90,
+      },
       { id: 'task-clean-sofa', name: 'Sofa cleaning', basePrice: 599, estimatedMinutes: 60 },
     ],
     isActive: true,
@@ -1410,25 +1588,40 @@ export const INITIAL_SERVICE_TYPES: ServiceType[] = [
     categoryId: 'cat-painting-civil',
     name: 'Full Home Painting & Renovation Quotes',
     slug: 'painting-quote',
-    description: 'Post your requirements and receive competitive bids with verified milestone escrow.',
+    description:
+      'Post your requirements and receive competitive bids with verified milestone escrow.',
     pricingModel: 'LEAD_QUOTE',
     basePrice: 0,
     estimatedDurationMinutes: 60,
     availableTasks: [],
     isActive: true,
   },
-  ...['cat-carpentry', 'cat-painting-civil', 'cat-interior', 'cat-full-painting', 'cat-movers'].map((categoryId, index) => ({
-    id: `st-project-${index}`,
-    categoryId,
-    name: ['Carpentry & Furniture quote', 'Renovation / civil quote', 'Interior design quote', 'Full-home painting quote', 'Packers & movers quote'][index],
-    slug: ['carpentry-quote', 'renovation-quote', 'interior-quote', 'full-painting-quote', 'movers-quote'][index],
-    description: 'Submit a project brief and compare up to three provider quotes.',
-    pricingModel: 'LEAD_QUOTE' as const,
-    basePrice: 0,
-    estimatedDurationMinutes: 60,
-    availableTasks: [],
-    isActive: true,
-  })),
+  ...['cat-carpentry', 'cat-painting-civil', 'cat-interior', 'cat-full-painting', 'cat-movers'].map(
+    (categoryId, index) => ({
+      id: `st-project-${index}`,
+      categoryId,
+      name: [
+        'Carpentry & Furniture quote',
+        'Renovation / civil quote',
+        'Interior design quote',
+        'Full-home painting quote',
+        'Packers & movers quote',
+      ][index],
+      slug: [
+        'carpentry-quote',
+        'renovation-quote',
+        'interior-quote',
+        'full-painting-quote',
+        'movers-quote',
+      ][index],
+      description: 'Submit a project brief and compare up to three provider quotes.',
+      pricingModel: 'LEAD_QUOTE' as const,
+      basePrice: 0,
+      estimatedDurationMinutes: 60,
+      availableTasks: [],
+      isActive: true,
+    }),
+  ),
 ];
 
 export const INITIAL_PROVIDER_MEMBERSHIPS: ProviderMembership[] = [
@@ -1577,7 +1770,7 @@ export const INITIAL_JOB_REQUESTS: JobRequest[] = [
     selectedTaskIds: [],
     sizeBandInput: '3 - 4 Persons',
     taskBreakdown: [
-      { id: 'band-3-4', name: 'Household: 3 - 4 Persons Meal', price: 450, minutes: 60 }
+      { id: 'band-3-4', name: 'Household: 3 - 4 Persons Meal', price: 450, minutes: 60 },
     ],
     scheduledDate: '2026-10-12',
     scheduledSlot: '12:30 - 01:30',
@@ -1641,7 +1834,8 @@ export const INITIAL_LEAD_QUOTES: LeadQuote[] = [
       { title: 'Second Coat & Accent Walls', amount: 15200, completed: false },
       { title: 'Final Inspection & Clean-up', amount: 11400, completed: false },
     ],
-    scopeNotes: 'Includes Asian Paints Royale + moisture barrier primer. Completion within 4 working days.',
+    scopeNotes:
+      'Includes Asian Paints Royale + moisture barrier primer. Completion within 4 working days.',
     status: 'SUBMITTED',
     createdAt: '2026-10-08T16:00:00Z',
   },

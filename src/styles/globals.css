@@ -6,16 +6,16 @@
   --primary-hover: #0f766e;
   --primary-light: #ccfbf1;
   --primary-glow: rgba(13, 148, 136, 0.25);
-  
+
   --secondary: #0f172a;
   --secondary-light: #1e293b;
-  
+
   --accent-amber: #d97706;
   --accent-amber-light: #fef3c7;
-  
+
   --accent-rose: #e11d48;
   --accent-rose-light: #ffe4e6;
-  
+
   --accent-blue: #2563eb;
   --accent-blue-light: #dbeafe;
 
@@ -28,11 +28,11 @@
   --bg-surface-elevated: #ffffff;
   --bg-subtle: #f1f5f9;
   --bg-hover: #e2e8f0;
-  
+
   --border-light: #e2e8f0;
   --border-subtle: #f1f5f9;
   --border-focus: #0d9488;
-  
+
   --text-main: #0f172a;
   --text-muted: #64748b;
   --text-subtle: #94a3b8;
@@ -83,7 +83,12 @@ body {
   overflow-wrap: break-word;
 }
 
-h1, h2, h3, h4, h5, h6 {
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
   font-family: var(--font-heading);
   color: var(--text-main);
   letter-spacing: -0.02em;
@@ -101,7 +106,9 @@ button {
   background: none;
 }
 
-input, select, textarea {
+input,
+select,
+textarea {
   font-family: inherit;
 }
 
@@ -339,13 +346,23 @@ input, select, textarea {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 @keyframes slideUp {
-  from { transform: translateY(16px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from {
+    transform: translateY(16px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
 }
 
 /* Bottom Nav for Mobile */
@@ -434,7 +451,10 @@ input, select, textarea {
 
 /* Print Styles for Delivery Sheet (A4 Fit) */
 @media print {
-  header, .mobile-nav, .no-print, button:not(.print-include) {
+  header,
+  .mobile-nav,
+  .no-print,
+  button:not(.print-include) {
     display: none !important;
   }
   body {
@@ -468,8 +488,12 @@ input, select, textarea {
 }
 
 @keyframes shimmer {
-  0% { background-position: 200% 0; }
-  100% { background-position: -200% 0; }
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
 }
 
 /* Scrollbar */

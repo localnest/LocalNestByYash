@@ -229,7 +229,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
 
     // Provider Reviews
     residentReviewsTitle: 'Resident Reviews & Society Reputation',
-    residentReviewsSubtitle: 'Verified feedback from gated society residents who booked your services.',
+    residentReviewsSubtitle:
+      'Verified feedback from gated society residents who booked your services.',
     replyToResident: 'Reply to Resident',
     publishReply: 'Publish Reply',
     praiseBadgesEarned: 'Praise Badges Earned From Neighbors',
@@ -288,7 +289,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
 
     // Customer Home & Explore
     heroTitle: 'आपकी सोसायटी के लिए भरोसेमंद द्वार-सेवाएं',
-    heroSubtitle: 'सोसायटी द्वारा सत्यापित प्रदाता, पारदर्शी दरें और पड़ोसियों की वास्तविक समीक्षाएं।',
+    heroSubtitle:
+      'सोसायटी द्वारा सत्यापित प्रदाता, पारदर्शी दरें और पड़ोसियों की वास्तविक समीक्षाएं।',
     verifiedNeighbors: 'पड़ोसियों द्वारा सत्यापित',
     bookNow: 'अभी बुक करें',
     bookSlot: 'समय चुनें और बुक करें',
@@ -349,13 +351,15 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
 
     // Provider Reviews
     residentReviewsTitle: 'निवासी समीक्षाएं और प्रतिष्ठा',
-    residentReviewsSubtitle: 'सोसायटी के निवासियों द्वारा दी गई वास्तविक रेटिंग। अच्छी रेटिंग से आपको अधिक काम मिलता है।',
+    residentReviewsSubtitle:
+      'सोसायटी के निवासियों द्वारा दी गई वास्तविक रेटिंग। अच्छी रेटिंग से आपको अधिक काम मिलता है।',
     replyToResident: 'निवासी को उत्तर दें',
     publishReply: 'उत्तर प्रकाशित करें',
     praiseBadgesEarned: 'पड़ोसियों से मिले प्रशंसा बैज',
     yourResponse: 'आपका उत्तर',
     dispatchTitle: 'सेवा बुक करें। LocalNest सेवा प्रदाता ढूंढेगा।',
-    dispatchSubtitle: 'हर अनुरोध पर प्रदाता बदलते हैं; किसी खास प्रदाता का चयन या पसंदीदा सूची नहीं।',
+    dispatchSubtitle:
+      'हर अनुरोध पर प्रदाता बदलते हैं; किसी खास प्रदाता का चयन या पसंदीदा सूची नहीं।',
     findingProvider: 'आपके लिए प्रदाता खोजा जा रहा है...',
     residentRequests: 'आपके सेवा अनुरोध',
     recurringSchedulesTitle: 'बार-बार होने वाली सेवाएं',
@@ -469,7 +473,8 @@ export const TRANSLATIONS: Record<Language, TranslationDictionary> = {
 
     // Provider Reviews
     residentReviewsTitle: 'नागरिकांचे अभिप्राय व पत',
-    residentReviewsSubtitle: 'सोसायटीतील रहिवाशांनी दिलेले खरे अभिप्राय. चांगल्या रेटिंगमुळे नवीन ग्राहक मिळतात.',
+    residentReviewsSubtitle:
+      'सोसायटीतील रहिवाशांनी दिलेले खरे अभिप्राय. चांगल्या रेटिंगमुळे नवीन ग्राहक मिळतात.',
     replyToResident: 'नागरिकाला उत्तर द्या',
     publishReply: 'उत्तर प्रकाशित करा',
     praiseBadgesEarned: 'शेजाऱ्यांकडून मिळालेले कौतुक बॅज',

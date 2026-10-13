@@ -5,7 +5,8 @@ import AppHeader from '@/components/AppHeader';
 
 export const metadata: Metadata = {
   title: 'LocalNest | Hyperlocal Society Services & Recurring Marketplace',
-  description: 'Book, pay, and subscribe to trusted neighborhood laundry, home cleaning, daily tiffin, car wash, and repairs from verified providers in your residential society.',
+  description:
+    'Book, pay, and subscribe to trusted neighborhood laundry, home cleaning, daily tiffin, car wash, and repairs from verified providers in your residential society.',
   manifest: '/manifest.json',
   icons: {
     icon: '/favicon.ico',
@@ -18,11 +19,7 @@ export const viewport: Viewport = {
   initialScale: 1,
 };
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en">
       <body>

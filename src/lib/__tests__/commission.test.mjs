@@ -4,9 +4,31 @@ import { resolveCommissionRate } from '../retentionUtils.ts';
 import { PLATFORM_CONFIG } from '../config.ts';
 
 const mockDefaultRules = [
-  { id: 'rule-default', ruleType: 'DEFAULT', commissionPercentage: 10, isActive: true, notes: 'Default take rate' },
-  { id: 'rule-cat-cleaning', ruleType: 'CATEGORY', targetId: 'cat-cleaning', targetName: 'Deep Cleaning', commissionPercentage: 12, isActive: true, notes: 'Cleaning take rate' },
-  { id: 'rule-prov-vip', ruleType: 'PROVIDER', targetId: 'prov-vip', targetName: 'VIP Provider', commissionPercentage: 7, isActive: true, notes: 'VIP Provider override' }
+  {
+    id: 'rule-default',
+    ruleType: 'DEFAULT',
+    commissionPercentage: 10,
+    isActive: true,
+    notes: 'Default take rate',
+  },
+  {
+    id: 'rule-cat-cleaning',
+    ruleType: 'CATEGORY',
+    targetId: 'cat-cleaning',
+    targetName: 'Deep Cleaning',
+    commissionPercentage: 12,
+    isActive: true,
+    notes: 'Cleaning take rate',
+  },
+  {
+    id: 'rule-prov-vip',
+    ruleType: 'PROVIDER',
+    targetId: 'prov-vip',
+    targetName: 'VIP Provider',
+    commissionPercentage: 7,
+    isActive: true,
+    notes: 'VIP Provider override',
+  },
 ];
 
 test('Commission: new provider trial does not discount flat category commission', () => {
@@ -48,7 +70,7 @@ test('Commission: rotating/repeat orders fall back to standard category/default 
       customerId: 'cust-repeat',
       providerId: 'prov-regular',
       status: 'COMPLETED',
-    }
+    },
   ];
 
   const res = resolveCommissionRate({
@@ -73,7 +95,7 @@ test('Commission: category rate applies consistently regardless of provider rule
       customerId: 'cust-repeat',
       providerId: 'prov-vip',
       status: 'COMPLETED',
-    }
+    },
   ];
 
   const res = resolveCommissionRate({

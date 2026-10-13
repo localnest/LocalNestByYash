@@ -6,7 +6,16 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "node --test src/lib/__tests__/*.test.mjs"
+    "test": "node --test src/lib/__tests__/*.test.mjs",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:coverage": "node -e \"fs.mkdirSync('coverage', { recursive: true })\" && node --test --experimental-test-coverage --test-reporter=spec --test-reporter-destination=stdout --test-reporter=lcov --test-reporter-destination=coverage/lcov.info src/lib/__tests__/*.test.mjs",
+    "dup": "jscpd --threshold 3",
+    "prepare": "husky",
+    "verify": "npm run typecheck && npm test && npm run build"
   },
   "dependencies": {
     "lucide-react": "^1.52.0",
@@ -18,7 +27,22 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.0",
+    "eslint-config-prettier": "^10.1.8",
+    "husky": "^9.1.7",
+    "jscpd": "^5.4.1",
+    "lint-staged": "^17.6.0",
     "playwright": "^1.63.0",
+    "prettier": "^3.9.10",
     "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20.9.0"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mjs,json,md,css,yml,yaml}": [
+      "prettier --write"
+    ]
   }
 }

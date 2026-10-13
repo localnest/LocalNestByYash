@@ -1,0 +1,9 @@
+{
+  "path": ["src"],
+  "format": ["typescript", "tsx"],
+  "ignore": ["**/__tests__/**", "**/mockData.ts", "**/i18n.ts"],
+  "minLines": 8,
+  "minTokens": 70,
+  "reporters": ["console"],
+  "gitignore": true
+}

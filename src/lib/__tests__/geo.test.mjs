@@ -1,10 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { 
-  calculateHaversineDistance, 
-  isSocietyCovered, 
-  calculateTravelCharge 
-} from '../geo.ts';
+import { calculateHaversineDistance, isSocietyCovered, calculateTravelCharge } from '../geo.ts';
 
 const mockSocieties = [
   {
@@ -15,8 +11,8 @@ const mockSocieties = [
     locality: 'Whitefield',
     city: 'Bengaluru',
     pincode: '560066',
-    latitude: 12.9830,
-    longitude: 77.7510,
+    latitude: 12.983,
+    longitude: 77.751,
     totalFlats: 1790,
     isActive: true,
   },
@@ -50,14 +46,14 @@ const mockSocieties = [
 
 test('Geo: Haversine distance returns correct geographic distance in km', () => {
   // Identical point
-  assert.equal(calculateHaversineDistance(12.9830, 77.7510, 12.9830, 77.7510), 0);
+  assert.equal(calculateHaversineDistance(12.983, 77.751, 12.983, 77.751), 0);
 
   // Whitefield to Varthur Kodi (~2.6 km)
-  const distVarthur = calculateHaversineDistance(12.9830, 77.7510, 12.9601, 77.7472);
+  const distVarthur = calculateHaversineDistance(12.983, 77.751, 12.9601, 77.7472);
   assert.ok(distVarthur >= 2.4 && distVarthur <= 2.8, `Expected ~2.6 km, got ${distVarthur}`);
 
   // Whitefield to Sarjapur Kaikondrahalli (~10.4 km)
-  const distSarjapur = calculateHaversineDistance(12.9830, 77.7510, 12.9152, 77.6845);
+  const distSarjapur = calculateHaversineDistance(12.983, 77.751, 12.9152, 77.6845);
   assert.ok(distSarjapur >= 9.8 && distSarjapur <= 11.0, `Expected ~10.4 km, got ${distSarjapur}`);
 });
 
@@ -76,7 +72,7 @@ test('Geo: Provider with 3 km radius does not cover society 10 km away', () => {
     supportedSocieties: ['soc-1', 'soc-2'],
     startingPrice: 40,
     startingPriceUnit: 'per item',
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     maxServiceDistanceKm: 3,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -107,7 +103,12 @@ test('Geo: Provider with 12 km radius covers all societies in range', () => {
     supportedSocieties: ['soc-1', 'soc-2', 'soc-3'],
     startingPrice: 499,
     startingPriceUnit: 'per service',
-    baseLocation: { label: 'Whitefield Hub', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Whitefield Hub',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 12,
     coverageMode: 'RADIUS',
     excludedSocietyIds: [],
@@ -133,7 +134,7 @@ test('Geo: Excluded societies are blocked even within radius', () => {
     supportedSocieties: ['soc-1'],
     startingPrice: 50,
     startingPriceUnit: 'per item',
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     maxServiceDistanceKm: 5,
     coverageMode: 'RADIUS',
     excludedSocietyIds: ['soc-2'], // Excludes soc-2 even though within 2.6 km
@@ -158,7 +159,12 @@ test('Geo: Selected societies mode strictly respects manual list', () => {
     supportedSocieties: ['soc-1'],
     startingPrice: 500,
     startingPriceUnit: 'per month',
-    baseLocation: { label: 'Greenfield Basement', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: {
+      label: 'Greenfield Basement',
+      pincode: '560066',
+      latitude: 12.983,
+      longitude: 77.751,
+    },
     maxServiceDistanceKm: 10,
     coverageMode: 'SELECTED_SOCIETIES',
   };
@@ -170,7 +176,7 @@ test('Geo: Selected societies mode strictly respects manual list', () => {
 
 test('Geo: Travel charges calculated with free radius and maximum cap', () => {
   const providerWithTravelCharge = {
-    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+    baseLocation: { label: 'Whitefield', pincode: '560066', latitude: 12.983, longitude: 77.751 },
     freeServiceRadiusKm: 2,
     travelChargePerKm: 20,
     maxTravelCharge: 150,

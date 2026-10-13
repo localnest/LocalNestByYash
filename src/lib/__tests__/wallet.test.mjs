@@ -1,9 +1,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { 
-  calculateEarnedCredits, 
-  calculateMaxRedeemableCredits, 
-  isStreakBonusEligible 
+import {
+  calculateEarnedCredits,
+  calculateMaxRedeemableCredits,
+  isStreakBonusEligible,
 } from '../retentionUtils.ts';
 import { PLATFORM_CONFIG } from '../config.ts';
 

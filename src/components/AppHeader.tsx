@@ -3,57 +3,106 @@
 import React from 'react';
 import { useMarketplace } from '@/lib/store';
 import { getCoveredSocieties } from '@/lib/geo';
-import { 
-  Building2, LogOut, MapPin, Bell, 
-  X, ShieldCheck, User, Wrench, ShieldAlert, Navigation, Globe
+import {
+  Building2,
+  LogOut,
+  MapPin,
+  Bell,
+  X,
+  ShieldCheck,
+  User,
+  Wrench,
+  ShieldAlert,
+  Navigation,
+  Globe,
 } from 'lucide-react';
 
 export default function AppHeader() {
-  const { 
-    currentUser, 
-    selectedSociety, 
-    societies, 
-    setSelectedSociety, 
-    logout, 
-    notifications, 
+  const {
+    currentUser,
+    selectedSociety,
+    societies,
+    setSelectedSociety,
+    logout,
+    notifications,
     dismissNotification,
     providers,
     activeProviderId,
     language,
     setLanguage,
-    t
+    t,
   } = useMarketplace();
 
   if (!currentUser) return null;
 
-  const activeProvider = providers.find(p => p.id === activeProviderId);
+  const activeProvider = providers.find((p) => p.id === activeProviderId);
 
   return (
     <>
-      <header className="glass-banner" style={{ padding: '10px 16px', borderBottom: '1px solid rgba(255,255,255,0.12)', position: 'sticky', top: 0, zIndex: 100 }}>
-        <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '12px' }}>
-          
+      <header
+        className="glass-banner"
+        style={{
+          padding: '10px 16px',
+          borderBottom: '1px solid rgba(255,255,255,0.12)',
+          position: 'sticky',
+          top: 0,
+          zIndex: 100,
+        }}
+      >
+        <div
+          className="container"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: '12px',
+          }}
+        >
           {/* Logo & Society */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap', minWidth: 0, maxWidth: '100%' }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '10px',
+              flexWrap: 'wrap',
+              minWidth: 0,
+              maxWidth: '100%',
+            }}
+          >
             <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <div style={{ 
-                background: 'linear-gradient(135deg, #0d9488, #14b8a6)', 
-                borderRadius: '8px', 
-                width: '32px', 
-                height: '32px', 
-                display: 'flex', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                fontWeight: 800,
-                fontSize: '1.1rem',
-                color: '#fff'
-              }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                  borderRadius: '8px',
+                  width: '32px',
+                  height: '32px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 800,
+                  fontSize: '1.1rem',
+                  color: '#fff',
+                }}
+              >
                 L
               </div>
               <div>
-                <div style={{ fontWeight: 800, fontSize: '0.95rem', letterSpacing: '-0.02em', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <div
+                  style={{
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    letterSpacing: '-0.02em',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
                   LocalNest
-                  <span className="badge badge-emerald" style={{ fontSize: '0.62rem', padding: '1px 5px' }}>
+                  <span
+                    className="badge badge-emerald"
+                    style={{ fontSize: '0.62rem', padding: '1px 5px' }}
+                  >
                     Pilot
                   </span>
                 </div>
@@ -66,12 +115,23 @@ export default function AppHeader() {
             {/* Society Pill — varies by role */}
             {currentUser.role === 'ADMIN' ? (
               /* Admin: full society switcher across all societies */
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(255,255,255,0.1)', padding: '4px 8px', borderRadius: '20px', maxWidth: '180px', minWidth: 0 }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: 'rgba(255,255,255,0.1)',
+                  padding: '4px 8px',
+                  borderRadius: '20px',
+                  maxWidth: '180px',
+                  minWidth: 0,
+                }}
+              >
                 <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
                 <select
                   value={selectedSociety.id}
                   onChange={(e) => {
-                    const s = societies.find(soc => soc.id === e.target.value);
+                    const s = societies.find((soc) => soc.id === e.target.value);
                     if (s) setSelectedSociety(s);
                   }}
                   style={{
@@ -85,11 +145,15 @@ export default function AppHeader() {
                     maxWidth: '140px',
                     textOverflow: 'ellipsis',
                     whiteSpace: 'nowrap',
-                    overflow: 'hidden'
+                    overflow: 'hidden',
                   }}
                 >
-                  {societies.map(soc => (
-                    <option key={soc.id} value={soc.id} style={{ color: '#0f172a', background: '#fff' }}>
+                  {societies.map((soc) => (
+                    <option
+                      key={soc.id}
+                      value={soc.id}
+                      style={{ color: '#0f172a', background: '#fff' }}
+                    >
                       {soc.name} ({soc.totalFlats.toLocaleString()} flats)
                     </option>
                   ))}
@@ -99,9 +163,10 @@ export default function AppHeader() {
               /* Provider: show their actual service coverage footprint */
               (() => {
                 const covered = getCoveredSocieties(activeProvider, societies);
-                const radiusLabel = activeProvider.coverageMode === 'RADIUS'
-                  ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
-                  : 'Selected societies';
+                const radiusLabel =
+                  activeProvider.coverageMode === 'RADIUS'
+                    ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
+                    : 'Selected societies';
                 return (
                   <div
                     style={{
@@ -114,12 +179,21 @@ export default function AppHeader() {
                       cursor: 'default',
                       userSelect: 'none',
                       maxWidth: '220px',
-                      minWidth: 0
+                      minWidth: 0,
                     }}
-                    title={covered.map(s => s.name).join(', ') || 'No societies covered yet'}
+                    title={covered.map((s) => s.name).join(', ') || 'No societies covered yet'}
                   >
                     <Navigation size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
-                    <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                    <span
+                      style={{
+                        fontSize: '0.76rem',
+                        fontWeight: 600,
+                        color: '#fff',
+                        whiteSpace: 'nowrap',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                      }}
+                    >
                       {covered.length > 0
                         ? `Covers ${covered.length} ${covered.length === 1 ? 'society' : 'societies'} · ${radiusLabel}`
                         : 'No coverage set'}
@@ -140,12 +214,21 @@ export default function AppHeader() {
                   cursor: 'default',
                   userSelect: 'none',
                   maxWidth: '190px',
-                  minWidth: 0
+                  minWidth: 0,
                 }}
                 title={`You are registered at ${selectedSociety.name}`}
               >
                 <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
-                <span style={{ fontSize: '0.76rem', fontWeight: 600, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <span
+                  style={{
+                    fontSize: '0.76rem',
+                    fontWeight: 600,
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {selectedSociety.name}
                 </span>
               </div>
@@ -153,22 +236,66 @@ export default function AppHeader() {
           </div>
 
           {/* User Session Info & Logout */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap', minWidth: 0, justifyContent: 'flex-end' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.08)', padding: '4px 10px', borderRadius: '25px', maxWidth: '170px', minWidth: 0 }}>
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              flexWrap: 'wrap',
+              minWidth: 0,
+              justifyContent: 'flex-end',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                background: 'rgba(255,255,255,0.08)',
+                padding: '4px 10px',
+                borderRadius: '25px',
+                maxWidth: '170px',
+                minWidth: 0,
+              }}
+            >
               {/* Role specific icon */}
-              {currentUser.role === 'CUSTOMER' && <User size={15} color="#14b8a6" style={{ flexShrink: 0 }} />}
-              {currentUser.role === 'PROVIDER' && <Wrench size={15} color="#f59e0b" style={{ flexShrink: 0 }} />}
-              {currentUser.role === 'ADMIN' && <ShieldCheck size={15} color="#38bdf8" style={{ flexShrink: 0 }} />}
+              {currentUser.role === 'CUSTOMER' && (
+                <User size={15} color="#14b8a6" style={{ flexShrink: 0 }} />
+              )}
+              {currentUser.role === 'PROVIDER' && (
+                <Wrench size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
+              )}
+              {currentUser.role === 'ADMIN' && (
+                <ShieldCheck size={15} color="#38bdf8" style={{ flexShrink: 0 }} />
+              )}
 
               <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
-                <div style={{ fontSize: '0.8rem', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                  {currentUser.role === 'PROVIDER' && activeProvider 
-                    ? activeProvider.businessName 
+                <div
+                  style={{
+                    fontSize: '0.8rem',
+                    fontWeight: 700,
+                    color: '#fff',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
+                  {currentUser.role === 'PROVIDER' && activeProvider
+                    ? activeProvider.businessName
                     : currentUser.fullName}
                 </div>
-                <div style={{ fontSize: '0.66rem', color: '#94a3b8', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <div
+                  style={{
+                    fontSize: '0.66rem',
+                    color: '#94a3b8',
+                    whiteSpace: 'nowrap',
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                  }}
+                >
                   {currentUser.role === 'CUSTOMER' && (currentUser.flatNumber || 'Resident')}
-                  {currentUser.role === 'PROVIDER' && (activeProvider?.status === 'VERIFIED' ? 'Verified Provider' : 'Provider')}
+                  {currentUser.role === 'PROVIDER' &&
+                    (activeProvider?.status === 'VERIFIED' ? 'Verified Provider' : 'Provider')}
                   {currentUser.role === 'ADMIN' && 'Admin'}
                 </div>
               </div>
@@ -176,20 +303,20 @@ export default function AppHeader() {
 
             {/* Language Switcher — Only for Provider & Customer (Resident) */}
             {(currentUser.role === 'CUSTOMER' || currentUser.role === 'PROVIDER') && (
-              <div 
-                style={{ 
-                  display: 'flex', 
-                  alignItems: 'center', 
-                  background: 'rgba(255,255,255,0.08)', 
-                  borderRadius: '20px', 
-                  padding: '2px 4px', 
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  background: 'rgba(255,255,255,0.08)',
+                  borderRadius: '20px',
+                  padding: '2px 4px',
                   border: '1px solid rgba(255,255,255,0.14)',
-                  flexShrink: 0
+                  flexShrink: 0,
                 }}
                 title={t.selectLanguage}
               >
                 <Globe size={13} color="#14b8a6" style={{ margin: '0 4px', flexShrink: 0 }} />
-                {(['en', 'hi', 'mr'] as const).map(lang => {
+                {(['en', 'hi', 'mr'] as const).map((lang) => {
                   const isSelected = language === lang;
                   const label = lang === 'en' ? 'EN' : lang === 'hi' ? 'हिंदी' : 'मराठी';
                   return (
@@ -205,7 +332,7 @@ export default function AppHeader() {
                         fontSize: '0.72rem',
                         fontWeight: isSelected ? 800 : 500,
                         cursor: 'pointer',
-                        transition: 'all 0.15s ease'
+                        transition: 'all 0.15s ease',
                       }}
                     >
                       {label}
@@ -219,15 +346,15 @@ export default function AppHeader() {
             <button
               onClick={logout}
               className="btn btn-secondary btn-sm"
-              style={{ 
-                background: 'rgba(255,255,255,0.1)', 
-                color: '#fff', 
+              style={{
+                background: 'rgba(255,255,255,0.1)',
+                color: '#fff',
                 border: '1px solid rgba(255,255,255,0.15)',
                 fontSize: '0.75rem',
                 padding: '6px 10px',
                 borderRadius: '8px',
                 minHeight: '34px',
-                flexShrink: 0
+                flexShrink: 0,
               }}
               title="Sign out of current account"
             >
@@ -235,31 +362,53 @@ export default function AppHeader() {
               {t.signOut}
             </button>
           </div>
-
         </div>
       </header>
 
       {/* Notification Toast Banner */}
       {notifications.length > 0 && (
-        <div style={{ 
-          background: 'linear-gradient(90deg, #0f766e 0%, #0d9488 100%)', 
-          color: '#fff', 
-          padding: '7px 14px', 
-          fontSize: '0.8rem',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          wordBreak: 'break-word',
-          overflowWrap: 'break-word'
-        }}>
-          <div className="container" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%', gap: '10px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}>
+        <div
+          style={{
+            background: 'linear-gradient(90deg, #0f766e 0%, #0d9488 100%)',
+            color: '#fff',
+            padding: '7px 14px',
+            fontSize: '0.8rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            wordBreak: 'break-word',
+            overflowWrap: 'break-word',
+          }}
+        >
+          <div
+            className="container"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              width: '100%',
+              gap: '10px',
+            }}
+          >
+            <div
+              style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}
+            >
               <Bell size={14} style={{ flexShrink: 0 }} />
               <span style={{ wordBreak: 'break-word' }}>{notifications[0]}</span>
             </div>
-            <button 
+            <button
               onClick={() => dismissNotification(0)}
-              style={{ color: '#fff', opacity: 0.8, padding: '4px', display: 'flex', alignItems: 'center', flexShrink: 0, minHeight: '32px', minWidth: '32px', justifyContent: 'center' }}
+              style={{
+                color: '#fff',
+                opacity: 0.8,
+                padding: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                flexShrink: 0,
+                minHeight: '32px',
+                minWidth: '32px',
+                justifyContent: 'center',
+              }}
             >
               <X size={14} />
             </button>

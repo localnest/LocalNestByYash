@@ -1,13 +1,8 @@
 export type UserRole = 'CUSTOMER' | 'PROVIDER' | 'ADMIN';
 
-export type ProviderStatus = 
-  | 'PENDING'
-  | 'UNDER_REVIEW'
-  | 'VERIFIED'
-  | 'REJECTED'
-  | 'SUSPENDED';
+export type ProviderStatus = 'PENDING' | 'UNDER_REVIEW' | 'VERIFIED' | 'REJECTED' | 'SUSPENDED';
 
-export type PricingModel = 
+export type PricingModel =
   | 'FIXED'
   | 'HOURLY'
   | 'PER_ITEM'
@@ -17,7 +12,7 @@ export type PricingModel =
   | 'TICK_WHAT_YOU_WANT'
   | 'LEAD_QUOTE';
 
-export type OrderStatus = 
+export type OrderStatus =
   | 'PENDING'
   | 'ACCEPTED'
   | 'SCHEDULED'
@@ -30,12 +25,8 @@ export type OrderStatus =
 
 export type SubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'CANCELLED' | 'EXPIRED';
 
-export type SubscriptionFrequency = 
-  | 'DAILY'
-  | 'MON_TO_SAT'
-  | 'WEEKLY'
-  | 'ALTERNATE_DAYS'
-  | 'MONTHLY';
+export type SubscriptionFrequency =
+  'DAILY' | 'MON_TO_SAT' | 'WEEKLY' | 'ALTERNATE_DAYS' | 'MONTHLY';
 
 export type DiscountType = 'PERCENTAGE' | 'FLAT' | 'FIRST_ORDER' | 'SUBSCRIPTION';
 
@@ -107,12 +98,8 @@ export interface WalletTransaction {
   createdAt: string;
 }
 
-export type CommissionReason = 
-  | 'SUBSCRIPTION' 
-  | 'PROVIDER_RULE' 
-  | 'CATEGORY_RULE' 
-  | 'MEMBERSHIP_TIER'
-  | 'DEFAULT';
+export type CommissionReason =
+  'SUBSCRIPTION' | 'PROVIDER_RULE' | 'CATEGORY_RULE' | 'MEMBERSHIP_TIER' | 'DEFAULT';
 
 export interface PlatformFeeRules {
   oneTimeFee: number;
@@ -191,11 +178,7 @@ export interface Provider {
 
 export type CategoryMonetization = 'COMMISSION' | 'MEMBERSHIP';
 
-export type CategoryMatching =
-  | 'DISPATCH'
-  | 'LEAD_QUOTE'
-  | 'BROWSE_ORDER'
-  | 'SUBSCRIPTION';
+export type CategoryMatching = 'DISPATCH' | 'LEAD_QUOTE' | 'BROWSE_ORDER' | 'SUBSCRIPTION';
 
 export interface Category {
   id: string;
@@ -552,7 +535,6 @@ export interface Review {
   };
   createdAt: string;
 }
-
 
 export interface Complaint {
   id: string;

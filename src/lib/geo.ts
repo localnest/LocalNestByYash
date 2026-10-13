@@ -8,11 +8,26 @@ export interface KnownLocality {
 }
 
 export const BENGALURU_LOCALITIES: KnownLocality[] = [
-  { label: 'Whitefield (Channasandra / ITPL)', pincode: '560066', latitude: 12.9830, longitude: 77.7510 },
+  {
+    label: 'Whitefield (Channasandra / ITPL)',
+    pincode: '560066',
+    latitude: 12.983,
+    longitude: 77.751,
+  },
   { label: 'Varthur Kodi', pincode: '560066', latitude: 12.9601, longitude: 77.7472 },
-  { label: 'Marathahalli', pincode: '560037', latitude: 12.9550, longitude: 77.7010 },
-  { label: 'Kaikondrahalli / Sarjapur Road', pincode: '560035', latitude: 12.9152, longitude: 77.6845 },
-  { label: 'Bellandur / Outer Ring Road', pincode: '560103', latitude: 12.9304, longitude: 77.6784 },
+  { label: 'Marathahalli', pincode: '560037', latitude: 12.955, longitude: 77.701 },
+  {
+    label: 'Kaikondrahalli / Sarjapur Road',
+    pincode: '560035',
+    latitude: 12.9152,
+    longitude: 77.6845,
+  },
+  {
+    label: 'Bellandur / Outer Ring Road',
+    pincode: '560103',
+    latitude: 12.9304,
+    longitude: 77.6784,
+  },
   { label: 'HSR Layout', pincode: '560102', latitude: 12.9121, longitude: 77.6446 },
   { label: 'Indiranagar', pincode: '560038', latitude: 12.9784, longitude: 77.6408 },
   { label: 'Koramangala', pincode: '560034', latitude: 12.9352, longitude: 77.6245 },
@@ -26,7 +41,7 @@ export function calculateHaversineDistance(
   lat1: number,
   lon1: number,
   lat2: number,
-  lon2: number
+  lon2: number,
 ): number {
   if (lat1 === lat2 && lon1 === lon2) return 0;
 
@@ -37,8 +52,7 @@ export function calculateHaversineDistance(
 
   const a =
     Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-    Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) *
-    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(lat1 * toRad) * Math.cos(lat2 * toRad) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   const d = R * c;
@@ -50,7 +64,7 @@ export function calculateHaversineDistance(
  */
 export function getDistanceToSociety(
   provider: Pick<Provider, 'baseLocation'>,
-  society: Pick<Society, 'latitude' | 'longitude'>
+  society: Pick<Society, 'latitude' | 'longitude'>,
 ): number | null {
   if (!provider.baseLocation || society.latitude === undefined || society.longitude === undefined) {
     return null;
@@ -59,7 +73,7 @@ export function getDistanceToSociety(
     provider.baseLocation.latitude,
     provider.baseLocation.longitude,
     society.latitude,
-    society.longitude
+    society.longitude,
   );
 }
 
@@ -69,7 +83,7 @@ export function getDistanceToSociety(
 export function isSocietyCovered(
   provider: Provider,
   society: Society,
-  _allSocieties?: Society[]
+  _allSocieties?: Society[],
 ): boolean {
   // 1. If explicit coverage mode is 'SELECTED_SOCIETIES', use manual list
   if (provider.coverageMode === 'SELECTED_SOCIETIES') {
@@ -84,12 +98,16 @@ export function isSocietyCovered(
     }
 
     // If coordinates exist on both
-    if (provider.baseLocation && society.latitude !== undefined && society.longitude !== undefined) {
+    if (
+      provider.baseLocation &&
+      society.latitude !== undefined &&
+      society.longitude !== undefined
+    ) {
       const dist = calculateHaversineDistance(
         provider.baseLocation.latitude,
         provider.baseLocation.longitude,
         society.latitude,
-        society.longitude
+        society.longitude,
       );
       const maxDistance = provider.maxServiceDistanceKm ?? 10;
       return dist <= maxDistance;
@@ -107,14 +125,14 @@ export function isSocietyCovered(
  * Returns all societies covered by a provider.
  */
 export function getCoveredSocieties(provider: Provider, societies: Society[]): Society[] {
-  return societies.filter(s => isSocietyCovered(provider, s, societies));
+  return societies.filter((s) => isSocietyCovered(provider, s, societies));
 }
 
 /**
  * Returns all active providers that cover a specific society.
  */
 export function getProvidersForSociety(providers: Provider[], society: Society): Provider[] {
-  return providers.filter(p => isSocietyCovered(p, society));
+  return providers.filter((p) => isSocietyCovered(p, society));
 }
 
 /**
@@ -122,8 +140,11 @@ export function getProvidersForSociety(providers: Provider[], society: Society):
  * Applicable if provider has travelChargePerKm configured and distance exceeds freeServiceRadiusKm.
  */
 export function calculateTravelCharge(
-  provider: Pick<Provider, 'baseLocation' | 'freeServiceRadiusKm' | 'travelChargePerKm' | 'maxTravelCharge'>,
-  society: Pick<Society, 'latitude' | 'longitude'>
+  provider: Pick<
+    Provider,
+    'baseLocation' | 'freeServiceRadiusKm' | 'travelChargePerKm' | 'maxTravelCharge'
+  >,
+  society: Pick<Society, 'latitude' | 'longitude'>,
 ): number {
   if (!provider.travelChargePerKm || provider.travelChargePerKm <= 0) {
     return 0;
@@ -137,7 +158,7 @@ export function calculateTravelCharge(
     provider.baseLocation.latitude,
     provider.baseLocation.longitude,
     society.latitude,
-    society.longitude
+    society.longitude,
   );
 
   const freeRadius = provider.freeServiceRadiusKm ?? 0;

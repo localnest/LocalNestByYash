@@ -1,11 +1,20 @@
-import type { Provider, Category, JobRequest, ProviderMembership, Society, ServiceType, ServiceTaskDefinition, TiffinMenu } from './types.ts';
+import type {
+  Provider,
+  Category,
+  JobRequest,
+  ProviderMembership,
+  Society,
+  ServiceType,
+  ServiceTaskDefinition,
+  TiffinMenu,
+} from './types.ts';
 import { isSocietyCovered } from './geo.ts';
 import { filterContactDetails } from './retentionUtils.ts';
 
 export interface ScheduleCommitment {
   providerId: string;
-  date: string;         // 'YYYY-MM-DD'
-  slot: string;         // e.g. "09:00 - 10:00" or "09:00"
+  date: string; // 'YYYY-MM-DD'
+  slot: string; // e.g. "09:00 - 10:00" or "09:00"
   durationMinutes: number;
 }
 
@@ -32,7 +41,7 @@ export function hasDurationAwareConflict(
   slotA: string,
   durationA: number,
   slotB: string,
-  durationB: number
+  durationB: number,
 ): boolean {
   const startA = parseSlotStartMinutes(slotA);
   const startB = parseSlotStartMinutes(slotB);
@@ -53,7 +62,7 @@ export function isProviderEligibleForJob(
   job: JobRequest,
   category: Category,
   allCommitments: ScheduleCommitment[],
-  societies: Society[]
+  societies: Society[],
 ): { eligible: boolean; reason?: string } {
   // 1. Account Status
   if (provider.status !== 'VERIFIED') {
@@ -64,7 +73,7 @@ export function isProviderEligibleForJob(
   }
 
   // 2. Society Geo Coverage
-  const society = societies.find(s => s.id === job.societyId);
+  const society = societies.find((s) => s.id === job.societyId);
   if (!society || !isSocietyCovered(provider, society, societies)) {
     return { eligible: false, reason: 'SOCIETY_OUT_OF_RANGE' };
   }
@@ -75,7 +84,7 @@ export function isProviderEligibleForJob(
   }
 
   if (job.selectedTaskIds && job.selectedTaskIds.length > 0) {
-    const hasAllTasks = job.selectedTaskIds.every(tId => provider.enabledTaskIds?.includes(tId));
+    const hasAllTasks = job.selectedTaskIds.every((tId) => provider.enabledTaskIds?.includes(tId));
     if (!hasAllTasks) {
       return { eligible: false, reason: 'MISSING_REQUIRED_TASKS' };
     }
@@ -92,7 +101,9 @@ export function isProviderEligibleForJob(
   const jobDate = new Date(`${job.scheduledDate}T12:00:00`);
   const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
   const dayName = dayNames[jobDate.getDay()];
-  const daysOff = (provider.workingHours?.daysOff || []).map(day => day.slice(0, 3).toLowerCase());
+  const daysOff = (provider.workingHours?.daysOff || []).map((day) =>
+    day.slice(0, 3).toLowerCase(),
+  );
   if (daysOff.includes(dayName.slice(0, 3).toLowerCase())) {
     return { eligible: false, reason: 'PROVIDER_DAY_OFF' };
   }
@@ -103,8 +114,13 @@ export function isProviderEligibleForJob(
     const workStartMin = parseSlotStartMinutes(provider.workingHours.start);
     const workEndMin = parseSlotStartMinutes(provider.workingHours.end);
 
-    if (!Number.isFinite(jobStartMin) || !Number.isFinite(workStartMin) || !Number.isFinite(workEndMin) ||
-        jobStartMin < workStartMin || jobEndMin > workEndMin) {
+    if (
+      !Number.isFinite(jobStartMin) ||
+      !Number.isFinite(workStartMin) ||
+      !Number.isFinite(workEndMin) ||
+      jobStartMin < workStartMin ||
+      jobEndMin > workEndMin
+    ) {
       return { eligible: false, reason: 'OUTSIDE_WORKING_HOURS' };
     }
   }
@@ -112,7 +128,7 @@ export function isProviderEligibleForJob(
   // 6. Daily Order Cap
   const maxCap = provider.maxOrdersPerDay ?? 8;
   const sameDayCommitments = allCommitments.filter(
-    c => c.providerId === provider.id && c.date === job.scheduledDate
+    (c) => c.providerId === provider.id && c.date === job.scheduledDate,
   );
 
   if (sameDayCommitments.length >= maxCap) {
@@ -120,8 +136,13 @@ export function isProviderEligibleForJob(
   }
 
   // 7. Duration-Aware Clashing with Existing Commitments
-  const hasClash = sameDayCommitments.some(comm =>
-    hasDurationAwareConflict(job.scheduledSlot, job.estimatedDurationMinutes, comm.slot, comm.durationMinutes)
+  const hasClash = sameDayCommitments.some((comm) =>
+    hasDurationAwareConflict(
+      job.scheduledSlot,
+      job.estimatedDurationMinutes,
+      comm.slot,
+      comm.durationMinutes,
+    ),
   );
 
   if (hasClash) {
@@ -146,18 +167,22 @@ export function isProviderEligibleForJob(
 
 export function resolveMembershipStatus(
   membership: ProviderMembership,
-  now = Date.now()
+  now = Date.now(),
 ): ProviderMembership['status'] {
   if (membership.status === 'TRIAL') {
     const trialEnd = new Date(membership.trialEndsAt).getTime();
     if (!Number.isFinite(trialEnd)) return 'LAPSED';
     if (trialEnd <= now) {
-      const graceEnd = membership.gracePeriodEndsAt ? new Date(membership.gracePeriodEndsAt).getTime() : Number.NaN;
+      const graceEnd = membership.gracePeriodEndsAt
+        ? new Date(membership.gracePeriodEndsAt).getTime()
+        : Number.NaN;
       return Number.isFinite(graceEnd) && graceEnd > now ? 'GRACE' : 'LAPSED';
     }
   }
   if (membership.status === 'GRACE') {
-    const graceEnd = membership.gracePeriodEndsAt ? new Date(membership.gracePeriodEndsAt).getTime() : Number.NaN;
+    const graceEnd = membership.gracePeriodEndsAt
+      ? new Date(membership.gracePeriodEndsAt).getTime()
+      : Number.NaN;
     if (!Number.isFinite(graceEnd) || graceEnd <= now) return 'LAPSED';
   }
   return membership.status;
@@ -170,7 +195,7 @@ export function calculateTickWhatYouWantPricing(
   serviceType: ServiceType,
   selectedTaskIds: string[],
   sizeBandInput?: string,
-  dishNotes?: string
+  dishNotes?: string,
 ): {
   subtotal: number;
   durationMinutes: number;
@@ -183,7 +208,7 @@ export function calculateTickWhatYouWantPricing(
   // 1. Task Checklist Add-ons
   if (serviceType.availableTasks && serviceType.availableTasks.length > 0) {
     for (const tId of selectedTaskIds) {
-      const task = serviceType.availableTasks.find(t => t.id === tId);
+      const task = serviceType.availableTasks.find((t) => t.id === tId);
       if (task) {
         taskSubtotal += task.basePrice;
         taskMinutes += task.estimatedMinutes;
@@ -191,7 +216,7 @@ export function calculateTickWhatYouWantPricing(
           id: task.id,
           name: task.name,
           price: task.basePrice,
-          minutes: task.estimatedMinutes
+          minutes: task.estimatedMinutes,
         });
       }
     }
@@ -199,7 +224,9 @@ export function calculateTickWhatYouWantPricing(
 
   // 2. Household Size Band (Cook Basic / Maid multiplier)
   if (serviceType.sizeBands && serviceType.sizeBands.length > 0 && sizeBandInput) {
-    const matchedBand = serviceType.sizeBands.find(b => b.label.toLowerCase() === sizeBandInput.toLowerCase());
+    const matchedBand = serviceType.sizeBands.find(
+      (b) => b.label.toLowerCase() === sizeBandInput.toLowerCase(),
+    );
     if (matchedBand) {
       const subtotal = matchedBand.price + taskSubtotal;
       const durationMinutes = matchedBand.minutes + taskMinutes;
@@ -208,15 +235,18 @@ export function calculateTickWhatYouWantPricing(
   }
 
   const subtotal = (serviceType.basePrice || 0) + taskSubtotal;
-  const durationMinutes = (taskMinutes || serviceType.estimatedDurationMinutes || 45);
+  const durationMinutes = taskMinutes || serviceType.estimatedDurationMinutes || 45;
   return {
     subtotal,
     durationMinutes: Math.max(durationMinutes, 15),
-    taskBreakdown: breakdown
+    taskBreakdown: breakdown,
   };
 }
 
-export function calculateMissingIngredientsSettlement(totalResidentPrice: number, providerPayout: number): {
+export function calculateMissingIngredientsSettlement(
+  totalResidentPrice: number,
+  providerPayout: number,
+): {
   residentCredit: number;
   adjustedProviderPayout: number;
 } {
@@ -231,17 +261,18 @@ export function chooseRotatingTiffinMenu(
   deliveryDate: string,
   lastProviderId?: string,
   now = Date.now(),
-  quantity = 1
+  quantity = 1,
 ): TiffinMenu | undefined {
-  const candidates = menus.filter(menu =>
-    menu.isActive &&
-    menu.deliveryDate === deliveryDate &&
-    menu.societyIds.includes(societyId) &&
-    menu.availableQuantity >= quantity &&
-    Number.isFinite(new Date(menu.cutoffAt).getTime()) &&
-    new Date(menu.cutoffAt).getTime() > now
+  const candidates = menus.filter(
+    (menu) =>
+      menu.isActive &&
+      menu.deliveryDate === deliveryDate &&
+      menu.societyIds.includes(societyId) &&
+      menu.availableQuantity >= quantity &&
+      Number.isFinite(new Date(menu.cutoffAt).getTime()) &&
+      new Date(menu.cutoffAt).getTime() > now,
   );
-  return candidates.find(menu => menu.providerId !== lastProviderId) || candidates[0];
+  return candidates.find((menu) => menu.providerId !== lastProviderId) || candidates[0];
 }
 
 /**
@@ -260,7 +291,7 @@ export function computeAnonymousPoolStats(
   requiredTaskIds: string[] = [],
   durationMinutes = 60,
   serviceType?: ServiceType,
-  feedback: { comment: string; rating: number; createdAt: string; customerName?: string }[] = []
+  feedback: { comment: string; rating: number; createdAt: string; customerName?: string }[] = [],
 ): {
   totalPoolCount: number;
   availableSlotCount: number;
@@ -275,12 +306,12 @@ export function computeAnonymousPoolStats(
   hideBreakdown: boolean;
 } {
   // Filter providers covering the society and offering the service
-  const coveringProviders = providers.filter(p => {
+  const coveringProviders = providers.filter((p) => {
     if (p.status !== 'VERIFIED' || p.isVacationMode) return false;
     if (!isSocietyCovered(p, society, societies)) return false;
     if (!p.enabledServiceTypeIds?.includes(serviceTypeId)) return false;
     if (category.monetization === 'MEMBERSHIP') {
-      const m = memberships.find(mem => mem.providerId === p.id) || p.membership;
+      const m = memberships.find((mem) => mem.providerId === p.id) || p.membership;
       if (!m || !['ACTIVE', 'TRIAL', 'GRACE'].includes(resolveMembershipStatus(m))) return false;
     }
     return true;
@@ -321,8 +352,8 @@ export function computeAnonymousPoolStats(
     updatedAt: new Date().toISOString(),
   };
 
-  const availableSlotCount = coveringProviders.filter(p => {
-    const m = memberships.find(mem => mem.providerId === p.id) || p.membership;
+  const availableSlotCount = coveringProviders.filter((p) => {
+    const m = memberships.find((mem) => mem.providerId === p.id) || p.membership;
     const res = isProviderEligibleForJob(p, m, dummyJob, category, allCommitments, societies);
     return res.eligible;
   }).length;
@@ -344,16 +375,18 @@ export function computeAnonymousPoolStats(
   }
 
   const avgRating = coveringProviders.reduce((sum, p) => sum + (p.rating || 0), 0) / totalPoolCount;
-  const avgExp = coveringProviders.reduce((sum, p) => sum + (p.experienceYears || 0), 0) / totalPoolCount;
-  const avgOnTime = coveringProviders.reduce((sum, p) => sum + (p.onTimeRate || 0), 0) / totalPoolCount;
+  const avgExp =
+    coveringProviders.reduce((sum, p) => sum + (p.experienceYears || 0), 0) / totalPoolCount;
+  const avgOnTime =
+    coveringProviders.reduce((sum, p) => sum + (p.onTimeRate || 0), 0) / totalPoolCount;
 
   // Rating distribution
-  const ratings = [5, 4, 3, 2, 1].map(stars => {
-    const count = coveringProviders.filter(p => Math.round(p.rating || 0) === stars).length;
+  const ratings = [5, 4, 3, 2, 1].map((stars) => {
+    const count = coveringProviders.filter((p) => Math.round(p.rating || 0) === stars).length;
     return {
       stars,
       count,
-      pct: Math.round((count / totalPoolCount) * 100)
+      pct: Math.round((count / totalPoolCount) * 100),
     };
   });
 
@@ -364,23 +397,44 @@ export function computeAnonymousPoolStats(
     ratingDistribution: ratings,
     averageExperienceYears: Math.round(avgExp * 10) / 10,
     onTimeRatePct: Math.round(avgOnTime),
-    typicalAcceptanceMinutes: Math.round(coveringProviders.reduce((sum, provider) => sum + (provider.averageAcceptanceMinutes ?? 5), 0) / totalPoolCount),
+    typicalAcceptanceMinutes: Math.round(
+      coveringProviders.reduce(
+        (sum, provider) => sum + (provider.averageAcceptanceMinutes ?? 5),
+        0,
+      ) / totalPoolCount,
+    ),
     skillsCovered: serviceType
-      ? [...new Set(coveringProviders.flatMap(provider => provider.enabledTaskIds || [])
-        .map(id => serviceType.availableTasks.find(task => task.id === id)?.name)
-        .filter((name): name is string => Boolean(name)))]
+      ? [
+          ...new Set(
+            coveringProviders
+              .flatMap((provider) => provider.enabledTaskIds || [])
+              .map((id) => serviceType.availableTasks.find((task) => task.id === id)?.name)
+              .filter((name): name is string => Boolean(name)),
+          ),
+        ]
       : [],
     verificationStats: {
-      idChecked: coveringProviders.filter(provider => provider.documents?.some(document => /id|aadhaar/i.test(document.type) && document.verified)).length,
-      backgroundChecked: coveringProviders.filter(provider => provider.documents?.some(document => /background|police/i.test(document.type) && document.verified)).length,
+      idChecked: coveringProviders.filter((provider) =>
+        provider.documents?.some(
+          (document) => /id|aadhaar/i.test(document.type) && document.verified,
+        ),
+      ).length,
+      backgroundChecked: coveringProviders.filter((provider) =>
+        provider.documents?.some(
+          (document) => /background|police/i.test(document.type) && document.verified,
+        ),
+      ).length,
       coverageVerified: totalPoolCount,
     },
-    anonymousReviews: feedback.slice(0, 5).map(review => ({
-      comment: anonymizeFeedbackComment(review.comment, [review.customerName || '', ...coveringProviders.map(provider => provider.businessName)]),
+    anonymousReviews: feedback.slice(0, 5).map((review) => ({
+      comment: anonymizeFeedbackComment(review.comment, [
+        review.customerName || '',
+        ...coveringProviders.map((provider) => provider.businessName),
+      ]),
       rating: review.rating,
       createdAt: review.createdAt,
     })),
-    hideBreakdown: totalPoolCount < 3 // Hide breakdown when pool < 3
+    hideBreakdown: totalPoolCount < 3, // Hide breakdown when pool < 3
   };
 }
 
@@ -397,10 +451,16 @@ export function anonymizeFeedbackComment(rawComment: string, names: string[] = [
       .replace(/(?:https?:\/\/|www\.)\S+/gi, '[link redacted]')
       .replace(/\b(?:[a-z0-9-]+\.)+(?:com|in|net|org|co|io|app)\b(?:\/\S*)?/gi, '[link redacted]')
       .replace(/\b\d[\d\s\-().]{5,}\d\b/g, '[contact redacted]')
-      .replace(/\b(call me|whatsapp|pay directly|pay outside|offline payment|direct payment)\b/gi, '[redacted]');
+      .replace(
+        /\b(call me|whatsapp|pay directly|pay outside|offline payment|direct payment)\b/gi,
+        '[redacted]',
+      );
   }
-  for (const name of names.filter(value => value.trim().length >= 3)) {
-    sanitized = sanitized.replace(new RegExp(`\\b${escapeRegExp(name.trim())}\\b`, 'gi'), '[name redacted]');
+  for (const name of names.filter((value) => value.trim().length >= 3)) {
+    sanitized = sanitized.replace(
+      new RegExp(`\\b${escapeRegExp(name.trim())}\\b`, 'gi'),
+      '[name redacted]',
+    );
   }
 
   return sanitized.trim();

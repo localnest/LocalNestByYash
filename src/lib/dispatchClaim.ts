@@ -21,16 +21,16 @@ export function atomicClaimJob(
   provider: Provider,
   currentJobs: JobRequest[],
   existingOrders: Order[],
-  onCommit: (updatedJobs: JobRequest[], newOrder: Order) => void
+  onCommit: (updatedJobs: JobRequest[], newOrder: Order) => void,
 ): ClaimResult {
   const now = Date.now();
-  const jobIndex = currentJobs.findIndex(j => j.id === jobId);
+  const jobIndex = currentJobs.findIndex((j) => j.id === jobId);
 
   if (jobIndex === -1) {
     return {
       success: false,
       status: 'NOT_FOUND',
-      message: 'Job request not found.'
+      message: 'Job request not found.',
     };
   }
 
@@ -41,9 +41,13 @@ export function atomicClaimJob(
       const persisted = localStorage.getItem('hg_job_requests');
       if (persisted) {
         const persistedJobs: JobRequest[] = JSON.parse(persisted);
-        const persistedJob = persistedJobs.find(item => item.id === jobId);
+        const persistedJob = persistedJobs.find((item) => item.id === jobId);
         if (persistedJob?.status === 'CLAIMED') {
-          return { success: false, status: 'ALREADY_CLAIMED', message: 'Another provider accepted this job.' };
+          return {
+            success: false,
+            status: 'ALREADY_CLAIMED',
+            message: 'Another provider accepted this job.',
+          };
         }
         if (persistedJob) job = persistedJob;
       }
@@ -61,7 +65,7 @@ export function atomicClaimJob(
     return {
       success: false,
       status: 'ALREADY_CLAIMED',
-      message: 'Another verified provider just accepted this job a moment ago.'
+      message: 'Another verified provider just accepted this job a moment ago.',
     };
   }
 
@@ -71,7 +75,7 @@ export function atomicClaimJob(
     return {
       success: false,
       status: 'EXPIRED',
-      message: 'This job broadcast window has expired.'
+      message: 'This job broadcast window has expired.',
     };
   }
 
@@ -80,7 +84,7 @@ export function atomicClaimJob(
     return {
       success: false,
       status: 'ALREADY_CLAIMED',
-      message: 'This job is no longer available for booking.'
+      message: 'This job is no longer available for booking.',
     };
   }
 
@@ -108,20 +112,24 @@ export function atomicClaimJob(
     scheduledDate: job.scheduledDate,
     scheduledSlot: job.scheduledSlot,
     deliveryAddress: `${job.flatNumber}, ${job.societyName}`,
-    specialInstructions: [
-      job.dishNotes,
-      preferences.diet && `Diet: ${preferences.diet}`,
-      preferences.allergies?.length && `Allergies: ${preferences.allergies.join(', ')}`,
-      preferences.noOnionGarlic && 'No onion or garlic',
-      preferences.houseNotes,
-      preferences.pets && preferences.pets !== 'NONE' && `Pets: ${preferences.pets}`,
-    ].filter(Boolean).join('\n') || undefined,
+    specialInstructions:
+      [
+        job.dishNotes,
+        preferences.diet && `Diet: ${preferences.diet}`,
+        preferences.allergies?.length && `Allergies: ${preferences.allergies.join(', ')}`,
+        preferences.noOnionGarlic && 'No onion or garlic',
+        preferences.houseNotes,
+        preferences.pets && preferences.pets !== 'NONE' && `Pets: ${preferences.pets}`,
+      ]
+        .filter(Boolean)
+        .join('\n') || undefined,
     pricingModel: job.pricingModel || 'FIXED',
     itemQuantity: job.selectedTaskIds?.length || 1,
     subtotal: job.lockedSubtotal,
     platformFee: job.platformFee,
     totalAmount: job.totalResidentPrice,
-    commissionPercentage: job.lockedSubtotal > 0 ? Math.round((job.platformCommission / job.lockedSubtotal) * 100) : 0,
+    commissionPercentage:
+      job.lockedSubtotal > 0 ? Math.round((job.platformCommission / job.lockedSubtotal) * 100) : 0,
     platformCommission: job.platformCommission,
     providerEarnings: job.providerPayout,
     paymentStatus: 'PAID', // Escrow paid by resident at broadcast time
@@ -149,9 +157,13 @@ export function atomicClaimJob(
     try {
       const persisted = localStorage.getItem('hg_job_requests');
       const persistedJobs: JobRequest[] = persisted ? JSON.parse(persisted) : currentJobs;
-      const persistedIndex = persistedJobs.findIndex(item => item.id === jobId);
+      const persistedIndex = persistedJobs.findIndex((item) => item.id === jobId);
       if (persistedIndex >= 0 && persistedJobs[persistedIndex].status !== 'OPEN') {
-        return { success: false, status: 'ALREADY_CLAIMED', message: 'Another provider accepted this job.' };
+        return {
+          success: false,
+          status: 'ALREADY_CLAIMED',
+          message: 'Another provider accepted this job.',
+        };
       }
       const committedJobs = [...persistedJobs];
       if (persistedIndex >= 0) committedJobs[persistedIndex] = updatedJob;
@@ -173,6 +185,6 @@ export function atomicClaimJob(
     status: 'CLAIMED',
     message: `Job claimed successfully! Payout of ₹${job.providerPayout} secured in escrow.`,
     claimedJob: updatedJob,
-    createdOrder: newOrder
+    createdOrder: newOrder,
   };
 }
