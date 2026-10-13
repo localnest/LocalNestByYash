@@ -1,4 +1,4 @@
-import type { JobRequest, Provider } from '../../../lib/types.ts';
+import type { JobRequest } from '../../../lib/types.ts';
 
 export interface ClaimResult {
   success: boolean;

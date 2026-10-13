@@ -26,50 +26,36 @@ export interface EnvValidationResult {
 const PLACEHOLDER_URL = 'https://your-project.supabase.co';
 const PLACEHOLDER_KEY = 'your-anon-key';
 
-export function validateEnv(strict: boolean = false): EnvValidationResult {
-  const errors: string[] = [];
-  const warnings: string[] = [];
+function isPlaceholder(value: string | undefined, placeholder: string): boolean {
+  return !value || value === placeholder;
+}
 
-  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
-  const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
-
-  const isPlaceholderUrl = !rawUrl || rawUrl === PLACEHOLDER_URL;
-  const isPlaceholderKey = !rawKey || rawKey === PLACEHOLDER_KEY;
-
-  const isSupabaseLive = !isPlaceholderUrl && !isPlaceholderKey && rawUrl.length > 0;
-  const isMockMode = !isSupabaseLive;
-
-  if (rawUrl && !isPlaceholderUrl) {
-    try {
-      const parsed = new URL(rawUrl);
-      if (!['http:', 'https:'].includes(parsed.protocol)) {
-        errors.push(`NEXT_PUBLIC_SUPABASE_URL must use http or https protocol (got: ${rawUrl})`);
-      }
-    } catch {
-      errors.push(`NEXT_PUBLIC_SUPABASE_URL is not a valid URL: "${rawUrl}"`);
+function checkUrlValidity(rawUrl: string): string | null {
+  try {
+    const parsed = new URL(rawUrl);
+    if (!['http:', 'https:'].includes(parsed.protocol)) {
+      return `NEXT_PUBLIC_SUPABASE_URL must use http or https protocol (got: ${rawUrl})`;
     }
+    return null;
+  } catch {
+    return `NEXT_PUBLIC_SUPABASE_URL is not a valid URL: "${rawUrl}"`;
   }
+}
 
-  if (strict && isMockMode) {
-    errors.push('Strict environment validation required live Supabase configuration.');
-  } else if (isMockMode) {
-    warnings.push(
-      'Running in local mock/demo mode. Supabase credentials are placeholder or unset.',
-    );
+function checkClientLeaks(): string | null {
+  if (typeof window !== 'undefined' && process.env.SUPABASE_SERVICE_ROLE_KEY) {
+    return 'CRITICAL SECURITY: SUPABASE_SERVICE_ROLE_KEY is accessible on the client window!';
   }
+  return null;
+}
 
-  // Server-side check: Ensure server keys do not accidentally leak into client variables
-  if (typeof window !== 'undefined') {
-    if (process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      errors.push(
-        'CRITICAL SECURITY: SUPABASE_SERVICE_ROLE_KEY is accessible on the client window!',
-      );
-    }
-  }
-
+function buildEnvConfig(
+  rawUrl: string | undefined,
+  rawKey: string | undefined,
+  isLive: boolean,
+): EnvConfig {
   const nodeEnv = (process.env.NODE_ENV as EnvConfig['NODE_ENV']) || 'development';
-
-  const config: EnvConfig = {
+  return {
     NEXT_PUBLIC_SUPABASE_URL: rawUrl,
     NEXT_PUBLIC_SUPABASE_ANON_KEY: rawKey,
     SUPABASE_SERVICE_ROLE_KEY: process.env.SUPABASE_SERVICE_ROLE_KEY?.trim(),
@@ -78,9 +64,40 @@ export function validateEnv(strict: boolean = false): EnvValidationResult {
     RAZORPAY_WEBHOOK_SECRET: process.env.RAZORPAY_WEBHOOK_SECRET?.trim(),
     FCM_SERVER_CREDENTIALS: process.env.FCM_SERVER_CREDENTIALS?.trim(),
     NODE_ENV: nodeEnv,
-    isMockMode,
-    isSupabaseLive,
+    isMockMode: !isLive,
+    isSupabaseLive: isLive,
   };
+}
+
+export function validateEnv(strict: boolean = false): EnvValidationResult {
+  const errors: string[] = [];
+  const warnings: string[] = [];
+
+  const rawUrl = process.env.NEXT_PUBLIC_SUPABASE_URL?.trim();
+  const rawKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.trim();
+
+  const isLive =
+    !isPlaceholder(rawUrl, PLACEHOLDER_URL) &&
+    !isPlaceholder(rawKey, PLACEHOLDER_KEY) &&
+    Boolean(rawUrl);
+
+  if (rawUrl && rawUrl !== PLACEHOLDER_URL) {
+    const urlError = checkUrlValidity(rawUrl);
+    if (urlError) errors.push(urlError);
+  }
+
+  if (strict && !isLive) {
+    errors.push('Strict environment validation required live Supabase configuration.');
+  } else if (!isLive) {
+    warnings.push(
+      'Running in local mock/demo mode. Supabase credentials are placeholder or unset.',
+    );
+  }
+
+  const leakError = checkClientLeaks();
+  if (leakError) errors.push(leakError);
+
+  const config = buildEnvConfig(rawUrl, rawKey, isLive);
 
   return {
     valid: errors.length === 0,
