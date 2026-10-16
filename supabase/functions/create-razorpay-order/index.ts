@@ -1,7 +1,7 @@
-// @ts-nocheck
 // Supabase Edge Function: create-razorpay-order
 // Follows Deno standard runtime for Supabase Functions
-
+// eslint-disable-next-line @typescript-eslint/ban-ts-comment
+// @ts-expect-error -- Deno-only import; not available in Node/Next.js type graph
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 
 const corsHeaders = {

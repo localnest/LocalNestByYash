@@ -12,9 +12,6 @@ import {
   Complaint,
   SocietyNotice,
   PayoutRecord,
-  WalletTransaction,
-  ChatMessage,
-  PlatformFeeRules,
   ServiceType,
   JobRequest,
   RecurringSchedule,
@@ -1314,7 +1311,7 @@ export const INITIAL_PAYOUTS: PayoutRecord[] = [
 export const INITIAL_PLATFORM_FEE_RULES = { oneTimeFee: 20, subscriptionFee: 0 };
 export const INITIAL_WALLET_TRANSACTIONS = [];
 export const INITIAL_CHAT_MESSAGES = [];
-export const INITIAL_SERVICE_REQUESTS: any[] = [];
+export const INITIAL_SERVICE_REQUESTS: unknown[] = [];
 
 export const INITIAL_SERVICE_TYPES: ServiceType[] = [
   {

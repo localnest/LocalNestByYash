@@ -5,7 +5,6 @@ import type {
   ProviderMembership,
   Society,
   ServiceType,
-  ServiceTaskDefinition,
   TiffinMenu,
 } from './types.ts';
 import { isSocietyCovered } from './geo.ts';
@@ -195,7 +194,7 @@ export function calculateTickWhatYouWantPricing(
   serviceType: ServiceType,
   selectedTaskIds: string[],
   sizeBandInput?: string,
-  dishNotes?: string,
+  _dishNotes?: string,
 ): {
   subtotal: number;
   durationMinutes: number;

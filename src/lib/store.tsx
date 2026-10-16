@@ -219,7 +219,7 @@ interface MarketplaceContextType {
     walletAmountToUse?: number;
     travelCharge?: number;
     isSubscription?: boolean;
-    subscriptionFrequency?: any;
+    subscriptionFrequency?: 'DAILY' | 'MON_TO_SAT' | 'WEEKLY' | 'ALTERNATE_DAYS';
   }) => { success: boolean; orderId?: string; orderNumber?: string; message: string };
 
   updateOrderStatus: (
@@ -544,120 +544,124 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
 
   // Load from local storage on client if available
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem('hg_user');
-      if (savedUser) {
-        const u: UserProfile = JSON.parse(savedUser);
-        setCurrentUser(u);
-        if (u.providerId) setActiveProviderId(u.providerId);
-        if (u.societyId) {
-          const s = INITIAL_SOCIETIES.find((soc) => soc.id === u.societyId);
-          if (s) setSelectedSociety(s);
-        }
-      }
-
-      const savedUsers = localStorage.getItem('hg_all_users');
-      if (savedUsers) setUsers(JSON.parse(savedUsers));
-
-      const savedOrders = localStorage.getItem('hg_orders');
-      if (savedOrders) setOrders(JSON.parse(savedOrders));
-
-      const savedSubs = localStorage.getItem('hg_subs');
-      if (savedSubs) setSubscriptions(JSON.parse(savedSubs));
-
-      const savedProviders = localStorage.getItem('hg_providers');
-      if (savedProviders) {
-        const parsed = JSON.parse(savedProviders);
-        const merged = parsed.map((p: any) => {
-          const init = INITIAL_PROVIDERS.find((ip) => ip.id === p.id);
-          if (init && !p.baseLocation) {
-            return {
-              ...init,
-              ...p,
-              baseLocation: init.baseLocation,
-              maxServiceDistanceKm: init.maxServiceDistanceKm,
-              coverageMode: init.coverageMode,
-              excludedSocietyIds: init.excludedSocietyIds || [],
-              maxOrdersPerDay: init.maxOrdersPerDay,
-              freeServiceRadiusKm: init.freeServiceRadiusKm,
-              travelChargePerKm: init.travelChargePerKm,
-              maxTravelCharge: init.maxTravelCharge,
-            };
+    const timer = setTimeout(() => {
+      try {
+        const savedUser = localStorage.getItem('hg_user');
+        if (savedUser) {
+          const u: UserProfile = JSON.parse(savedUser);
+          setCurrentUser(u);
+          if (u.providerId) setActiveProviderId(u.providerId);
+          if (u.societyId) {
+            const s = INITIAL_SOCIETIES.find((soc) => soc.id === u.societyId);
+            if (s) setSelectedSociety(s);
           }
-          return p;
-        });
-        setProviders(merged);
-      }
-
-      const savedCategories = localStorage.getItem('hg_categories');
-      if (savedCategories) {
-        const parsedCats = JSON.parse(savedCategories);
-        // Ensure new categories exist
-        const mergedCats = INITIAL_CATEGORIES.map((ic) => {
-          const found = parsedCats.find((pc: any) => pc.id === ic.id);
-          return found ? { ...ic, ...found } : ic;
-        });
-        setCategories(mergedCats);
-      }
-
-      const savedServiceTypes = localStorage.getItem('hg_service_types');
-      if (savedServiceTypes) setServiceTypes(JSON.parse(savedServiceTypes));
-
-      const savedJobRequests = localStorage.getItem('hg_job_requests');
-      if (savedJobRequests) setJobRequests(JSON.parse(savedJobRequests));
-
-      const savedSchedules = localStorage.getItem('hg_recurring_schedules');
-      if (savedSchedules) setRecurringSchedules(JSON.parse(savedSchedules));
-
-      const savedMemberships = localStorage.getItem('hg_provider_memberships');
-      if (savedMemberships) setProviderMemberships(JSON.parse(savedMemberships));
-
-      const savedPlans = localStorage.getItem('hg_provider_plans');
-      if (savedPlans) setProviderPlans(JSON.parse(savedPlans));
-
-      const savedDispatchNotifications = localStorage.getItem('hg_dispatch_notifications');
-      if (savedDispatchNotifications)
-        setDispatchNotifications(JSON.parse(savedDispatchNotifications));
-
-      const savedDispatchTimeout = localStorage.getItem('hg_dispatch_timeout');
-      if (savedDispatchTimeout) {
-        const parsedTimeout = Number(savedDispatchTimeout);
-        if (Number.isFinite(parsedTimeout) && parsedTimeout >= 10 && parsedTimeout <= 15) {
-          setDispatchTimeoutMinutes(parsedTimeout);
         }
+
+        const savedUsers = localStorage.getItem('hg_all_users');
+        if (savedUsers) setUsers(JSON.parse(savedUsers));
+
+        const savedOrders = localStorage.getItem('hg_orders');
+        if (savedOrders) setOrders(JSON.parse(savedOrders));
+
+        const savedSubs = localStorage.getItem('hg_subs');
+        if (savedSubs) setSubscriptions(JSON.parse(savedSubs));
+
+        const savedProviders = localStorage.getItem('hg_providers');
+        if (savedProviders) {
+          const parsed = JSON.parse(savedProviders);
+          const merged = parsed.map((p: Provider) => {
+            const init = INITIAL_PROVIDERS.find((ip) => ip.id === p.id);
+            if (init && !p.baseLocation) {
+              return {
+                ...init,
+                ...p,
+                baseLocation: init.baseLocation,
+                maxServiceDistanceKm: init.maxServiceDistanceKm,
+                coverageMode: init.coverageMode,
+                excludedSocietyIds: init.excludedSocietyIds || [],
+                maxOrdersPerDay: init.maxOrdersPerDay,
+                freeServiceRadiusKm: init.freeServiceRadiusKm,
+                travelChargePerKm: init.travelChargePerKm,
+                maxTravelCharge: init.maxTravelCharge,
+              };
+            }
+            return p;
+          });
+          setProviders(merged);
+        }
+
+        const savedCategories = localStorage.getItem('hg_categories');
+        if (savedCategories) {
+          const parsedCats = JSON.parse(savedCategories);
+          // Ensure new categories exist
+          const mergedCats = INITIAL_CATEGORIES.map((ic) => {
+            const found = parsedCats.find((pc: { id: string }) => pc.id === ic.id);
+            return found ? { ...ic, ...found } : ic;
+          });
+          setCategories(mergedCats);
+        }
+
+        const savedServiceTypes = localStorage.getItem('hg_service_types');
+        if (savedServiceTypes) setServiceTypes(JSON.parse(savedServiceTypes));
+
+        const savedJobRequests = localStorage.getItem('hg_job_requests');
+        if (savedJobRequests) setJobRequests(JSON.parse(savedJobRequests));
+
+        const savedSchedules = localStorage.getItem('hg_recurring_schedules');
+        if (savedSchedules) setRecurringSchedules(JSON.parse(savedSchedules));
+
+        const savedMemberships = localStorage.getItem('hg_provider_memberships');
+        if (savedMemberships) setProviderMemberships(JSON.parse(savedMemberships));
+
+        const savedPlans = localStorage.getItem('hg_provider_plans');
+        if (savedPlans) setProviderPlans(JSON.parse(savedPlans));
+
+        const savedDispatchNotifications = localStorage.getItem('hg_dispatch_notifications');
+        if (savedDispatchNotifications)
+          setDispatchNotifications(JSON.parse(savedDispatchNotifications));
+
+        const savedDispatchTimeout = localStorage.getItem('hg_dispatch_timeout');
+        if (savedDispatchTimeout) {
+          const parsedTimeout = Number(savedDispatchTimeout);
+          if (Number.isFinite(parsedTimeout) && parsedTimeout >= 10 && parsedTimeout <= 15) {
+            setDispatchTimeoutMinutes(parsedTimeout);
+          }
+        }
+
+        const savedLeadQuotes = localStorage.getItem('hg_lead_quotes');
+        if (savedLeadQuotes) setLeadQuotes(JSON.parse(savedLeadQuotes));
+
+        const savedTiffinMenus = localStorage.getItem('hg_tiffin_menus');
+        if (savedTiffinMenus) setTiffinMenus(JSON.parse(savedTiffinMenus));
+
+        const savedRequests = localStorage.getItem('hg_service_requests');
+        if (savedRequests) setServiceRequests(JSON.parse(savedRequests));
+
+        const savedServices = localStorage.getItem('hg_services');
+        if (savedServices) setServices(JSON.parse(savedServices));
+
+        const savedWallet = localStorage.getItem('hg_wallet_txns');
+        if (savedWallet) setWalletTransactions(JSON.parse(savedWallet));
+
+        const savedChat = localStorage.getItem('hg_chat_messages');
+        if (savedChat) setChatMessages(JSON.parse(savedChat));
+
+        const savedFeeRules = localStorage.getItem('hg_fee_rules');
+        if (savedFeeRules) setPlatformFeeRules(JSON.parse(savedFeeRules));
+
+        const savedReviews = localStorage.getItem('hg_reviews');
+        if (savedReviews) setReviews(JSON.parse(savedReviews));
+
+        const savedLang = localStorage.getItem('hg_language') as Language;
+        if (savedLang && (savedLang === 'en' || savedLang === 'hi' || savedLang === 'mr')) {
+          setLanguageState(savedLang);
+        }
+      } catch {
+        // fallback to initial
       }
+    }, 0);
 
-      const savedLeadQuotes = localStorage.getItem('hg_lead_quotes');
-      if (savedLeadQuotes) setLeadQuotes(JSON.parse(savedLeadQuotes));
-
-      const savedTiffinMenus = localStorage.getItem('hg_tiffin_menus');
-      if (savedTiffinMenus) setTiffinMenus(JSON.parse(savedTiffinMenus));
-
-      const savedRequests = localStorage.getItem('hg_service_requests');
-      if (savedRequests) setServiceRequests(JSON.parse(savedRequests));
-
-      const savedServices = localStorage.getItem('hg_services');
-      if (savedServices) setServices(JSON.parse(savedServices));
-
-      const savedWallet = localStorage.getItem('hg_wallet_txns');
-      if (savedWallet) setWalletTransactions(JSON.parse(savedWallet));
-
-      const savedChat = localStorage.getItem('hg_chat_messages');
-      if (savedChat) setChatMessages(JSON.parse(savedChat));
-
-      const savedFeeRules = localStorage.getItem('hg_fee_rules');
-      if (savedFeeRules) setPlatformFeeRules(JSON.parse(savedFeeRules));
-
-      const savedReviews = localStorage.getItem('hg_reviews');
-      if (savedReviews) setReviews(JSON.parse(savedReviews));
-
-      const savedLang = localStorage.getItem('hg_language') as Language;
-      if (savedLang && (savedLang === 'en' || savedLang === 'hi' || savedLang === 'mr')) {
-        setLanguageState(savedLang);
-      }
-    } catch {
-      // fallback to initial
-    }
+    return () => clearTimeout(timer);
   }, []);
 
   // Sync to local storage
@@ -1186,7 +1190,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
     walletAmountToUse?: number;
     travelCharge?: number;
     isSubscription?: boolean;
-    subscriptionFrequency?: any;
+    subscriptionFrequency?: 'DAILY' | 'MON_TO_SAT' | 'WEEKLY' | 'ALTERNATE_DAYS';
   }) => {
     const service = services.find((s) => s.id === params.serviceId);
     if (!service) return { success: false, message: 'Service not found.' };
@@ -1904,7 +1908,7 @@ export function MarketplaceProvider({ children }: { children: React.ReactNode })
   const updateProviderStatus = (
     providerId: string,
     status: Provider['status'],
-    reason?: string,
+    _reason?: string,
   ) => {
     const provider = providers.find((item) => item.id === providerId);
     const category = provider && categories.find((item) => item.id === provider.categoryId);

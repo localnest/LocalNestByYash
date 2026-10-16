@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 
 function localDateTimeValue(hour: number): string {
@@ -63,7 +63,6 @@ export default function ProviderDispatchWorkspace() {
     saveCookMealPhoto,
     selectedSociety,
     societies,
-    currentUser,
     submitLeadQuote,
     leadQuotes,
     t,
@@ -86,17 +85,30 @@ export default function ProviderDispatchWorkspace() {
   const membership =
     providerMemberships.find((item) => item.providerId === activeProviderId) ||
     provider?.membership;
-  const inbox = useMemo(
-    () =>
-      dispatchNotifications
-        .filter(
-          (notification) =>
-            notification.providerId === activeProviderId && notification.status === 'NEW',
-        )
-        .map((notification) => jobRequests.find((job) => job.id === notification.jobRequestId))
-        .filter((job) => job?.status === 'OPEN' && new Date(job.expiresAt).getTime() > Date.now()),
-    [dispatchNotifications, activeProviderId, jobRequests],
-  );
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => setCurrentTime(Date.now()), 0);
+    const interval = setInterval(() => setCurrentTime(Date.now()), 15000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  const inbox = useMemo(() => {
+    return dispatchNotifications
+      .filter(
+        (notification) =>
+          notification.providerId === activeProviderId && notification.status === 'NEW',
+      )
+      .map((notification) => jobRequests.find((job) => job.id === notification.jobRequestId))
+      .filter(
+        (job) =>
+          job?.status === 'OPEN' &&
+          (!currentTime || new Date(job.expiresAt).getTime() > currentTime),
+      );
+  }, [dispatchNotifications, activeProviderId, jobRequests, currentTime]);
   if (!provider) return <div className="card">Provider profile not found.</div>;
 
   const handleClaim = (jobId: string) => {

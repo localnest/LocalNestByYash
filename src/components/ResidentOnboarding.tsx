@@ -2,19 +2,7 @@
 
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
-import {
-  Building2,
-  Home,
-  ShieldCheck,
-  Tag,
-  Phone,
-  ArrowRight,
-  CheckCircle2,
-  AlertCircle,
-  MapPin,
-  Clock,
-  Sparkles,
-} from 'lucide-react';
+import { Building2, ShieldCheck, Tag, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function ResidentOnboarding() {
   const { currentUser, societies, completeResidentOnboarding, logout } = useMarketplace();
