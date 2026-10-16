@@ -71,23 +71,14 @@ export default function AppHeader() {
 
   return (
     <>
-      <header
-        className="glass-banner"
-        style={{
-          padding: '10px 16px',
-          borderBottom: '1px solid rgba(255,255,255,0.12)',
-          position: 'sticky',
-          top: 0,
-          zIndex: 100,
-        }}
-      >
+      <header className="app-header-bar">
         <div
           className="container header-content-wrap"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            gap: '10px',
+            gap: '12px',
           }}
         >
           {/* Logo & Society */}
@@ -95,51 +86,21 @@ export default function AppHeader() {
             style={{
               display: 'flex',
               alignItems: 'center',
-              gap: '10px',
-              flexWrap: 'wrap',
+              gap: '12px',
               minWidth: 0,
-              maxWidth: '100%',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-              <div
-                style={{
-                  background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
-                  borderRadius: '8px',
-                  width: '32px',
-                  height: '32px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 800,
-                  fontSize: '1.1rem',
-                  color: '#fff',
-                }}
-              >
-                L
-              </div>
+            <div className="brand-emblem-wrap">
+              <div className="brand-emblem">L</div>
               <div>
-                <div
-                  style={{
-                    fontWeight: 800,
-                    fontSize: '0.95rem',
-                    letterSpacing: '-0.02em',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px',
-                  }}
-                >
-                  LocalNest
-                  <span
-                    className="badge badge-emerald"
-                    style={{ fontSize: '0.62rem', padding: '1px 5px' }}
-                  >
+                <div className="brand-title-text">
+                  Local<span className="brand-title-accent">Nest</span>
+                  <span className="brand-micro-pill">
+                    <span className="pulse-dot-live" />
                     Pilot
                   </span>
                 </div>
-                <div style={{ fontSize: '0.65rem', color: '#94a3b8' }}>
-                  Hyperlocal Society Marketplace
-                </div>
+                <div className="brand-subtitle-text">Hyperlocal Society Marketplace</div>
               </div>
             </div>
 
@@ -271,23 +232,16 @@ export default function AppHeader() {
           {/* Mobile Hamburger Button */}
           <button
             onClick={() => setIsMobileMenuOpen(true)}
-            className="mobile-only btn btn-secondary btn-sm"
+            className="mobile-only header-btn-sleek"
             style={{
-              background: 'rgba(255,255,255,0.12)',
-              color: '#fff',
-              border: '1px solid rgba(255,255,255,0.2)',
-              borderRadius: '8px',
-              padding: '6px 12px',
-              display: 'flex',
-              alignItems: 'center',
+              borderRadius: '9999px',
+              padding: '6px 14px',
               gap: '6px',
-              minHeight: '36px',
-              cursor: 'pointer',
             }}
             aria-label="Open mobile menu"
           >
-            <Menu size={18} />
-            <span style={{ fontSize: '0.825rem', fontWeight: 600 }}>Menu</span>
+            <Menu size={18} color="var(--primary)" />
+            <span style={{ fontSize: '0.85rem', fontWeight: 650 }}>Menu</span>
           </button>
 
           {/* Desktop User Session Info & Controls */}
@@ -305,68 +259,52 @@ export default function AppHeader() {
             {/* Dark mode toggle */}
             <button
               onClick={toggle}
-              className="dark-mode-toggle"
+              className="header-btn-sleek"
+              style={{
+                borderRadius: '50%',
+                width: '36px',
+                height: '36px',
+                padding: 0,
+                justifyContent: 'center',
+              }}
               title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
               aria-label={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
             >
-              {dark ? <Sun size={15} /> : <Moon size={15} />}
+              {dark ? <Sun size={16} /> : <Moon size={16} />}
             </button>
+
             {/* Language Selector */}
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              className="header-btn-sleek"
               style={{
-                padding: '4px 6px',
-                fontSize: '0.72rem',
-                fontWeight: 600,
-                borderRadius: '8px',
-                background: 'rgba(255, 255, 255, 0.12)',
-                color: '#ffffff',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
+                padding: '4px 8px',
+                fontSize: '0.75rem',
                 cursor: 'pointer',
               }}
               title="Select Language"
               aria-label="Select Language"
             >
-              <option value="en" style={{ color: '#000' }}>
-                English
-              </option>
-              <option value="hi" style={{ color: '#000' }}>
-                हिंदी
-              </option>
-              <option value="mr" style={{ color: '#000' }}>
-                मराठी
-              </option>
+              <option value="en">English</option>
+              <option value="hi">हिंदी</option>
+              <option value="mr">मराठी</option>
             </select>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-                background: 'rgba(255,255,255,0.08)',
-                padding: '4px 10px',
-                borderRadius: '25px',
-                maxWidth: '170px',
-                minWidth: 0,
-              }}
-            >
+
+            <div className="header-user-card">
               {/* Role specific icon */}
-              {currentUser.role === 'CUSTOMER' && (
-                <User size={15} color="#14b8a6" style={{ flexShrink: 0 }} />
-              )}
-              {currentUser.role === 'PROVIDER' && (
-                <Wrench size={15} color="#f59e0b" style={{ flexShrink: 0 }} />
-              )}
-              {currentUser.role === 'ADMIN' && (
-                <ShieldCheck size={15} color="#38bdf8" style={{ flexShrink: 0 }} />
-              )}
+              <div className="header-user-avatar-badge">
+                {currentUser.role === 'CUSTOMER' && <User size={15} />}
+                {currentUser.role === 'PROVIDER' && <Wrench size={15} />}
+                {currentUser.role === 'ADMIN' && <ShieldCheck size={15} />}
+              </div>
 
               <div style={{ textAlign: 'left', minWidth: 0, overflow: 'hidden' }}>
                 <div
                   style={{
-                    fontSize: '0.8rem',
+                    fontSize: '0.825rem',
                     fontWeight: 700,
-                    color: '#fff',
+                    color: 'var(--text-main)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -379,8 +317,8 @@ export default function AppHeader() {
                 <div
                   className="header-user-meta"
                   style={{
-                    fontSize: '0.66rem',
-                    color: '#94a3b8',
+                    fontSize: '0.68rem',
+                    color: 'var(--text-muted)',
                     whiteSpace: 'nowrap',
                     overflow: 'hidden',
                     textOverflow: 'ellipsis',
@@ -401,15 +339,19 @@ export default function AppHeader() {
                 style={{
                   display: 'flex',
                   alignItems: 'center',
-                  background: 'rgba(255,255,255,0.08)',
+                  background: 'var(--bg-subtle)',
                   borderRadius: '20px',
                   padding: '2px 4px',
-                  border: '1px solid rgba(255,255,255,0.14)',
+                  border: '1px solid var(--border-light)',
                   flexShrink: 0,
                 }}
                 title={t.selectLanguage}
               >
-                <Globe size={13} color="#14b8a6" style={{ margin: '0 4px', flexShrink: 0 }} />
+                <Globe
+                  size={13}
+                  color="var(--primary)"
+                  style={{ margin: '0 4px', flexShrink: 0 }}
+                />
                 {(['en', 'hi', 'mr'] as const).map((lang) => {
                   const isSelected = language === lang;
                   const label = lang === 'en' ? 'EN' : lang === 'hi' ? 'हिंदी' : 'मराठी';
@@ -419,12 +361,12 @@ export default function AppHeader() {
                       onClick={() => setLanguage(lang)}
                       style={{
                         background: isSelected ? 'var(--primary)' : 'transparent',
-                        color: isSelected ? '#fff' : '#cbd5e1',
+                        color: isSelected ? '#fff' : 'var(--text-muted)',
                         border: 'none',
                         borderRadius: '16px',
-                        padding: '4px 7px',
+                        padding: '4px 8px',
                         fontSize: '0.72rem',
-                        fontWeight: isSelected ? 800 : 500,
+                        fontWeight: isSelected ? 800 : 550,
                         cursor: 'pointer',
                         transition: 'all 0.15s ease',
                       }}
@@ -439,20 +381,15 @@ export default function AppHeader() {
             {/* Sign Out Button */}
             <button
               onClick={logout}
-              className="btn btn-secondary btn-sm"
+              className="header-btn-sleek"
               style={{
-                background: 'rgba(255,255,255,0.1)',
-                color: '#fff',
-                border: '1px solid rgba(255,255,255,0.15)',
-                fontSize: '0.75rem',
-                padding: '6px 10px',
-                borderRadius: '8px',
-                minHeight: '34px',
-                flexShrink: 0,
+                color: '#ef4444',
+                borderColor: 'rgba(239, 68, 68, 0.25)',
+                background: 'rgba(239, 68, 68, 0.04)',
               }}
               title="Sign out of current account"
             >
-              <LogOut size={13} />
+              <LogOut size={14} />
               {t.signOut}
             </button>
           </div>
@@ -745,19 +682,7 @@ export default function AppHeader() {
 
       {/* Notification Toast Banner */}
       {notifications.length > 0 && (
-        <div
-          style={{
-            background: 'linear-gradient(90deg, #0f766e 0%, #0d9488 100%)',
-            color: '#fff',
-            padding: '7px 14px',
-            fontSize: '0.8rem',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            wordBreak: 'break-word',
-            overflowWrap: 'break-word',
-          }}
-        >
+        <div className="floating-toast-alert">
           <div
             className="container"
             style={{
@@ -765,28 +690,35 @@ export default function AppHeader() {
               alignItems: 'center',
               justifyContent: 'space-between',
               width: '100%',
-              gap: '10px',
+              gap: '12px',
             }}
           >
             <div
               style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0, flex: 1 }}
             >
-              <Bell size={14} style={{ flexShrink: 0 }} />
-              <span style={{ wordBreak: 'break-word' }}>{notifications[0]}</span>
+              <Bell size={15} style={{ flexShrink: 0 }} />
+              <span style={{ wordBreak: 'break-word', fontSize: '0.825rem' }}>
+                {notifications[0]}
+              </span>
             </div>
             <button
               onClick={() => dismissNotification(0)}
               style={{
                 color: '#fff',
-                opacity: 0.8,
+                opacity: 0.85,
                 padding: '4px',
                 display: 'flex',
                 alignItems: 'center',
                 flexShrink: 0,
-                minHeight: '32px',
-                minWidth: '32px',
+                minHeight: '28px',
+                minWidth: '28px',
                 justifyContent: 'center',
+                cursor: 'pointer',
+                background: 'rgba(255, 255, 255, 0.18)',
+                border: 'none',
+                borderRadius: '50%',
               }}
+              aria-label="Dismiss notification"
             >
               <X size={14} />
             </button>
