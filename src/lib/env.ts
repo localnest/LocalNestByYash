@@ -109,3 +109,7 @@ export function validateEnv(strict: boolean = false): EnvValidationResult {
 
 // Global cached config
 export const env = validateEnv(false).config;
+
+export function getEnv(): EnvConfig {
+  return env;
+}

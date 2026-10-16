@@ -1,37 +1,33 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { Service, PricingModel, OrderStatus, Order, CoverageMode } from '@/lib/types';
+import { PricingModel, OrderStatus, Order, CoverageMode } from '@/lib/types';
 import { getCoveredSocieties, calculateHaversineDistance, BENGALURU_LOCALITIES } from '@/lib/geo';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
-  DollarSign,
-  PackageCheck,
-  Repeat,
   Star,
-  Calendar,
-  Check,
   X,
-  Plus,
-  Clock,
   MapPin,
   CheckCircle,
-  ShieldCheck,
-  AlertCircle,
   FileSpreadsheet,
-  Printer,
-  ArrowDownToLine,
   Bell,
   Sliders,
   Palmtree,
-  Coffee,
   CheckCircle2,
-  User,
-  MessageCircle,
   Send,
   Navigation,
 } from 'lucide-react';
 import ProviderDispatchWorkspace from './ProviderDispatchWorkspace';
+import {
+  ProviderOverviewTab,
+  ProviderOrdersTab,
+  ProviderManifestTab,
+  ProviderSubscriptionsTab,
+  ProviderServicesTab,
+  ProviderEarningsTab,
+  ProviderReviewsTab,
+} from './provider';
 
 export default function ProviderDashboard() {
   const {
@@ -43,7 +39,6 @@ export default function ProviderDashboard() {
     payouts,
     reviews,
     respondToReview,
-    commissionRules,
     updateOrderStatus,
     updateProviderAvailability,
     updateProviderServiceArea,
@@ -53,15 +48,13 @@ export default function ProviderDashboard() {
     sendChatMessage,
     getOrderMessages,
     currentUser,
-    language,
-    setLanguage,
     t,
   } = useMarketplace();
+  const { notify } = useNotification();
 
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatError, setChatError] = useState('');
-  const chatEndRef = useRef<HTMLDivElement>(null);
 
   // Find active provider
   const provider = providers.find((p) => p.id === activeProviderId) || providers[0];
@@ -87,11 +80,6 @@ export default function ProviderDashboard() {
       ? (myReviews.reduce((sum, r) => sum + r.rating, 0) / myReviews.length).toFixed(1)
       : (provider.rating || 5.0).toString();
 
-  // Review reply state
-  const [replyingReviewId, setReplyingReviewId] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState<string>('');
-  const [replyError, setReplyError] = useState<string>('');
-
   // Tab State: 'overview' | 'orders' | 'manifest' | 'subscriptions' | 'services' | 'earnings' | 'reviews'
   const [activeTab, setActiveTab] = useState<
     | 'overview'
@@ -111,7 +99,7 @@ export default function ProviderDashboard() {
   const [newPricingModel, setNewPricingModel] = useState<PricingModel>('FIXED');
   const [newBasePrice, setNewBasePrice] = useState<number>(350);
   const [newUnitName, setNewUnitName] = useState<string>('per service');
-  const [isSubscriptionSupported, setIsSubscriptionSupported] = useState<boolean>(false);
+  const [isSubscriptionSupported] = useState<boolean>(false);
 
   // Feature 10: Reject Order With Reason Modal State
   const [orderToReject, setOrderToReject] = useState<Order | null>(null);
@@ -240,6 +228,9 @@ export default function ProviderDashboard() {
     setShowAddServiceModal(false);
     setNewServiceName('');
     setNewServiceDesc('');
+    notify.success(`Service "${newServiceName}" has been added to your catalogue.`, {
+      title: 'Service Added',
+    });
   };
 
   // Submit Rejection
@@ -254,6 +245,10 @@ export default function ProviderDashboard() {
     updateOrderStatus(orderToReject.id, 'REJECTED', undefined, finalReason);
     setOrderToReject(null);
     setCustomRejectionText('');
+    notify.info(
+      `Order #${orderToReject.orderNumber} has been declined. The customer's escrow will be refunded in full.`,
+      { title: 'Order Declined' },
+    );
   };
 
   // Save Availability & Vacation
@@ -270,6 +265,12 @@ export default function ProviderDashboard() {
       isVacation ? vacationNote : undefined,
     );
     setShowAvailabilityModal(false);
+    notify.success(
+      isVacation
+        ? 'Vacation mode enabled. New bookings are paused.'
+        : 'Availability updated successfully. You are now accepting bookings.',
+      { title: 'Availability Saved' },
+    );
   };
 
   // Submit Payout Request
@@ -278,6 +279,10 @@ export default function ProviderDashboard() {
     if (payoutAmount <= 0) return;
     requestPayout(provider.id, Number(payoutAmount), payoutMethod, payoutDetails);
     setShowPayoutModal(false);
+    notify.success(
+      `Payout request of ₹${payoutAmount} via ${payoutMethod} submitted. Processing in 1–2 business days.`,
+      { title: 'Payout Requested' },
+    );
   };
 
   const toggleDayOff = (day: string) => {
@@ -460,7 +465,7 @@ export default function ProviderDashboard() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as Parameters<typeof setActiveTab>[0])}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
                   style={{
                     borderRadius: '8px',
@@ -486,1733 +491,79 @@ export default function ProviderDashboard() {
         {/* OVERVIEW TAB */}
         {/* ============================================================== */}
         {activeTab === 'overview' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-            {/* Vacation Alert Banner if Active */}
-            {provider.isVacationMode && (
-              <div
-                style={{
-                  background: '#fef3c7',
-                  border: '1.5px solid #f59e0b',
-                  borderRadius: 'var(--radius-md)',
-                  padding: '16px 20px',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '12px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                  <div
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '10px',
-                      background: '#f59e0b',
-                      color: '#fff',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                    }}
-                  >
-                    <Palmtree size={22} />
-                  </div>
-                  <div>
-                    <h3 style={{ fontSize: '1rem', fontWeight: 700, color: '#92400e' }}>
-                      Vacation Mode is Currently ACTIVE
-                    </h3>
-                    <p style={{ fontSize: '0.825rem', color: '#b45309', margin: '2px 0 0' }}>
-                      "{provider.vacationReason || 'Not accepting new orders'}" — Residents are
-                      informed and booking is paused.
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => setShowAvailabilityModal(true)}
-                  className="btn btn-dark btn-sm"
-                >
-                  Resume Taking Bookings
-                </button>
-              </div>
-            )}
-
-            {/* KPI Cards */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
-                gap: '16px',
-              }}
-            >
-              <div className="card">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>AVAILABLE PAYOUT</span>
-                  <DollarSign size={18} color="var(--accent-emerald)" />
-                </div>
-                <div
-                  style={{
-                    fontSize: '1.8rem',
-                    fontWeight: 800,
-                    marginTop: '8px',
-                    color: 'var(--accent-emerald)',
-                  }}
-                >
-                  ₹{withdrawableBalance.toLocaleString()}
-                </div>
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    marginTop: '8px',
-                  }}
-                >
-                  <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                    Lifetime: ₹{totalEarned.toLocaleString()}
-                  </span>
-                  <button
-                    onClick={() => {
-                      setActiveTab('earnings');
-                      setShowPayoutModal(true);
-                    }}
-                    className="btn btn-primary btn-sm"
-                    style={{ fontSize: '0.72rem', padding: '3px 8px' }}
-                  >
-                    Withdraw
-                  </button>
-                </div>
-              </div>
-
-              <div className="card">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>COMPLETED ORDERS</span>
-                  <PackageCheck size={18} color="var(--primary)" />
-                </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '8px' }}>
-                  {provider.completedOrders}
-                </div>
-                <div
-                  style={{ fontSize: '0.75rem', color: 'var(--accent-emerald)', marginTop: '4px' }}
-                >
-                  {provider.onTimeRate}% on-time completion rate
-                </div>
-              </div>
-
-              <div className="card">
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>ACTIVE SUBSCRIPTIONS</span>
-                  <Repeat size={18} color="var(--accent-blue)" />
-                </div>
-                <div style={{ fontSize: '1.8rem', fontWeight: 800, marginTop: '8px' }}>
-                  {providerSubscriptions.filter((s) => s.status === 'ACTIVE').length}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
-                  MRR: ₹
-                  {providerSubscriptions
-                    .reduce((acc, s) => acc + s.monthlyPrice, 0)
-                    .toLocaleString()}{' '}
-                  /mo
-                </div>
-              </div>
-
-              <div
-                className="card card-hover"
-                onClick={() => setActiveTab('reviews')}
-                style={{ cursor: 'pointer', border: '1px solid var(--border-light)' }}
-              >
-                <div
-                  style={{
-                    display: 'flex',
-                    justifyContent: 'space-between',
-                    alignItems: 'center',
-                    color: 'var(--text-muted)',
-                  }}
-                >
-                  <span style={{ fontSize: '0.8rem', fontWeight: 600 }}>SOCIETY REPUTATION</span>
-                  <Star size={18} color="#f59e0b" fill="#f59e0b" />
-                </div>
-                <div
-                  style={{
-                    fontSize: '1.8rem',
-                    fontWeight: 800,
-                    marginTop: '8px',
-                    color: '#b45309',
-                  }}
-                >
-                  ★ {dynamicRating} / 5.0
-                </div>
-                <div
-                  style={{
-                    fontSize: '0.75rem',
-                    color: 'var(--primary)',
-                    marginTop: '4px',
-                    fontWeight: 600,
-                  }}
-                >
-                  {myReviews.length} verified resident reviews →
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Pending Requests Alert */}
-            {providerOrders.filter((o) => o.status === 'PENDING').length > 0 && (
-              <div
-                style={{
-                  background: 'var(--accent-amber-light)',
-                  border: '1px solid var(--accent-amber)',
-                  padding: '16px',
-                  borderRadius: 'var(--radius-md)',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '10px',
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                  <AlertCircle size={22} color="var(--accent-amber)" />
-                  <div>
-                    <strong>
-                      You have {providerOrders.filter((o) => o.status === 'PENDING').length} new
-                      booking request(s) awaiting your action!
-                    </strong>
-                    <div style={{ fontSize: '0.8rem', color: '#78350f' }}>
-                      Please accept or decline promptly with a clear reason to maintain your 98%+
-                      reliability score.
-                    </div>
-                  </div>
-                </div>
-                <button onClick={() => setActiveTab('orders')} className="btn btn-dark btn-sm">
-                  View Requests
-                </button>
-              </div>
-            )}
-
-            {/* Today's Schedule & Quick Manifest Widget */}
-            <div className="card">
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  marginBottom: '14px',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                }}
-              >
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700 }}>
-                    Today's Fulfillment Schedule
-                    {coveredSocietiesList.length === 1
-                      ? ` in ${coveredSocietiesList[0].name}`
-                      : coveredSocietiesList.length > 1
-                        ? ` across ${coveredSocietiesList.length} Societies`
-                        : ''}
-                  </h3>
-                  <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                    {allManifestItems.length} deliveries & scheduled visits planned
-                  </div>
-                </div>
-                <button
-                  onClick={() => setActiveTab('manifest')}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <FileSpreadsheet size={14} /> Open Full Delivery Sheet
-                </button>
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                {allManifestItems.slice(0, 4).map((item) => (
-                  <div
-                    key={item.id}
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      background: 'var(--bg-subtle)',
-                      padding: '12px 16px',
-                      borderRadius: 'var(--radius-md)',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 700, fontSize: '0.95rem' }}>
-                          {item.customerFlat}
-                        </span>
-                        <span style={{ fontSize: '0.85rem', color: 'var(--text-main)' }}>
-                          • {item.customerName}
-                        </span>
-                        <span className="badge badge-slate" style={{ fontSize: '0.65rem' }}>
-                          {item.type}
-                        </span>
-                      </div>
-                      <div
-                        style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '2px' }}
-                      >
-                        Slot: <strong>{item.slot}</strong> • Service: {item.serviceName}
-                      </div>
-                    </div>
-
-                    <button
-                      onClick={() => toggleManifestCheck(item.id)}
-                      className={`btn btn-sm ${checkedManifestIds.includes(item.id) ? 'btn-primary' : 'btn-secondary'}`}
-                      style={{ fontSize: '0.75rem', padding: '4px 10px' }}
-                    >
-                      {checkedManifestIds.includes(item.id) ? '✓ Completed' : 'Mark Done'}
-                    </button>
-                  </div>
-                ))}
-
-                {allManifestItems.length === 0 && (
-                  <div
-                    style={{
-                      textAlign: 'center',
-                      color: 'var(--text-muted)',
-                      padding: '24px 0',
-                      fontSize: '0.85rem',
-                    }}
-                  >
-                    No pending orders or subscriptions scheduled for today. New requests will appear
-                    here automatically.
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
+          <ProviderOverviewTab
+            provider={provider}
+            withdrawableBalance={withdrawableBalance}
+            totalEarned={totalEarned}
+            dynamicRating={dynamicRating}
+            providerOrders={providerOrders}
+            providerSubscriptions={providerSubscriptions}
+            myReviews={myReviews}
+            allManifestItems={allManifestItems}
+            checkedManifestIds={checkedManifestIds}
+            onToggleManifest={toggleManifestCheck}
+            onGoToTab={(tab) => setActiveTab(tab as Parameters<typeof setActiveTab>[0])}
+            onOpenAvailability={() => setShowAvailabilityModal(true)}
+            onOpenPayout={() => setShowPayoutModal(true)}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* ORDERS MANAGEMENT TAB */}
-        {/* ============================================================== */}
         {activeTab === 'orders' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                  Orders Pipeline & Management
-                </h2>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Accept incoming requests, provide cancellation/rejection reasons, and confirm
-                  fulfillment.
-                </p>
-              </div>
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-              {providerOrders.map((order) => (
-                <div key={order.id} className="card">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                      flexWrap: 'wrap',
-                      gap: '10px',
-                    }}
-                  >
-                    <div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                        <span style={{ fontWeight: 800, fontSize: '1.05rem' }}>
-                          Order #{order.orderNumber}
-                        </span>
-                        <span
-                          className={`badge ${
-                            order.status === 'COMPLETED'
-                              ? 'badge-emerald'
-                              : order.status === 'REJECTED' || order.status === 'CANCELLED'
-                                ? 'badge-rose'
-                                : order.status === 'PENDING'
-                                  ? 'badge-amber'
-                                  : 'badge-blue'
-                          }`}
-                        >
-                          {order.status.replace('_', ' ')}
-                        </span>
-                      </div>
-                      <div
-                        style={{ fontSize: '0.85rem', color: 'var(--text-main)', marginTop: '4px' }}
-                      >
-                        Customer: <strong>{order.customerName}</strong> ({order.customerFlat})
-                        <button
-                          onClick={() => {
-                            setChatOrderId(order.id);
-                            setChatInput('');
-                            setChatError('');
-                          }}
-                          style={{
-                            marginLeft: '8px',
-                            background: 'none',
-                            border: '1px solid var(--primary)',
-                            borderRadius: '6px',
-                            padding: '2px 8px',
-                            fontSize: '0.72rem',
-                            color: 'var(--primary)',
-                            cursor: 'pointer',
-                            display: 'inline-flex',
-                            alignItems: 'center',
-                            gap: '4px',
-                          }}
-                        >
-                          <MessageCircle size={12} /> Chat
-                        </button>
-                      </div>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        Service: {order.serviceName} • Model: {order.pricingModel} • Qty:{' '}
-                        {order.itemQuantity}
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <div
-                        style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)' }}
-                      >
-                        Total: ₹{order.totalAmount}
-                      </div>
-                      <span
-                        style={{
-                          fontSize: '0.75rem',
-                          color: 'var(--accent-emerald)',
-                          fontWeight: 600,
-                        }}
-                      >
-                        Your Net Payout: ₹{order.providerEarnings.toFixed(2)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {order.specialInstructions && (
-                    <div
-                      style={{
-                        margin: '10px 0',
-                        background: 'var(--bg-subtle)',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <strong>Resident Note:</strong> "{order.specialInstructions}"
-                    </div>
-                  )}
-
-                  {/* Feature 10: Display Rejection Reason if Rejected */}
-                  {order.status === 'REJECTED' && order.rejectionReason && (
-                    <div
-                      style={{
-                        margin: '10px 0',
-                        background: '#ffe4e6',
-                        border: '1px solid #fecdd3',
-                        padding: '8px 12px',
-                        borderRadius: '6px',
-                        fontSize: '0.8rem',
-                        color: '#be123c',
-                      }}
-                    >
-                      <strong>Decline Reason Provided:</strong> "{order.rejectionReason}" (100%
-                      Escrow Refunded to Customer)
-                    </div>
-                  )}
-
-                  {/* Provider Order Action Buttons */}
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'flex-end',
-                      gap: '8px',
-                      borderTop: '1px solid var(--border-light)',
-                      paddingTop: '12px',
-                      marginTop: '10px',
-                      flexWrap: 'wrap',
-                    }}
-                  >
-                    {order.status === 'PENDING' && (
-                      <>
-                        <button
-                          onClick={() => setOrderToReject(order)}
-                          className="btn btn-secondary btn-sm"
-                          style={{ color: 'var(--accent-rose)' }}
-                        >
-                          <X size={14} /> Decline with Reason
-                        </button>
-                        <button
-                          onClick={() => updateOrderStatus(order.id, 'ACCEPTED')}
-                          className="btn btn-primary btn-sm"
-                        >
-                          <Check size={14} /> Accept Request
-                        </button>
-                      </>
-                    )}
-
-                    {order.status === 'ACCEPTED' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'SCHEDULED')}
-                        className="btn btn-primary btn-sm"
-                      >
-                        <Calendar size={14} /> Schedule for {order.scheduledDate}
-                      </button>
-                    )}
-
-                    {order.status === 'SCHEDULED' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'IN_PROGRESS')}
-                        className="btn btn-secondary btn-sm"
-                      >
-                        <Clock size={14} /> Mark In Progress
-                      </button>
-                    )}
-
-                    {order.status === 'IN_PROGRESS' && (
-                      <button
-                        onClick={() => updateOrderStatus(order.id, 'COMPLETED')}
-                        className="btn btn-primary btn-sm"
-                      >
-                        <CheckCircle size={14} /> Confirm Service Completed
-                      </button>
-                    )}
-
-                    {order.status === 'COMPLETED' && (
-                      <span className="badge badge-emerald">✓ Completed & Disbursed</span>
-                    )}
-                  </div>
-                </div>
-              ))}
-
-              {providerOrders.length === 0 && (
-                <div
-                  className="card"
-                  style={{ textAlign: 'center', padding: '36px', color: 'var(--text-muted)' }}
-                >
-                  <PackageCheck size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
-                  <p>No customer orders received yet.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <ProviderOrdersTab
+            providerOrders={providerOrders}
+            onAccept={(id) => updateOrderStatus(id, 'ACCEPTED')}
+            onSchedule={(id, date) => updateOrderStatus(id, 'SCHEDULED', date)}
+            onProgress={(id) => updateOrderStatus(id, 'IN_PROGRESS')}
+            onComplete={(id) => updateOrderStatus(id, 'COMPLETED')}
+            onDecline={(order) => setOrderToReject(order)}
+            onOpenChat={(id) => setChatOrderId(id)}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* FEATURE 12: BULK DELIVERY SHEET / MANIFEST TAB */}
-        {/* ============================================================== */}
         {activeTab === 'manifest' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '10px',
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                  Daily Gate & Tower Delivery Sheet
-                </h2>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Sorted sequentially by Tower & Flat for fast, error-free doorstep fulfillment.
-                </p>
-              </div>
-
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <button
-                  onClick={() => window.print()}
-                  className="btn btn-secondary btn-sm"
-                  style={{ display: 'flex', alignItems: 'center', gap: '6px' }}
-                >
-                  <Printer size={14} /> Print Manifest
-                </button>
-              </div>
-            </div>
-
-            {/* Manifest Progress Summary */}
-            <div
-              className="card"
-              style={{ background: 'var(--primary-light)', borderColor: 'var(--primary)' }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  flexWrap: 'wrap',
-                  gap: '8px',
-                }}
-              >
-                <div>
-                  <strong style={{ color: 'var(--primary-hover)', fontSize: '0.95rem' }}>
-                    {checkedManifestIds.length} of {allManifestItems.length} Doorsteps Fulfilled
-                    Today
-                  </strong>
-                  <div style={{ fontSize: '0.8rem', color: '#115e59' }}>
-                    Greenfield Heights Security Checkpoint Pass Active
-                  </div>
-                </div>
-                <div style={{ fontWeight: 800, fontSize: '1.2rem', color: 'var(--primary)' }}>
-                  {allManifestItems.length > 0
-                    ? Math.round((checkedManifestIds.length / allManifestItems.length) * 100)
-                    : 0}
-                  % Done
-                </div>
-              </div>
-            </div>
-
-            {/* Manifest Table */}
-            <div
-              className="card table-responsive"
-              style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
-            >
-              <table
-                style={{
-                  width: '100%',
-                  minWidth: '650px',
-                  borderCollapse: 'collapse',
-                  fontSize: '0.85rem',
-                  textAlign: 'left',
-                }}
-              >
-                <thead>
-                  <tr
-                    style={{
-                      background: 'var(--bg-subtle)',
-                      borderBottom: '1px solid var(--border-light)',
-                      color: 'var(--text-muted)',
-                    }}
-                  >
-                    <th style={{ padding: '12px 14px', width: '48px' }}>Done</th>
-                    <th style={{ padding: '12px 14px' }}>Flat / Tower</th>
-                    <th style={{ padding: '12px 14px' }}>Resident Name</th>
-                    <th style={{ padding: '12px 14px' }}>Service & Plan</th>
-                    <th style={{ padding: '12px 14px' }}>Preferred Slot</th>
-                    <th style={{ padding: '12px 14px' }}>Delivery Instructions</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {allManifestItems.map((item) => {
-                    const isDone = checkedManifestIds.includes(item.id);
-                    return (
-                      <tr
-                        key={item.id}
-                        style={{
-                          borderBottom: '1px solid var(--border-light)',
-                          background: isDone ? 'rgba(209, 250, 229, 0.3)' : 'transparent',
-                          transition: 'background 0.2s ease',
-                        }}
-                      >
-                        <td style={{ padding: '12px 14px', minWidth: '48px' }}>
-                          <input
-                            type="checkbox"
-                            checked={isDone}
-                            onChange={() => toggleManifestCheck(item.id)}
-                            style={{
-                              width: '22px',
-                              height: '22px',
-                              minWidth: '22px',
-                              minHeight: '22px',
-                              cursor: 'pointer',
-                              accentColor: 'var(--primary)',
-                            }}
-                          />
-                        </td>
-                        <td
-                          style={{ padding: '12px 14px', fontWeight: 800, color: 'var(--primary)' }}
-                        >
-                          {item.customerFlat}
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div style={{ fontWeight: 600 }}>{item.customerName}</div>
-                          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
-                            Use in-app chat
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px' }}>
-                          <div>{item.serviceName}</div>
-                          <span className="badge badge-slate" style={{ fontSize: '0.62rem' }}>
-                            {item.type}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 14px', fontWeight: 600 }}>{item.slot}</td>
-                        <td
-                          style={{
-                            padding: '12px 14px',
-                            fontSize: '0.8rem',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          {item.specialInstructions || 'Direct doorstep handover'}
-                        </td>
-                      </tr>
-                    );
-                  })}
-
-                  {allManifestItems.length === 0 && (
-                    <tr>
-                      <td
-                        colSpan={6}
-                        style={{ textAlign: 'center', padding: '30px', color: 'var(--text-muted)' }}
-                      >
-                        No delivery tasks scheduled for today. New orders will automatically
-                        populate here.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </div>
+          <ProviderManifestTab
+            allManifestItems={allManifestItems}
+            checkedManifestIds={checkedManifestIds}
+            onToggleCheck={toggleManifestCheck}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* RECURRING SUBSCRIPTIONS FULFILLMENT TAB */}
-        {/* ============================================================== */}
         {activeTab === 'subscriptions' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div>
-              <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                Recurring Resident Subscriptions
-              </h2>
-              <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                Society residents subscribed to your recurring daily tiffin, laundry pickup, or car
-                wash plans.
-              </p>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '14px',
-              }}
-            >
-              {providerSubscriptions.map((sub) => (
-                <div key={sub.id} className="card">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <div>
-                      <span className="badge badge-emerald" style={{ fontSize: '0.68rem' }}>
-                        {sub.frequency.replace('_', ' ')}
-                      </span>
-                      <h4 style={{ fontSize: '1rem', fontWeight: 700, marginTop: '4px' }}>
-                        {sub.customerName}
-                      </h4>
-                      <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
-                        {sub.customerFlat}
-                      </div>
-                    </div>
-                    <div style={{ fontWeight: 800, color: 'var(--primary)' }}>
-                      ₹{sub.monthlyPrice}/mo
-                    </div>
-                  </div>
-
-                  <div
-                    style={{
-                      margin: '12px 0',
-                      background: 'var(--bg-subtle)',
-                      padding: '10px',
-                      borderRadius: '6px',
-                      fontSize: '0.8rem',
-                    }}
-                  >
-                    <div>
-                      Time Slot: <strong>{sub.scheduledTimeSlot}</strong>
-                    </div>
-                    <div>
-                      Next Fulfillment: <strong>{sub.nextServiceDate}</strong>
-                    </div>
-                  </div>
-
-                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-                    <button
-                      onClick={() => toggleManifestCheck(sub.id)}
-                      className={`btn btn-sm ${checkedManifestIds.includes(sub.id) ? 'btn-primary' : 'btn-secondary'}`}
-                      style={{ fontSize: '0.75rem' }}
-                    >
-                      {checkedManifestIds.includes(sub.id)
-                        ? '✓ Delivered Today'
-                        : 'Mark Delivered for Today'}
-                    </button>
-                  </div>
-                </div>
-              ))}
-
-              {providerSubscriptions.length === 0 && (
-                <div
-                  className="card"
-                  style={{
-                    textAlign: 'center',
-                    padding: '36px',
-                    color: 'var(--text-muted)',
-                    gridColumn: '1 / -1',
-                  }}
-                >
-                  <Repeat size={36} style={{ margin: '0 auto 10px', opacity: 0.3 }} />
-                  <p>No active subscriptions yet.</p>
-                </div>
-              )}
-            </div>
-          </div>
+          <ProviderSubscriptionsTab
+            providerSubscriptions={providerSubscriptions}
+            checkedManifestIds={checkedManifestIds}
+            onToggleCheck={toggleManifestCheck}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* SERVICES & PRICING CATALOG TAB */}
-        {/* ============================================================== */}
         {activeTab === 'services' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '18px' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>Your Service Offerings</h2>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Configure your pricing models: Fixed, Hourly, Per-Item, Subscriptions, or
-                  Inspection.
-                </p>
-              </div>
-              <button
-                onClick={() => setShowAddServiceModal(true)}
-                className="btn btn-primary btn-sm"
-              >
-                <Plus size={16} /> Add New Service
-              </button>
-            </div>
-
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
-                gap: '16px',
-              }}
-            >
-              {providerServices.map((service) => (
-                <div key={service.id} className="card">
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'flex-start',
-                    }}
-                  >
-                    <div>
-                      <span className="badge badge-slate" style={{ fontSize: '0.68rem' }}>
-                        Model: {service.pricingModel.replace('_', ' ')}
-                      </span>
-                      <h4 style={{ fontSize: '1.05rem', fontWeight: 700, marginTop: '4px' }}>
-                        {service.name}
-                      </h4>
-                    </div>
-                    <div style={{ fontWeight: 800, fontSize: '1.1rem', color: 'var(--primary)' }}>
-                      ₹{service.basePrice}{' '}
-                      <span
-                        style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}
-                      >
-                        /{service.unitName}
-                      </span>
-                    </div>
-                  </div>
-
-                  <p style={{ fontSize: '0.8rem', color: 'var(--text-muted)', margin: '10px 0' }}>
-                    {service.description}
-                  </p>
-
-                  <div
-                    style={{
-                      display: 'flex',
-                      justifyContent: 'space-between',
-                      alignItems: 'center',
-                      borderTop: '1px solid var(--border-light)',
-                      paddingTop: '10px',
-                      fontSize: '0.75rem',
-                    }}
-                  >
-                    <span
-                      style={{
-                        color: service.isActive ? 'var(--accent-emerald)' : 'var(--text-muted)',
-                        fontWeight: 600,
-                      }}
-                    >
-                      ● {service.isActive ? 'Active on Marketplace' : 'Paused'}
-                    </span>
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      style={{ padding: '2px 8px', fontSize: '0.75rem' }}
-                    >
-                      Edit Pricing
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
+          <ProviderServicesTab
+            providerServices={providerServices}
+            onAddService={() => setShowAddServiceModal(true)}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* FEATURE 11: EARNINGS & PAYOUT WITHDRAWAL LEDGER */}
-        {/* ============================================================== */}
         {activeTab === 'earnings' && (
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                flexWrap: 'wrap',
-                gap: '12px',
-              }}
-            >
-              <div>
-                <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                  Financial Ledger & Bank Payouts
-                </h2>
-                <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                  Transparent net earnings after 10% platform take-rate with on-demand UPI / NEFT
-                  bank withdrawals.
-                </p>
-              </div>
-
-              <button
-                onClick={() => setShowPayoutModal(true)}
-                className="btn btn-primary"
-                disabled={withdrawableBalance <= 0}
-              >
-                <ArrowDownToLine size={16} /> Request Bank Payout (₹
-                {withdrawableBalance.toLocaleString()})
-              </button>
-            </div>
-
-            {/* Payout Summary Cards */}
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: '14px',
-              }}
-            >
-              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  GROSS GMV BILLED
-                </span>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '4px' }}>
-                  ₹{totalGrossEarnings.toFixed(2)}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Across {completedOrders.length} completed orders
-                </div>
-              </div>
-
-              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  PLATFORM COMMISSION (10%)
-                </span>
-                <div
-                  style={{
-                    fontSize: '1.4rem',
-                    fontWeight: 800,
-                    marginTop: '4px',
-                    color: 'var(--accent-amber)',
-                  }}
-                >
-                  -₹{totalCommissionPaid.toFixed(2)}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  Includes Razorpay PG & escrow fees
-                </div>
-              </div>
-
-              <div className="card" style={{ background: 'var(--bg-subtle)' }}>
-                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-                  TOTAL WITHDRAWN TO BANK
-                </span>
-                <div style={{ fontSize: '1.4rem', fontWeight: 800, marginTop: '4px' }}>
-                  ₹{totalWithdrawn.toLocaleString()}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '2px' }}>
-                  {providerPayouts.length} past transfers
-                </div>
-              </div>
-
-              <div
-                className="card"
-                style={{ background: '#ecfdf5', borderColor: 'var(--accent-emerald)' }}
-              >
-                <span style={{ fontSize: '0.75rem', color: '#065f46', fontWeight: 700 }}>
-                  AVAILABLE FOR WITHDRAWAL
-                </span>
-                <div
-                  style={{
-                    fontSize: '1.5rem',
-                    fontWeight: 800,
-                    marginTop: '4px',
-                    color: 'var(--accent-emerald)',
-                  }}
-                >
-                  ₹{withdrawableBalance.toFixed(2)}
-                </div>
-                <div style={{ fontSize: '0.72rem', color: '#047857', marginTop: '2px' }}>
-                  Direct UPI / NEFT transfer
-                </div>
-              </div>
-            </div>
-
-            {/* Payout History Ledger */}
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>
-                Bank Transfer History
-              </h3>
-              <div
-                className="card table-responsive"
-                style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
-              >
-                <table
-                  style={{
-                    width: '100%',
-                    minWidth: '650px',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.85rem',
-                    textAlign: 'left',
-                  }}
-                >
-                  <thead>
-                    <tr
-                      style={{
-                        background: 'var(--bg-subtle)',
-                        borderBottom: '1px solid var(--border-light)',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <th style={{ padding: '12px 16px' }}>Reference #</th>
-                      <th style={{ padding: '12px 16px' }}>Amount</th>
-                      <th style={{ padding: '12px 16px' }}>Method</th>
-                      <th style={{ padding: '12px 16px' }}>Account / UPI Details</th>
-                      <th style={{ padding: '12px 16px' }}>Date</th>
-                      <th style={{ padding: '12px 16px' }}>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {providerPayouts.map((pay) => (
-                      <tr key={pay.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700 }}>{pay.referenceId}</td>
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            fontWeight: 800,
-                            color: 'var(--accent-emerald)',
-                          }}
-                        >
-                          ₹{pay.amount.toLocaleString()}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span className="badge badge-slate" style={{ fontSize: '0.7rem' }}>
-                            {pay.method}
-                          </span>
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>{pay.accountDetails}</td>
-                        <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
-                          {new Date(pay.requestedAt).toLocaleDateString('en-IN', {
-                            day: 'numeric',
-                            month: 'short',
-                            year: 'numeric',
-                          })}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
-                            {pay.status === 'COMPLETED'
-                              ? 'Settled to Account'
-                              : 'Processing (Within 2 hrs)'}
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {providerPayouts.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          style={{
-                            textAlign: 'center',
-                            padding: '24px',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          No past withdrawals yet. When you request a payout, transaction records
-                          will appear here.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-
-            {/* Completed Orders Detailed Breakdown */}
-            <div>
-              <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '10px' }}>
-                Itemized Order Earnings
-              </h3>
-              <div
-                className="card table-responsive"
-                style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
-              >
-                <table
-                  style={{
-                    width: '100%',
-                    minWidth: '650px',
-                    borderCollapse: 'collapse',
-                    fontSize: '0.85rem',
-                    textAlign: 'left',
-                  }}
-                >
-                  <thead>
-                    <tr
-                      style={{
-                        background: 'var(--bg-subtle)',
-                        borderBottom: '1px solid var(--border-light)',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <th style={{ padding: '12px 16px' }}>Order #</th>
-                      <th style={{ padding: '12px 16px' }}>Resident Flat</th>
-                      <th style={{ padding: '12px 16px' }}>Gross GMV</th>
-                      <th style={{ padding: '12px 16px' }}>Platform Take Rate</th>
-                      <th style={{ padding: '12px 16px' }}>Net Provider Payout</th>
-                      <th style={{ padding: '12px 16px' }}>Disbursement</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {completedOrders.map((order) => (
-                      <tr key={order.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                        <td style={{ padding: '12px 16px', fontWeight: 700 }}>
-                          {order.orderNumber}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>{order.customerFlat}</td>
-                        <td style={{ padding: '12px 16px', fontWeight: 600 }}>
-                          ₹{order.subtotal.toFixed(2)}
-                        </td>
-                        <td style={{ padding: '12px 16px', color: 'var(--accent-amber)' }}>
-                          {order.commissionPercentage}% (-₹{order.platformCommission.toFixed(2)})
-                        </td>
-                        <td
-                          style={{
-                            padding: '12px 16px',
-                            fontWeight: 800,
-                            color: 'var(--accent-emerald)',
-                          }}
-                        >
-                          ₹{order.providerEarnings.toFixed(2)}
-                        </td>
-                        <td style={{ padding: '12px 16px' }}>
-                          <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
-                            Settled in Escrow
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                    {completedOrders.length === 0 && (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          style={{
-                            textAlign: 'center',
-                            padding: '24px',
-                            color: 'var(--text-muted)',
-                          }}
-                        >
-                          No completed orders yet.
-                        </td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
+          <ProviderEarningsTab
+            withdrawableBalance={withdrawableBalance}
+            totalGrossEarnings={totalGrossEarnings}
+            totalCommissionPaid={totalCommissionPaid}
+            totalWithdrawn={totalWithdrawn}
+            completedOrders={completedOrders}
+            providerPayouts={providerPayouts}
+            onOpenPayout={() => setShowPayoutModal(true)}
+          />
         )}
 
-        {/* ============================================================== */}
-        {/* REVIEWS & RATINGS TAB */}
-        {/* ============================================================== */}
-        {activeTab === 'reviews' &&
-          (() => {
-            const totalReviewsCount = myReviews.length;
-            const fiveStarCount = myReviews.filter((r) => r.rating === 5).length;
-            const fiveStarPct =
-              totalReviewsCount > 0 ? Math.round((fiveStarCount / totalReviewsCount) * 100) : 100;
-            const respondedCount = myReviews.filter((r) => Boolean(r.providerResponse)).length;
-            const responsePct =
-              totalReviewsCount > 0 ? Math.round((respondedCount / totalReviewsCount) * 100) : 0;
-
-            // Praise tags aggregation
-            const tagCounts: Record<string, number> = {};
-            myReviews.forEach((r) => {
-              r.tags?.forEach((tag) => {
-                tagCounts[tag] = (tagCounts[tag] || 0) + 1;
-              });
-            });
-            const sortedTags = Object.entries(tagCounts).sort((a, b) => b[1] - a[1]);
-
-            const handleSendReply = (reviewId: string) => {
-              if (!replyText.trim()) {
-                setReplyError('Please enter a response message.');
-                return;
-              }
-              const res = respondToReview(reviewId, replyText.trim());
-              if (res.success) {
-                setReplyingReviewId(null);
-                setReplyText('');
-                setReplyError('');
-              } else {
-                setReplyError(res.message);
-              }
-            };
-
-            return (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '22px' }}>
-                <div>
-                  <h2 style={{ fontSize: '1.3rem', fontWeight: 800 }}>
-                    Resident Reviews & Society Reputation
-                  </h2>
-                  <p style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                    Verified feedback from gated society residents who booked your services. Higher
-                    ratings boost your visibility in society listings.
-                  </p>
-                </div>
-
-                {/* Top Metric Cards */}
-                <div
-                  style={{
-                    display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                    gap: '14px',
-                  }}
-                >
-                  <div className="card">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>OVERALL RATING</span>
-                      <Star size={18} fill="#f59e0b" color="#f59e0b" />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '1.8rem',
-                        fontWeight: 900,
-                        color: '#b45309',
-                        marginTop: '6px',
-                      }}
-                    >
-                      ★ {dynamicRating}{' '}
-                      <span
-                        style={{ fontSize: '0.9rem', color: 'var(--text-muted)', fontWeight: 500 }}
-                      >
-                        / 5.0
-                      </span>
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.75rem',
-                        color: 'var(--accent-emerald)',
-                        marginTop: '2px',
-                        fontWeight: 600,
-                      }}
-                    >
-                      Top Rated in {provider.categoryName}
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>TOTAL REVIEWS</span>
-                      <ShieldCheck size={18} color="var(--accent-emerald)" />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '1.8rem',
-                        fontWeight: 900,
-                        color: 'var(--text-main)',
-                        marginTop: '6px',
-                      }}
-                    >
-                      {totalReviewsCount}
-                    </div>
-                    <div
-                      style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}
-                    >
-                      100% Verified Purchases
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>
-                        5-STAR SATISFACTION
-                      </span>
-                      <Star size={18} color="#10b981" />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '1.8rem',
-                        fontWeight: 900,
-                        color: '#059669',
-                        marginTop: '6px',
-                      }}
-                    >
-                      {fiveStarPct}%
-                    </div>
-                    <div
-                      style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}
-                    >
-                      {fiveStarCount} of {totalReviewsCount} rated 5 stars
-                    </div>
-                  </div>
-
-                  <div className="card">
-                    <div
-                      style={{
-                        display: 'flex',
-                        justifyContent: 'space-between',
-                        alignItems: 'center',
-                        color: 'var(--text-muted)',
-                      }}
-                    >
-                      <span style={{ fontSize: '0.78rem', fontWeight: 600 }}>RESPONSE RATE</span>
-                      <MessageCircle size={18} color="var(--primary)" />
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '1.8rem',
-                        fontWeight: 900,
-                        color: 'var(--primary)',
-                        marginTop: '6px',
-                      }}
-                    >
-                      {responsePct}%
-                    </div>
-                    <div
-                      style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}
-                    >
-                      {respondedCount} reviews replied to
-                    </div>
-                  </div>
-                </div>
-
-                {/* Praise Badges Earned */}
-                {sortedTags.length > 0 && (
-                  <div className="card" style={{ padding: '16px 20px' }}>
-                    <div
-                      style={{
-                        fontSize: '0.85rem',
-                        fontWeight: 700,
-                        marginBottom: '10px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '6px',
-                      }}
-                    >
-                      <Star size={15} fill="#f59e0b" color="#f59e0b" /> Praise Badges Earned From
-                      Neighbors
-                    </div>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-                      {sortedTags.map(([tag, count]) => (
-                        <div
-                          key={tag}
-                          style={{
-                            background:
-                              'linear-gradient(135deg, rgba(13,148,136,0.08) 0%, rgba(16,185,129,0.08) 100%)',
-                            border: '1.5px solid rgba(13,148,136,0.25)',
-                            borderRadius: '24px',
-                            padding: '6px 14px',
-                            fontSize: '0.8rem',
-                            fontWeight: 700,
-                            color: '#0f766e',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '6px',
-                          }}
-                        >
-                          <span>{tag}</span>
-                          <span
-                            style={{
-                              background: '#0f766e',
-                              color: '#fff',
-                              borderRadius: '10px',
-                              padding: '1px 6px',
-                              fontSize: '0.7rem',
-                            }}
-                          >
-                            {count}
-                          </span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {/* Reviews List */}
-                <div>
-                  <h3 style={{ fontSize: '1.1rem', fontWeight: 700, marginBottom: '12px' }}>
-                    Resident Testimonials ({myReviews.length})
-                  </h3>
-
-                  {myReviews.length === 0 ? (
-                    <div className="card" style={{ textAlign: 'center', padding: '40px 20px' }}>
-                      <Star
-                        size={40}
-                        color="var(--text-subtle)"
-                        style={{ margin: '0 auto 12px' }}
-                      />
-                      <div style={{ fontWeight: 700, fontSize: '1rem', marginBottom: '4px' }}>
-                        No Resident Reviews Yet
-                      </div>
-                      <div style={{ fontSize: '0.825rem', color: 'var(--text-muted)' }}>
-                        Complete pending bookings to receive verified ratings from society
-                        residents.
-                      </div>
-                    </div>
-                  ) : (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
-                      {myReviews.map((rev) => {
-                        const initial = rev.customerName?.charAt(0).toUpperCase() || 'R';
-                        const formattedDate = new Date(rev.createdAt).toLocaleDateString('en-IN', {
-                          day: 'numeric',
-                          month: 'short',
-                          year: 'numeric',
-                        });
-
-                        const isReplying = replyingReviewId === rev.id;
-
-                        return (
-                          <div
-                            key={rev.id}
-                            className="card"
-                            style={{
-                              padding: '18px 20px',
-                              border: '1px solid var(--border-light)',
-                            }}
-                          >
-                            {/* Header */}
-                            <div
-                              style={{
-                                display: 'flex',
-                                justifyContent: 'space-between',
-                                alignItems: 'flex-start',
-                                flexWrap: 'wrap',
-                                gap: '10px',
-                              }}
-                            >
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                                <div
-                                  style={{
-                                    width: '38px',
-                                    height: '38px',
-                                    borderRadius: '50%',
-                                    background: 'linear-gradient(135deg, #0d9488 0%, #0284c7 100%)',
-                                    color: '#fff',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 800,
-                                    fontSize: '0.9rem',
-                                  }}
-                                >
-                                  {initial}
-                                </div>
-                                <div>
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '8px',
-                                      flexWrap: 'wrap',
-                                    }}
-                                  >
-                                    <strong style={{ fontSize: '0.95rem' }}>
-                                      {rev.customerName}
-                                    </strong>
-                                    {rev.customerFlat && (
-                                      <span
-                                        style={{
-                                          fontSize: '0.74rem',
-                                          background: 'var(--bg-subtle)',
-                                          color: 'var(--text-main)',
-                                          padding: '2px 8px',
-                                          borderRadius: '4px',
-                                          fontWeight: 600,
-                                        }}
-                                      >
-                                        {rev.customerFlat}
-                                      </span>
-                                    )}
-                                    <span
-                                      style={{
-                                        color: 'var(--accent-emerald)',
-                                        fontSize: '0.7rem',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        gap: '3px',
-                                        fontWeight: 700,
-                                      }}
-                                    >
-                                      <ShieldCheck size={13} /> Verified Order
-                                    </span>
-                                  </div>
-                                  <div
-                                    style={{
-                                      fontSize: '0.75rem',
-                                      color: 'var(--text-muted)',
-                                      marginTop: '2px',
-                                    }}
-                                  >
-                                    📍 {rev.societyName || 'Greenfield Heights'} • {formattedDate}
-                                  </div>
-                                </div>
-                              </div>
-
-                              {/* Stars */}
-                              <div style={{ display: 'flex', gap: '3px', alignItems: 'center' }}>
-                                {[1, 2, 3, 4, 5].map((s) => (
-                                  <Star
-                                    key={s}
-                                    size={16}
-                                    fill={s <= rev.rating ? '#f59e0b' : 'none'}
-                                    color="#f59e0b"
-                                  />
-                                ))}
-                              </div>
-                            </div>
-
-                            {/* Service Title */}
-                            {rev.serviceName && (
-                              <div
-                                style={{
-                                  marginTop: '10px',
-                                  fontSize: '0.78rem',
-                                  color: 'var(--primary)',
-                                  fontWeight: 600,
-                                }}
-                              >
-                                Service: {rev.serviceName}
-                              </div>
-                            )}
-
-                            {/* Tags */}
-                            {rev.tags && rev.tags.length > 0 && (
-                              <div
-                                style={{
-                                  display: 'flex',
-                                  flexWrap: 'wrap',
-                                  gap: '6px',
-                                  marginTop: '8px',
-                                }}
-                              >
-                                {rev.tags.map((t) => (
-                                  <span
-                                    key={t}
-                                    style={{
-                                      fontSize: '0.72rem',
-                                      background: '#f8fafc',
-                                      border: '1px solid #e2e8f0',
-                                      padding: '3px 8px',
-                                      borderRadius: '14px',
-                                      color: '#334155',
-                                      fontWeight: 600,
-                                    }}
-                                  >
-                                    {t}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-
-                            {/* Comment */}
-                            <p
-                              style={{
-                                color: 'var(--text-main)',
-                                fontSize: '0.88rem',
-                                lineHeight: 1.55,
-                                marginTop: '10px',
-                                margin: '10px 0 0',
-                              }}
-                            >
-                              "{rev.comment}"
-                            </p>
-
-                            {/* Existing Provider Response */}
-                            {rev.providerResponse && (
-                              <div
-                                style={{
-                                  marginTop: '14px',
-                                  background: 'var(--bg-subtle)',
-                                  borderLeft: '3px solid var(--primary)',
-                                  padding: '10px 14px',
-                                  borderRadius: '0 8px 8px 0',
-                                  fontSize: '0.82rem',
-                                }}
-                              >
-                                <div
-                                  style={{
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'space-between',
-                                    marginBottom: '4px',
-                                  }}
-                                >
-                                  <strong
-                                    style={{
-                                      color: 'var(--primary)',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                    }}
-                                  >
-                                    💬 Your Response ({provider.businessName})
-                                  </strong>
-                                  <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)' }}>
-                                    {new Date(rev.providerResponse.respondedAt).toLocaleDateString(
-                                      'en-IN',
-                                      { day: 'numeric', month: 'short' },
-                                    )}
-                                  </span>
-                                </div>
-                                <p style={{ margin: 0, color: '#334155', lineHeight: 1.45 }}>
-                                  {rev.providerResponse.comment}
-                                </p>
-                              </div>
-                            )}
-
-                            {/* Reply Action / Form */}
-                            {!rev.providerResponse && (
-                              <div
-                                style={{
-                                  marginTop: '12px',
-                                  paddingTop: '10px',
-                                  borderTop: '1px solid var(--border-light)',
-                                }}
-                              >
-                                {!isReplying ? (
-                                  <button
-                                    onClick={() => {
-                                      setReplyingReviewId(rev.id);
-                                      setReplyText('');
-                                      setReplyError('');
-                                    }}
-                                    className="btn btn-secondary btn-sm"
-                                    style={{
-                                      fontSize: '0.78rem',
-                                      display: 'flex',
-                                      alignItems: 'center',
-                                      gap: '5px',
-                                    }}
-                                  >
-                                    <MessageCircle size={13} /> Reply to Resident
-                                  </button>
-                                ) : (
-                                  <div
-                                    style={{
-                                      display: 'flex',
-                                      flexDirection: 'column',
-                                      gap: '8px',
-                                      background: 'var(--bg-subtle)',
-                                      padding: '12px',
-                                      borderRadius: 'var(--radius-md)',
-                                    }}
-                                  >
-                                    <label style={{ fontSize: '0.78rem', fontWeight: 700 }}>
-                                      Write a polite response to {rev.customerName}:
-                                    </label>
-                                    <textarea
-                                      value={replyText}
-                                      onChange={(e) => {
-                                        setReplyText(e.target.value);
-                                        setReplyError('');
-                                      }}
-                                      rows={2}
-                                      className="form-input"
-                                      placeholder="Thank you for your feedback! We look forward to serving your household again..."
-                                      style={{ fontSize: '0.82rem' }}
-                                    />
-                                    {replyError && (
-                                      <div
-                                        style={{ color: 'var(--accent-rose)', fontSize: '0.75rem' }}
-                                      >
-                                        {replyError}
-                                      </div>
-                                    )}
-                                    <div style={{ display: 'flex', gap: '8px' }}>
-                                      <button
-                                        type="button"
-                                        onClick={() => handleSendReply(rev.id)}
-                                        className="btn btn-primary btn-sm"
-                                        style={{ fontSize: '0.78rem' }}
-                                      >
-                                        Publish Reply
-                                      </button>
-                                      <button
-                                        type="button"
-                                        onClick={() => {
-                                          setReplyingReviewId(null);
-                                          setReplyText('');
-                                          setReplyError('');
-                                        }}
-                                        className="btn btn-secondary btn-sm"
-                                        style={{ fontSize: '0.78rem' }}
-                                      >
-                                        Cancel
-                                      </button>
-                                    </div>
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            );
-          })()}
+        {activeTab === 'reviews' && (
+          <ProviderReviewsTab
+            myReviews={myReviews}
+            dynamicRating={Number(dynamicRating)}
+            categoryName={provider.categoryName}
+            businessName={provider.businessName}
+            onRespondToReview={respondToReview}
+          />
+        )}
       </div>
 
       {/* Feature 10: Decline Order Modal */}
@@ -2788,7 +1139,7 @@ export default function ProviderDashboard() {
               </div>
 
               <div>
-                <label className="form-label">Description & What's Included</label>
+                <label className="form-label">Description &amp; What&apos;s Included</label>
                 <textarea
                   rows={3}
                   placeholder="Explain what is covered for the society residents..."

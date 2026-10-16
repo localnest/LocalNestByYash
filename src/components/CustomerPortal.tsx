@@ -8,6 +8,8 @@ import BookingModal from './BookingModal';
 import ReviewModal from './ReviewModal';
 import ComplaintModal from './ComplaintModal';
 import ResidentDispatchCenter from './ResidentDispatchCenter';
+import CancellationConfirmModal from './customer/CancellationConfirmModal';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   Home,
   Compass,
@@ -19,8 +21,6 @@ import {
   Star,
   ShieldCheck,
   MapPin,
-  Calendar,
-  Check,
   AlertCircle,
   Sparkles,
   Shirt,
@@ -41,10 +41,18 @@ import {
   Wallet,
   MessageCircle,
   Send,
-  Gift,
-  TrendingUp,
-  ThumbsUp,
 } from 'lucide-react';
+
+type CustomerTab =
+  | 'dispatch'
+  | 'home'
+  | 'explore'
+  | 'orders'
+  | 'subscriptions'
+  | 'offers'
+  | 'support'
+  | 'wallet'
+  | 'notices';
 
 export default function CustomerPortal() {
   const {
@@ -68,33 +76,22 @@ export default function CustomerPortal() {
     getWalletBalance,
     getWalletStreak,
     walletTransactions,
-    createOrder,
     createServiceRequest,
     sendChatMessage,
     getOrderMessages,
-    language,
-    setLanguage,
     t,
   } = useMarketplace();
 
-  // Active Tab: 'dispatch' | 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
-  const [activeTab, setActiveTab] = useState<
-    | 'dispatch'
-    | 'home'
-    | 'explore'
-    | 'orders'
-    | 'subscriptions'
-    | 'offers'
-    | 'support'
-    | 'wallet'
-    | 'notices'
-  >('dispatch');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<CustomerTab>('dispatch');
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatError, setChatError] = useState('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
+
+  const { notify } = useNotification();
 
   // Modals
   const [bookingService, setBookingService] = useState<{
@@ -103,6 +100,7 @@ export default function CustomerPortal() {
   } | null>(null);
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [complaintOrder, setComplaintOrder] = useState<Order | null>(null);
+  const [cancellationOrder, setCancellationOrder] = useState<Order | null>(null);
   const [viewingProvider, setViewingProvider] = useState<Provider | null>(null);
   const [providerReviewFilter, setProviderReviewFilter] = useState<'ALL' | 'LOCAL'>('ALL');
   const [dismissedNoticeIds, setDismissedNoticeIds] = useState<string[]>([]);
@@ -294,7 +292,7 @@ export default function CustomerPortal() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as CustomerTab)}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
                   style={{
                     borderRadius: '8px',
@@ -880,10 +878,10 @@ export default function CustomerPortal() {
                               borderRadius: '6px',
                             }}
                           >
-                            "
+                            &quot;
                             {provider.vacationReason ||
                               'Currently taking a break. Resuming orders soon.'}
-                            "
+                            &quot;
                           </div>
                         )}
 
@@ -917,7 +915,7 @@ export default function CustomerPortal() {
                                 lineHeight: 1.4,
                               }}
                             >
-                              "{provReviews[0].comment.slice(0, 95)}..."
+                              &quot;{provReviews[0].comment.slice(0, 95)}...&quot;
                             </div>
                             <div
                               style={{
@@ -1181,7 +1179,7 @@ export default function CustomerPortal() {
                     lineHeight: 1.5,
                   }}
                 >
-                  We haven't launched coverage for{' '}
+                  We haven&apos;t launched coverage for{' '}
                   {selectedCategorySlug !== 'all'
                     ? categories.find((c) => c.slug === selectedCategorySlug)?.name
                     : 'this category'}{' '}
@@ -1392,7 +1390,7 @@ export default function CustomerPortal() {
                               paddingLeft: '8px',
                             }}
                           >
-                            "{provReviews[0].comment.slice(0, 110)}..."
+                            &quot;{provReviews[0].comment.slice(0, 110)}...&quot;
                             <div
                               style={{
                                 fontSize: '0.7rem',
@@ -1642,10 +1640,10 @@ export default function CustomerPortal() {
                             <AlertCircle size={18} /> Request Declined by Provider
                           </div>
                           <div style={{ marginTop: '6px', fontSize: '0.85rem', color: '#9f1239' }}>
-                            <strong>Decline Reason:</strong> "
+                            <strong>Decline Reason:</strong> &quot;
                             {order.rejectionReason ||
                               'Provider is currently at maximum capacity for today.'}
-                            "
+                            &quot;
                           </div>
                           <div
                             style={{
@@ -1852,7 +1850,7 @@ export default function CustomerPortal() {
                       >
                         {isCancellable && (
                           <button
-                            onClick={() => cancelOrder(order.id, 'Resident requested cancellation')}
+                            onClick={() => setCancellationOrder(order)}
                             className="btn btn-secondary btn-sm"
                             style={{ color: 'var(--accent-rose)' }}
                           >
@@ -3576,9 +3574,13 @@ export default function CustomerPortal() {
           service={bookingService.service}
           provider={bookingService.provider}
           onClose={() => setBookingService(null)}
-          onSuccess={() => {
+          onSuccess={(orderNumber) => {
             setBookingService(null);
             setActiveTab('orders');
+            notify.success(`Your booking has been confirmed and placed in escrow.`, {
+              title: 'Booking Confirmed!',
+              referenceId: orderNumber,
+            });
           }}
         />
       )}
@@ -3590,6 +3592,22 @@ export default function CustomerPortal() {
       {complaintOrder && (
         <ComplaintModal order={complaintOrder} onClose={() => setComplaintOrder(null)} />
       )}
+
+      {/* Cancellation Confirm Modal */}
+      <CancellationConfirmModal
+        order={cancellationOrder}
+        isOpen={cancellationOrder !== null}
+        onClose={() => setCancellationOrder(null)}
+        onConfirmCancel={(orderId, reason) => {
+          cancelOrder(orderId, reason);
+          const orderNum = cancellationOrder?.orderNumber;
+          setCancellationOrder(null);
+          notify.info(
+            'Your booking has been cancelled. Any eligible refund will be processed within 3–5 business days.',
+            { title: 'Booking Cancelled', referenceId: orderNum },
+          );
+        }}
+      />
 
       {/* Bottom Navigation for Mobile / Tablet */}
       <nav className="mobile-nav">
@@ -3605,7 +3623,7 @@ export default function CustomerPortal() {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
+              onClick={() => setActiveTab(item.id as CustomerTab)}
               className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={20} />

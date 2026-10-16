@@ -2,9 +2,10 @@
 
 import React, { useState, useMemo } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { Service, Provider, PricingModel } from '@/lib/types';
+import { Service, Provider } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
 import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   X,
   CheckCircle,
@@ -17,6 +18,24 @@ import {
   ArrowRight,
   Wallet,
 } from 'lucide-react';
+
+const ALL_SLOTS = [
+  { label: '07:00 – 09:00 AM', tag: 'Early Bird', startH: 7 },
+  { label: '09:00 – 11:00 AM', tag: 'Morning', startH: 9 },
+  { label: '11:00 AM – 01:00 PM', tag: 'Late Morning', startH: 11 },
+  { label: '01:00 – 03:00 PM', tag: 'Afternoon', startH: 13 },
+  { label: '03:00 – 05:00 PM', tag: 'Mid Afternoon', startH: 15 },
+  { label: '05:00 – 07:00 PM', tag: 'Evening', startH: 17 },
+];
+
+const parseHour = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  const [hm, period] = timeStr.split(' ');
+  let h = parseInt(hm.split(':')[0], 10);
+  if (period === 'PM' && h !== 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  return h;
+};
 
 interface BookingModalProps {
   service: Service;
@@ -37,6 +56,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     orders,
     t,
   } = useMarketplace();
+  const { notify } = useNotification();
   const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
@@ -85,9 +105,10 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     discount: number;
   } | null>(null);
 
-  // Razorpay Checkout Simulation Step
+  // Razorpay Checkout Step
   const [isProcessingPayment, setIsProcessingPayment] = useState<boolean>(false);
   const [paymentSuccess, setPaymentSuccess] = useState<boolean>(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   // Calculate Subtotal dynamically based on model
   const calculateSubtotal = (): number => {
@@ -138,26 +159,6 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     provider.maxOrdersPerDay && providerOrdersOnDate.length >= provider.maxOrdersPerDay,
   );
 
-  // ── Smart Slot Logic ─────────────────────────────────────────────────────
-  const ALL_SLOTS = [
-    { label: '07:00 – 09:00 AM', tag: 'Early Bird', startH: 7 },
-    { label: '09:00 – 11:00 AM', tag: 'Morning', startH: 9 },
-    { label: '11:00 AM – 01:00 PM', tag: 'Late Morning', startH: 11 },
-    { label: '01:00 – 03:00 PM', tag: 'Afternoon', startH: 13 },
-    { label: '03:00 – 05:00 PM', tag: 'Mid Afternoon', startH: 15 },
-    { label: '05:00 – 07:00 PM', tag: 'Evening', startH: 17 },
-  ];
-
-  const parseHour = (timeStr: string): number => {
-    // e.g. '08:00 AM' => 8, '08:00 PM' => 20
-    if (!timeStr) return 0;
-    const [hm, period] = timeStr.split(' ');
-    let h = parseInt(hm.split(':')[0], 10);
-    if (period === 'PM' && h !== 12) h += 12;
-    if (period === 'AM' && h === 12) h = 0;
-    return h;
-  };
-
   const selectedDayName = useMemo(
     () => new Date(scheduledDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
     [scheduledDate],
@@ -196,19 +197,12 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
 
   const isSlotFull = (slotLabel: string) => (slotBookingCounts[slotLabel] || 0) >= perSlotCap;
 
-  // Auto-select first open slot when date or available slots change
-  React.useEffect(() => {
-    if (
-      !scheduledSlot ||
-      !availableSlots.find((s) => s.label === scheduledSlot && !isSlotFull(s.label))
-    ) {
-      const firstOpen = availableSlots.find((s) => !isSlotFull(s.label));
-      setScheduledSlot(firstOpen?.label || (availableSlots[0]?.label ?? ''));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduledDate, availableSlots.length]);
+  const effectiveSlot =
+    scheduledSlot && availableSlots.some((s) => s.label === scheduledSlot && !isSlotFull(s.label))
+      ? scheduledSlot
+      : availableSlots.find((s) => !isSlotFull(s.label))?.label || (availableSlots[0]?.label ?? '');
 
-  const isSlotBooked = scheduledSlot ? isSlotFull(scheduledSlot) : false;
+  const isSlotBooked = effectiveSlot ? isSlotFull(effectiveSlot) : false;
 
   // Live discount
   const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
@@ -238,41 +232,108 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     }
   };
 
-  const handleProcessOrder = () => {
+  const handleProcessOrder = async () => {
     setIsProcessingPayment(true);
+    setPaymentError(null);
 
-    // Simulate Razorpay Gateway Interaction
-    setTimeout(() => {
-      const isSub = service.pricingModel === 'SUBSCRIPTION';
-      const totalItemsCount =
-        service.pricingModel === 'PER_ITEM'
-          ? Object.values(itemQuantities).reduce((a, b) => a + b, 0) || 1
-          : itemQuantity;
+    const isSub = service.pricingModel === 'SUBSCRIPTION';
+    const totalItemsCount =
+      service.pricingModel === 'PER_ITEM'
+        ? Object.values(itemQuantities).reduce((a, b) => a + b, 0) || 1
+        : itemQuantity;
 
-      const res = createOrder({
-        serviceId: service.id,
-        scheduledDate,
-        scheduledSlot,
-        deliveryAddress,
-        specialInstructions,
-        pricingModel: service.pricingModel,
-        itemQuantity: totalItemsCount,
-        subtotal,
-        couponCode: appliedCoupon || undefined,
-        walletAmountToUse: walletDiscount,
-        travelCharge: travelCharge > 0 ? travelCharge : undefined,
-        isSubscription: isSub,
-        subscriptionFrequency,
-      });
+    const res = createOrder({
+      serviceId: service.id,
+      scheduledDate,
+      scheduledSlot: effectiveSlot,
+      deliveryAddress,
+      specialInstructions,
+      pricingModel: service.pricingModel,
+      itemQuantity: totalItemsCount,
+      subtotal,
+      couponCode: appliedCoupon || undefined,
+      walletAmountToUse: walletDiscount,
+      travelCharge: travelCharge > 0 ? travelCharge : undefined,
+      isSubscription: isSub,
+      subscriptionFrequency,
+    });
 
+    if (!res.success || !res.orderNumber) {
       setIsProcessingPayment(false);
-      if (res.success && res.orderNumber) {
-        setPaymentSuccess(true);
-        setTimeout(() => {
-          onSuccess(res.orderNumber!);
-        }, 1200);
+      const errMsg = res.message || 'Unable to place order. Please check inputs.';
+      setPaymentError(errMsg);
+      notify.error(errMsg, { title: 'Booking Failed' });
+      return;
+    }
+
+    const orderNum = res.orderNumber;
+
+    // Check if live Razorpay SDK is present on window
+    const win =
+      typeof window !== 'undefined'
+        ? (window as unknown as {
+            Razorpay?: new (opts: Record<string, unknown>) => { open: () => void };
+          })
+        : undefined;
+
+    if (win && typeof win.Razorpay === 'function') {
+      try {
+        const orderRes = await fetch('/api/payments/create-order', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            amountInRupees: totalPayable,
+            orderNumber: orderNum,
+            customerId: currentUser?.id || 'guest',
+            notes: { society: selectedSociety.name, service: service.name },
+          }),
+        });
+
+        const orderData = await orderRes.json();
+        const rzp = new win.Razorpay({
+          key: process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || 'rzp_test_placeholder',
+          order_id: orderData.id,
+          amount: orderData.amount,
+          currency: 'INR',
+          name: 'LocalNest',
+          description: `Escrow Hold for ${service.name}`,
+          prefill: {
+            name: currentUser?.fullName || 'Resident',
+            contact: currentUser?.phone || '9999999999',
+          },
+          theme: { color: '#0d9488' },
+          handler: function () {
+            setIsProcessingPayment(false);
+            setPaymentSuccess(true);
+            notify.success('Razorpay payment confirmed. Booking placed in escrow.', {
+              title: 'Payment Successful!',
+            });
+            setTimeout(() => onSuccess(orderNum), 1200);
+          },
+          modal: {
+            ondismiss: function () {
+              setIsProcessingPayment(false);
+              const errMsg = 'Payment window was dismissed. You can retry with 1-click.';
+              setPaymentError(errMsg);
+              notify.warning(errMsg);
+            },
+          },
+        });
+        rzp.open();
+        return;
+      } catch {
+        // Fallback to test simulation if network/gateway unavailable
       }
-    }, 1000);
+    }
+
+    // Default fast sandbox / test simulation mode
+    setTimeout(() => {
+      setIsProcessingPayment(false);
+      setPaymentSuccess(true);
+      setTimeout(() => {
+        onSuccess(orderNum);
+      }, 1000);
+    }, 800);
   };
 
   return (
@@ -373,8 +434,8 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     Provider is Currently on Leave / Vacation
                   </strong>
                   <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: '2px' }}>
-                    "{provider.vacationReason || 'Taking a short break'}" — New bookings are
-                    temporarily paused.
+                    &quot;{provider.vacationReason || 'Taking a short break'}&quot; — New bookings
+                    are temporarily paused.
                   </div>
                 </div>
               </div>
@@ -787,7 +848,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     >
                       {availableSlots.map((slot) => {
                         const full = isSlotFull(slot.label);
-                        const selected = scheduledSlot === slot.label;
+                        const selected = effectiveSlot === slot.label;
                         const bookingsInSlot = slotBookingCounts[slot.label] || 0;
                         return (
                           <button
@@ -1194,6 +1255,27 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               </div>
             </div>
 
+            {/* Payment Failure / Retry Banner */}
+            {paymentError && (
+              <div
+                style={{
+                  background: '#fef2f2',
+                  border: '1px solid #fecaca',
+                  borderRadius: 'var(--radius-md)',
+                  padding: '10px 14px',
+                  marginTop: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  color: '#991b1b',
+                  fontSize: '0.82rem',
+                }}
+              >
+                <AlertCircle size={16} color="#dc2626" style={{ flexShrink: 0 }} />
+                <div style={{ flex: 1 }}>{paymentError}</div>
+              </div>
+            )}
+
             {/* Action Button: Razorpay Checkout (Disabled if Provider on Vacation) */}
             <button
               type="button"
@@ -1204,7 +1286,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 isOffDay ||
                 isSlotBooked ||
                 provider.isVacationMode ||
-                !scheduledSlot ||
+                !effectiveSlot ||
                 (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)
               }
               onClick={handleProcessOrder}
