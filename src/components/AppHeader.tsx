@@ -143,127 +143,129 @@ export default function AppHeader() {
               </div>
             </div>
 
-            {/* Society Pill — varies by role */}
-            {currentUser.role === 'ADMIN' ? (
-              /* Admin: full society switcher across all societies */
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255,255,255,0.1)',
-                  padding: '4px 8px',
-                  borderRadius: '20px',
-                  maxWidth: '180px',
-                  minWidth: 0,
-                }}
-              >
-                <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
-                <select
-                  value={selectedSociety.id}
-                  onChange={(e) => {
-                    const s = societies.find((soc) => soc.id === e.target.value);
-                    if (s) setSelectedSociety(s);
-                  }}
+            {/* Society Pill — varies by role (Desktop only; on mobile it is in the sidebar drawer) */}
+            <div className="desktop-only">
+              {currentUser.role === 'ADMIN' ? (
+                /* Admin: full society switcher across all societies */
+                <div
                   style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#fff',
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    outline: 'none',
-                    cursor: 'pointer',
-                    maxWidth: '140px',
-                    textOverflow: 'ellipsis',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(255,255,255,0.1)',
+                    padding: '4px 8px',
+                    borderRadius: '20px',
+                    maxWidth: '180px',
+                    minWidth: 0,
                   }}
                 >
-                  {societies.map((soc) => (
-                    <option
-                      key={soc.id}
-                      value={soc.id}
-                      style={{ color: '#0f172a', background: '#fff' }}
-                    >
-                      {soc.name} ({soc.totalFlats.toLocaleString()} flats)
-                    </option>
-                  ))}
-                </select>
-              </div>
-            ) : currentUser.role === 'PROVIDER' && activeProvider ? (
-              /* Provider: show their actual service coverage footprint */
-              (() => {
-                const covered = getCoveredSocieties(activeProvider, societies);
-                const radiusLabel =
-                  activeProvider.coverageMode === 'RADIUS'
-                    ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
-                    : 'Selected societies';
-                return (
-                  <div
-                    style={{
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '6px',
-                      background: 'rgba(255,255,255,0.1)',
-                      padding: '4px 10px',
-                      borderRadius: '20px',
-                      cursor: 'default',
-                      userSelect: 'none',
-                      maxWidth: '220px',
-                      minWidth: 0,
+                  <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
+                  <select
+                    value={selectedSociety.id}
+                    onChange={(e) => {
+                      const s = societies.find((soc) => soc.id === e.target.value);
+                      if (s) setSelectedSociety(s);
                     }}
-                    title={covered.map((s) => s.name).join(', ') || 'No societies covered yet'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#fff',
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                      outline: 'none',
+                      cursor: 'pointer',
+                      maxWidth: '140px',
+                      textOverflow: 'ellipsis',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                    }}
                   >
-                    <Navigation size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
-                    <span
+                    {societies.map((soc) => (
+                      <option
+                        key={soc.id}
+                        value={soc.id}
+                        style={{ color: '#0f172a', background: '#fff' }}
+                      >
+                        {soc.name} ({soc.totalFlats.toLocaleString()} flats)
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ) : currentUser.role === 'PROVIDER' && activeProvider ? (
+                /* Provider: show their actual service coverage footprint */
+                (() => {
+                  const covered = getCoveredSocieties(activeProvider, societies);
+                  const radiusLabel =
+                    activeProvider.coverageMode === 'RADIUS'
+                      ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
+                      : 'Selected societies';
+                  return (
+                    <div
                       style={{
-                        fontSize: '0.76rem',
-                        fontWeight: 600,
-                        color: '#fff',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px',
+                        background: 'rgba(255,255,255,0.1)',
+                        padding: '4px 10px',
+                        borderRadius: '20px',
+                        cursor: 'default',
+                        userSelect: 'none',
+                        maxWidth: '220px',
+                        minWidth: 0,
                       }}
+                      title={covered.map((s) => s.name).join(', ') || 'No societies covered yet'}
                     >
-                      {covered.length > 0
-                        ? `Covers ${covered.length} ${covered.length === 1 ? 'society' : 'societies'} · ${radiusLabel}`
-                        : 'No coverage set'}
-                    </span>
-                  </div>
-                );
-              })()
-            ) : (
-              /* Resident: static home-society label — they live in one place */
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '6px',
-                  background: 'rgba(255,255,255,0.1)',
-                  padding: '4px 10px',
-                  borderRadius: '20px',
-                  cursor: 'default',
-                  userSelect: 'none',
-                  maxWidth: '190px',
-                  minWidth: 0,
-                }}
-                title={`You are registered at ${selectedSociety.name}`}
-              >
-                <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
-                <span
+                      <Navigation size={13} color="#f59e0b" style={{ flexShrink: 0 }} />
+                      <span
+                        style={{
+                          fontSize: '0.76rem',
+                          fontWeight: 600,
+                          color: '#fff',
+                          whiteSpace: 'nowrap',
+                          overflow: 'hidden',
+                          textOverflow: 'ellipsis',
+                        }}
+                      >
+                        {covered.length > 0
+                          ? `Covers ${covered.length} ${covered.length === 1 ? 'society' : 'societies'} · ${radiusLabel}`
+                          : 'No coverage set'}
+                      </span>
+                    </div>
+                  );
+                })()
+              ) : (
+                /* Resident: static home-society label — they live in one place */
+                <div
                   style={{
-                    fontSize: '0.76rem',
-                    fontWeight: 600,
-                    color: '#fff',
-                    whiteSpace: 'nowrap',
-                    overflow: 'hidden',
-                    textOverflow: 'ellipsis',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                    background: 'rgba(255,255,255,0.1)',
+                    padding: '4px 10px',
+                    borderRadius: '20px',
+                    cursor: 'default',
+                    userSelect: 'none',
+                    maxWidth: '190px',
+                    minWidth: 0,
                   }}
+                  title={`You are registered at ${selectedSociety.name}`}
                 >
-                  {selectedSociety.name}
-                </span>
-              </div>
-            )}
+                  <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
+                  <span
+                    style={{
+                      fontSize: '0.76rem',
+                      fontWeight: 600,
+                      color: '#fff',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {selectedSociety.name}
+                  </span>
+                </div>
+              )}
+            </div>
           </div>
 
           {/* Mobile Hamburger Button */}
@@ -552,25 +554,110 @@ export default function AppHeader() {
                 </div>
               </div>
 
-              {/* Society Section */}
+              {/* Society / Coverage Section */}
               <div className="mobile-drawer-section">
-                <span className="mobile-drawer-label">Society Location</span>
-                <div
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '8px',
-                    padding: '10px 14px',
-                    background: 'var(--bg-subtle)',
-                    borderRadius: 'var(--radius-md)',
-                    fontSize: '0.875rem',
-                    fontWeight: 600,
-                    color: 'var(--text-main)',
-                  }}
-                >
-                  <MapPin size={16} color="var(--primary)" />
-                  <span>{selectedSociety.name}</span>
-                </div>
+                <span className="mobile-drawer-label">
+                  {currentUser.role === 'PROVIDER' ? 'Service Coverage' : 'Society Location'}
+                </span>
+                {currentUser.role === 'ADMIN' ? (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '8px 12px',
+                      background: 'var(--bg-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      border: '1px solid var(--border-light)',
+                    }}
+                  >
+                    <MapPin size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
+                    <select
+                      value={selectedSociety.id}
+                      onChange={(e) => {
+                        const s = societies.find((soc) => soc.id === e.target.value);
+                        if (s) setSelectedSociety(s);
+                      }}
+                      className="form-input"
+                      style={{
+                        padding: '4px 6px',
+                        fontSize: '0.85rem',
+                        fontWeight: 600,
+                        border: 'none',
+                        background: 'transparent',
+                        minHeight: 'auto',
+                      }}
+                    >
+                      {societies.map((soc) => (
+                        <option key={soc.id} value={soc.id}>
+                          {soc.name} ({soc.totalFlats.toLocaleString()} flats)
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                ) : currentUser.role === 'PROVIDER' && activeProvider ? (
+                  (() => {
+                    const covered = getCoveredSocieties(activeProvider, societies);
+                    const radiusLabel =
+                      activeProvider.coverageMode === 'RADIUS'
+                        ? `${activeProvider.maxServiceDistanceKm ?? 8} km radius`
+                        : 'Selected societies';
+                    return (
+                      <div
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '6px',
+                          padding: '12px 14px',
+                          background: 'var(--bg-subtle)',
+                          borderRadius: 'var(--radius-md)',
+                          border: '1px solid var(--border-light)',
+                        }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <Navigation size={16} color="#f59e0b" style={{ flexShrink: 0 }} />
+                          <strong style={{ fontSize: '0.9rem', color: 'var(--text-main)' }}>
+                            {covered.length > 0
+                              ? `Covers ${covered.length} ${covered.length === 1 ? 'society' : 'societies'}`
+                              : 'No coverage configured'}
+                          </strong>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                          Mode: {radiusLabel}
+                          {covered.length > 0 && (
+                            <div
+                              style={{
+                                marginTop: '4px',
+                                fontSize: '0.76rem',
+                                color: 'var(--text-subtle)',
+                              }}
+                            >
+                              {covered.map((s) => s.name).join(', ')}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      background: 'var(--bg-subtle)',
+                      borderRadius: 'var(--radius-md)',
+                      fontSize: '0.875rem',
+                      fontWeight: 600,
+                      color: 'var(--text-main)',
+                      border: '1px solid var(--border-light)',
+                    }}
+                  >
+                    <MapPin size={16} color="var(--primary)" />
+                    <span>{selectedSociety.name}</span>
+                  </div>
+                )}
               </div>
 
               {/* Appearance Mode */}
