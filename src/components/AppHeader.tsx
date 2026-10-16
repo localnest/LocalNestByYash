@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMarketplace } from '@/lib/store';
+import type { Language } from '@/lib/i18n';
 import { getCoveredSocieties } from '@/lib/geo';
 import {
   LogOut,
@@ -282,6 +283,33 @@ export default function AppHeader() {
             >
               {dark ? <Sun size={15} /> : <Moon size={15} />}
             </button>
+            {/* Language Selector */}
+            <select
+              value={language}
+              onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              style={{
+                padding: '4px 6px',
+                fontSize: '0.72rem',
+                fontWeight: 600,
+                borderRadius: '8px',
+                background: 'rgba(255, 255, 255, 0.12)',
+                color: '#ffffff',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+                cursor: 'pointer',
+              }}
+              title="Select Language"
+              aria-label="Select Language"
+            >
+              <option value="en" style={{ color: '#000' }}>
+                English
+              </option>
+              <option value="hi" style={{ color: '#000' }}>
+                हिंदी
+              </option>
+              <option value="mr" style={{ color: '#000' }}>
+                मराठी
+              </option>
+            </select>
             <div
               style={{
                 display: 'flex',
