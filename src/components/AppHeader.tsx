@@ -2,7 +2,6 @@
 
 import React, { useState, useEffect } from 'react';
 import { useMarketplace } from '@/lib/store';
-import type { Language } from '@/lib/i18n';
 import { getCoveredSocieties } from '@/lib/geo';
 import {
   LogOut,

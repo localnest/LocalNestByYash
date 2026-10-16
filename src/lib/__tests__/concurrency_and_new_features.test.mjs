@@ -16,7 +16,6 @@ import {
 import {
   residentOnboardingSchema,
   bankVerificationSchema,
-  bookingFormSchema,
   validateForm,
 } from '../validation/schemas.ts';
 
@@ -196,5 +195,6 @@ test('Concurrency: Simulated simultaneous claims allow exactly one winner', asyn
 
   assert.equal(winners.length, 1);
   assert.equal(losers.length, 9);
+  assert.equal(claimAttempts, 10);
   assert.ok(jobClaimedBy !== null);
 });

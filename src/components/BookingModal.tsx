@@ -2,7 +2,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { useMarketplace } from '@/lib/store';
-import { Service, Provider, PricingModel } from '@/lib/types';
+import { Service, Provider } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
 import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
 import { useNotification } from '@/features/notifications/notificationContext';
@@ -18,6 +18,24 @@ import {
   ArrowRight,
   Wallet,
 } from 'lucide-react';
+
+const ALL_SLOTS = [
+  { label: '07:00 – 09:00 AM', tag: 'Early Bird', startH: 7 },
+  { label: '09:00 – 11:00 AM', tag: 'Morning', startH: 9 },
+  { label: '11:00 AM – 01:00 PM', tag: 'Late Morning', startH: 11 },
+  { label: '01:00 – 03:00 PM', tag: 'Afternoon', startH: 13 },
+  { label: '03:00 – 05:00 PM', tag: 'Mid Afternoon', startH: 15 },
+  { label: '05:00 – 07:00 PM', tag: 'Evening', startH: 17 },
+];
+
+const parseHour = (timeStr: string): number => {
+  if (!timeStr) return 0;
+  const [hm, period] = timeStr.split(' ');
+  let h = parseInt(hm.split(':')[0], 10);
+  if (period === 'PM' && h !== 12) h += 12;
+  if (period === 'AM' && h === 12) h = 0;
+  return h;
+};
 
 interface BookingModalProps {
   service: Service;
@@ -141,26 +159,6 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     provider.maxOrdersPerDay && providerOrdersOnDate.length >= provider.maxOrdersPerDay,
   );
 
-  // ── Smart Slot Logic ─────────────────────────────────────────────────────
-  const ALL_SLOTS = [
-    { label: '07:00 – 09:00 AM', tag: 'Early Bird', startH: 7 },
-    { label: '09:00 – 11:00 AM', tag: 'Morning', startH: 9 },
-    { label: '11:00 AM – 01:00 PM', tag: 'Late Morning', startH: 11 },
-    { label: '01:00 – 03:00 PM', tag: 'Afternoon', startH: 13 },
-    { label: '03:00 – 05:00 PM', tag: 'Mid Afternoon', startH: 15 },
-    { label: '05:00 – 07:00 PM', tag: 'Evening', startH: 17 },
-  ];
-
-  const parseHour = (timeStr: string): number => {
-    // e.g. '08:00 AM' => 8, '08:00 PM' => 20
-    if (!timeStr) return 0;
-    const [hm, period] = timeStr.split(' ');
-    let h = parseInt(hm.split(':')[0], 10);
-    if (period === 'PM' && h !== 12) h += 12;
-    if (period === 'AM' && h === 12) h = 0;
-    return h;
-  };
-
   const selectedDayName = useMemo(
     () => new Date(scheduledDate + 'T00:00:00').toLocaleDateString('en-US', { weekday: 'long' }),
     [scheduledDate],
@@ -199,19 +197,12 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
 
   const isSlotFull = (slotLabel: string) => (slotBookingCounts[slotLabel] || 0) >= perSlotCap;
 
-  // Auto-select first open slot when date or available slots change
-  React.useEffect(() => {
-    if (
-      !scheduledSlot ||
-      !availableSlots.find((s) => s.label === scheduledSlot && !isSlotFull(s.label))
-    ) {
-      const firstOpen = availableSlots.find((s) => !isSlotFull(s.label));
-      setScheduledSlot(firstOpen?.label || (availableSlots[0]?.label ?? ''));
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [scheduledDate, availableSlots.length]);
+  const effectiveSlot =
+    scheduledSlot && availableSlots.some((s) => s.label === scheduledSlot && !isSlotFull(s.label))
+      ? scheduledSlot
+      : availableSlots.find((s) => !isSlotFull(s.label))?.label || (availableSlots[0]?.label ?? '');
 
-  const isSlotBooked = scheduledSlot ? isSlotFull(scheduledSlot) : false;
+  const isSlotBooked = effectiveSlot ? isSlotFull(effectiveSlot) : false;
 
   // Live discount
   const discountAmount = couponFeedback?.valid ? couponFeedback.discount : 0;
@@ -254,7 +245,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     const res = createOrder({
       serviceId: service.id,
       scheduledDate,
-      scheduledSlot,
+      scheduledSlot: effectiveSlot,
       deliveryAddress,
       specialInstructions,
       pricingModel: service.pricingModel,
@@ -443,8 +434,8 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     Provider is Currently on Leave / Vacation
                   </strong>
                   <div style={{ fontSize: '0.8rem', color: '#b45309', marginTop: '2px' }}>
-                    "{provider.vacationReason || 'Taking a short break'}" — New bookings are
-                    temporarily paused.
+                    &quot;{provider.vacationReason || 'Taking a short break'}&quot; — New bookings
+                    are temporarily paused.
                   </div>
                 </div>
               </div>
@@ -857,7 +848,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                     >
                       {availableSlots.map((slot) => {
                         const full = isSlotFull(slot.label);
-                        const selected = scheduledSlot === slot.label;
+                        const selected = effectiveSlot === slot.label;
                         const bookingsInSlot = slotBookingCounts[slot.label] || 0;
                         return (
                           <button
@@ -1295,7 +1286,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 isOffDay ||
                 isSlotBooked ||
                 provider.isVacationMode ||
-                !scheduledSlot ||
+                !effectiveSlot ||
                 (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)
               }
               onClick={handleProcessOrder}

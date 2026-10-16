@@ -21,8 +21,6 @@ import {
   Star,
   ShieldCheck,
   MapPin,
-  Calendar,
-  Check,
   AlertCircle,
   Sparkles,
   Shirt,
@@ -43,10 +41,18 @@ import {
   Wallet,
   MessageCircle,
   Send,
-  Gift,
-  TrendingUp,
-  ThumbsUp,
 } from 'lucide-react';
+
+type CustomerTab =
+  | 'dispatch'
+  | 'home'
+  | 'explore'
+  | 'orders'
+  | 'subscriptions'
+  | 'offers'
+  | 'support'
+  | 'wallet'
+  | 'notices';
 
 export default function CustomerPortal() {
   const {
@@ -70,27 +76,14 @@ export default function CustomerPortal() {
     getWalletBalance,
     getWalletStreak,
     walletTransactions,
-    createOrder,
     createServiceRequest,
     sendChatMessage,
     getOrderMessages,
-    language,
-    setLanguage,
     t,
   } = useMarketplace();
 
-  // Active Tab: 'dispatch' | 'home' | 'explore' | 'orders' | 'subscriptions' | 'offers' | 'support' | 'wallet' | 'notices'
-  const [activeTab, setActiveTab] = useState<
-    | 'dispatch'
-    | 'home'
-    | 'explore'
-    | 'orders'
-    | 'subscriptions'
-    | 'offers'
-    | 'support'
-    | 'wallet'
-    | 'notices'
-  >('dispatch');
+  // Active Tab
+  const [activeTab, setActiveTab] = useState<CustomerTab>('dispatch');
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
   const [chatError, setChatError] = useState('');
@@ -299,7 +292,7 @@ export default function CustomerPortal() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id as any)}
+                  onClick={() => setActiveTab(tab.id as CustomerTab)}
                   className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
                   style={{
                     borderRadius: '8px',
@@ -885,10 +878,10 @@ export default function CustomerPortal() {
                               borderRadius: '6px',
                             }}
                           >
-                            "
+                            &quot;
                             {provider.vacationReason ||
                               'Currently taking a break. Resuming orders soon.'}
-                            "
+                            &quot;
                           </div>
                         )}
 
@@ -922,7 +915,7 @@ export default function CustomerPortal() {
                                 lineHeight: 1.4,
                               }}
                             >
-                              "{provReviews[0].comment.slice(0, 95)}..."
+                              &quot;{provReviews[0].comment.slice(0, 95)}...&quot;
                             </div>
                             <div
                               style={{
@@ -1186,7 +1179,7 @@ export default function CustomerPortal() {
                     lineHeight: 1.5,
                   }}
                 >
-                  We haven't launched coverage for{' '}
+                  We haven&apos;t launched coverage for{' '}
                   {selectedCategorySlug !== 'all'
                     ? categories.find((c) => c.slug === selectedCategorySlug)?.name
                     : 'this category'}{' '}
@@ -1397,7 +1390,7 @@ export default function CustomerPortal() {
                               paddingLeft: '8px',
                             }}
                           >
-                            "{provReviews[0].comment.slice(0, 110)}..."
+                            &quot;{provReviews[0].comment.slice(0, 110)}...&quot;
                             <div
                               style={{
                                 fontSize: '0.7rem',
@@ -1647,10 +1640,10 @@ export default function CustomerPortal() {
                             <AlertCircle size={18} /> Request Declined by Provider
                           </div>
                           <div style={{ marginTop: '6px', fontSize: '0.85rem', color: '#9f1239' }}>
-                            <strong>Decline Reason:</strong> "
+                            <strong>Decline Reason:</strong> &quot;
                             {order.rejectionReason ||
                               'Provider is currently at maximum capacity for today.'}
-                            "
+                            &quot;
                           </div>
                           <div
                             style={{
@@ -3630,7 +3623,7 @@ export default function CustomerPortal() {
           return (
             <button
               key={item.id}
-              onClick={() => setActiveTab(item.id as any)}
+              onClick={() => setActiveTab(item.id as CustomerTab)}
               className={`mobile-nav-item ${isActive ? 'active' : ''}`}
             >
               <Icon size={20} />

@@ -4,17 +4,12 @@ import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { UserRole } from '@/lib/types';
 import {
-  Building2,
   UserCheck,
   Wrench,
   ShieldCheck,
-  Mail,
-  Lock,
   ArrowRight,
-  CheckCircle2,
   AlertCircle,
   MapPin,
-  Sparkles,
   KeyRound,
 } from 'lucide-react';
 

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { AlertTriangle, X, ShieldAlert, CheckCircle2 } from 'lucide-react';
+import { AlertTriangle, X, ShieldAlert } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { calculateCustomerCancellation } from '@/features/dispatch/cancellationEngine';
 
