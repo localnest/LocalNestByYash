@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { PricingModel, OrderStatus, Order, CoverageMode } from '@/lib/types';
 import { getCoveredSocieties, calculateHaversineDistance, BENGALURU_LOCALITIES } from '@/lib/geo';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   Star,
   X,
@@ -49,6 +50,7 @@ export default function ProviderDashboard() {
     currentUser,
     t,
   } = useMarketplace();
+  const { notify } = useNotification();
 
   const [chatOrderId, setChatOrderId] = useState<string | null>(null);
   const [chatInput, setChatInput] = useState('');
@@ -226,6 +228,9 @@ export default function ProviderDashboard() {
     setShowAddServiceModal(false);
     setNewServiceName('');
     setNewServiceDesc('');
+    notify.success(`Service "${newServiceName}" has been added to your catalogue.`, {
+      title: 'Service Added',
+    });
   };
 
   // Submit Rejection
@@ -240,6 +245,10 @@ export default function ProviderDashboard() {
     updateOrderStatus(orderToReject.id, 'REJECTED', undefined, finalReason);
     setOrderToReject(null);
     setCustomRejectionText('');
+    notify.info(
+      `Order #${orderToReject.orderNumber} has been declined. The customer's escrow will be refunded in full.`,
+      { title: 'Order Declined' },
+    );
   };
 
   // Save Availability & Vacation
@@ -256,6 +265,12 @@ export default function ProviderDashboard() {
       isVacation ? vacationNote : undefined,
     );
     setShowAvailabilityModal(false);
+    notify.success(
+      isVacation
+        ? 'Vacation mode enabled. New bookings are paused.'
+        : 'Availability updated successfully. You are now accepting bookings.',
+      { title: 'Availability Saved' },
+    );
   };
 
   // Submit Payout Request
@@ -264,6 +279,10 @@ export default function ProviderDashboard() {
     if (payoutAmount <= 0) return;
     requestPayout(provider.id, Number(payoutAmount), payoutMethod, payoutDetails);
     setShowPayoutModal(false);
+    notify.success(
+      `Payout request of ₹${payoutAmount} via ${payoutMethod} submitted. Processing in 1–2 business days.`,
+      { title: 'Payout Requested' },
+    );
   };
 
   const toggleDayOff = (day: string) => {

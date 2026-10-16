@@ -731,3 +731,38 @@ a:focus-visible,
 [data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
   background: #3d5475;
 }
+
+/* ===== NOTIFICATION / TOAST ANIMATIONS ===== */
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(60px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 0.9s linear infinite;
+}
+
+/* Shimmer (skeleton) – already used by .skeleton, defined here for @keyframes reference */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}

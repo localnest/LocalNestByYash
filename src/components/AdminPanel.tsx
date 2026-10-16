@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { DiscountType, CoverageMode, Provider, Complaint } from '@/lib/types';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   BarChart3,
   ShieldCheck,
@@ -54,6 +55,7 @@ export default function AdminPanel() {
     platformFeeRules,
     updatePlatformFeeRules,
   } = useMarketplace();
+  const { notify } = useNotification();
 
   // Navigation Tab
   const [activeTab, setActiveTab] = useState<
@@ -139,6 +141,10 @@ export default function AdminPanel() {
     );
 
     setMediatingComplaint(null);
+    notify.success(
+      `Dispute #${mediatingComplaint.id.slice(-6).toUpperCase()} resolved. ${customResolutionText}`,
+      { title: 'Dispute Resolved' },
+    );
   };
 
   // Compute Platform Metrics
@@ -175,6 +181,9 @@ export default function AdminPanel() {
     setCouponCode('');
     setCouponTitle('');
     setCouponDesc('');
+    notify.success(`Coupon "${couponCode.trim().toUpperCase()}" created and is now live.`, {
+      title: 'Coupon Created',
+    });
   };
 
   const handleCreateSocietySubmit = (e: React.FormEvent) => {
@@ -196,6 +205,9 @@ export default function AdminPanel() {
     setShowAddSocietyModal(false);
     setNewSocName('');
     setNewSocAddress('');
+    notify.success(`Society "${newSocName}" onboarded to the platform.`, {
+      title: 'Society Added',
+    });
   };
 
   return (

@@ -8,6 +8,8 @@ import BookingModal from './BookingModal';
 import ReviewModal from './ReviewModal';
 import ComplaintModal from './ComplaintModal';
 import ResidentDispatchCenter from './ResidentDispatchCenter';
+import CancellationConfirmModal from './customer/CancellationConfirmModal';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   Home,
   Compass,
@@ -96,6 +98,8 @@ export default function CustomerPortal() {
   const [selectedCategorySlug, setSelectedCategorySlug] = useState<string>('all');
   const [verifiedOnly, setVerifiedOnly] = useState<boolean>(false);
 
+  const { notify } = useNotification();
+
   // Modals
   const [bookingService, setBookingService] = useState<{
     service: Service;
@@ -103,6 +107,7 @@ export default function CustomerPortal() {
   } | null>(null);
   const [reviewOrder, setReviewOrder] = useState<Order | null>(null);
   const [complaintOrder, setComplaintOrder] = useState<Order | null>(null);
+  const [cancellationOrder, setCancellationOrder] = useState<Order | null>(null);
   const [viewingProvider, setViewingProvider] = useState<Provider | null>(null);
   const [providerReviewFilter, setProviderReviewFilter] = useState<'ALL' | 'LOCAL'>('ALL');
   const [dismissedNoticeIds, setDismissedNoticeIds] = useState<string[]>([]);
@@ -1852,7 +1857,7 @@ export default function CustomerPortal() {
                       >
                         {isCancellable && (
                           <button
-                            onClick={() => cancelOrder(order.id, 'Resident requested cancellation')}
+                            onClick={() => setCancellationOrder(order)}
                             className="btn btn-secondary btn-sm"
                             style={{ color: 'var(--accent-rose)' }}
                           >
@@ -3576,9 +3581,13 @@ export default function CustomerPortal() {
           service={bookingService.service}
           provider={bookingService.provider}
           onClose={() => setBookingService(null)}
-          onSuccess={() => {
+          onSuccess={(orderNumber) => {
             setBookingService(null);
             setActiveTab('orders');
+            notify.success(`Your booking has been confirmed and placed in escrow.`, {
+              title: 'Booking Confirmed!',
+              referenceId: orderNumber,
+            });
           }}
         />
       )}
@@ -3590,6 +3599,22 @@ export default function CustomerPortal() {
       {complaintOrder && (
         <ComplaintModal order={complaintOrder} onClose={() => setComplaintOrder(null)} />
       )}
+
+      {/* Cancellation Confirm Modal */}
+      <CancellationConfirmModal
+        order={cancellationOrder}
+        isOpen={cancellationOrder !== null}
+        onClose={() => setCancellationOrder(null)}
+        onConfirmCancel={(orderId, reason) => {
+          cancelOrder(orderId, reason);
+          const orderNum = cancellationOrder?.orderNumber;
+          setCancellationOrder(null);
+          notify.info(
+            'Your booking has been cancelled. Any eligible refund will be processed within 3–5 business days.',
+            { title: 'Booking Cancelled', referenceId: orderNum },
+          );
+        }}
+      />
 
       {/* Bottom Navigation for Mobile / Tablet */}
       <nav className="mobile-nav">

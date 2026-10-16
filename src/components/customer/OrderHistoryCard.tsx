@@ -1,7 +1,8 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import type { Order, Service, Provider } from '@/lib/types';
+import CancellationConfirmModal from './CancellationConfirmModal';
 import {
   AlertCircle,
   CheckCircle2,
@@ -285,6 +286,7 @@ export default function OrderHistoryCard({
   onRateReview,
   onExploreAlternative,
 }: OrderHistoryCardProps) {
+  const [cancellationOpen, setCancellationOpen] = useState(false);
   const isCompleted = order.status === 'COMPLETED';
   const isCancellable = order.status === 'PENDING' || order.status === 'ACCEPTED';
   const showChat = ['PENDING', 'ACCEPTED', 'SCHEDULED', 'IN_PROGRESS', 'COMPLETED'].includes(
@@ -444,7 +446,7 @@ export default function OrderHistoryCard({
       >
         {isCancellable && (
           <button
-            onClick={() => onCancelOrder(order.id, 'Resident requested cancellation')}
+            onClick={() => setCancellationOpen(true)}
             className="btn btn-secondary btn-sm"
             style={{ color: 'var(--accent-rose)' }}
           >
@@ -488,6 +490,17 @@ export default function OrderHistoryCard({
           </span>
         )}
       </div>
+
+      {/* Cancellation modal – shown when user clicks Cancel Booking */}
+      <CancellationConfirmModal
+        order={order}
+        isOpen={cancellationOpen}
+        onClose={() => setCancellationOpen(false)}
+        onConfirmCancel={(orderId, reason) => {
+          onCancelOrder(orderId, reason);
+          setCancellationOpen(false);
+        }}
+      />
     </div>
   );
 }

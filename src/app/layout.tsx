@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from 'next';
 import '@/styles/globals.css';
 import { MarketplaceProvider } from '@/lib/store';
+import { NotificationProvider } from '@/features/notifications/notificationContext';
 import AppHeader from '@/components/AppHeader';
 
 export const metadata: Metadata = {
@@ -24,10 +25,12 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en">
       <body>
-        <MarketplaceProvider>
-          <AppHeader />
-          {children}
-        </MarketplaceProvider>
+        <NotificationProvider>
+          <MarketplaceProvider>
+            <AppHeader />
+            {children}
+          </MarketplaceProvider>
+        </NotificationProvider>
         <script
           dangerouslySetInnerHTML={{
             __html: `

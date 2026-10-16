@@ -5,6 +5,7 @@ import { useMarketplace } from '@/lib/store';
 import { Service, Provider, PricingModel } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
 import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
+import { useNotification } from '@/features/notifications/notificationContext';
 import {
   X,
   CheckCircle,
@@ -37,6 +38,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     orders,
     t,
   } = useMarketplace();
+  const { notify } = useNotification();
   const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 
@@ -267,7 +269,9 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
 
     if (!res.success || !res.orderNumber) {
       setIsProcessingPayment(false);
-      setPaymentError(res.message || 'Unable to place order. Please check inputs.');
+      const errMsg = res.message || 'Unable to place order. Please check inputs.';
+      setPaymentError(errMsg);
+      notify.error(errMsg, { title: 'Booking Failed' });
       return;
     }
 
@@ -310,12 +314,17 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
           handler: function () {
             setIsProcessingPayment(false);
             setPaymentSuccess(true);
+            notify.success('Razorpay payment confirmed. Booking placed in escrow.', {
+              title: 'Payment Successful!',
+            });
             setTimeout(() => onSuccess(orderNum), 1200);
           },
           modal: {
             ondismiss: function () {
               setIsProcessingPayment(false);
-              setPaymentError('Payment window was dismissed. You can retry with 1-click.');
+              const errMsg = 'Payment window was dismissed. You can retry with 1-click.';
+              setPaymentError(errMsg);
+              notify.warning(errMsg);
             },
           },
         });
