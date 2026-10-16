@@ -58,7 +58,6 @@ export default function ResidentDispatchCenter() {
     getWalletBalance,
     createLeadRequest,
     leadQuotes,
-    submitLeadQuote,
     acceptLeadQuote,
     tiffinMenus,
     orderTiffinMenu,
@@ -87,7 +86,6 @@ export default function ResidentDispatchCenter() {
     Boolean(currentUser?.preferences?.noOnionGarlic),
   );
   const [leadNotes, setLeadNotes] = useState('');
-  const [leadFeedback, setLeadFeedback] = useState('');
   const [menuQuantities, setMenuQuantities] = useState<Record<string, number>>({});
   const [subscribeToTiffin, setSubscribeToTiffin] = useState(false);
   const [tiffinFrequency, setTiffinFrequency] = useState<RecurringSchedule['frequency']>('WEEKLY');
@@ -116,13 +114,26 @@ export default function ResidentDispatchCenter() {
     (schedule) => schedule.residentId === currentUser?.id && schedule.status !== 'CANCELLED',
   );
 
+  // Stable time state updated by effect (avoids impure Date.now during render)
+  const [currentTime, setCurrentTime] = useState<number>(0);
+
   useEffect(() => {
-    if (!categoryId && availableCategories.length) setCategoryId(availableCategories[0].id);
+    const timer = setTimeout(() => setCurrentTime(Date.now()), 0);
+    const interval = setInterval(() => setCurrentTime(Date.now()), 15000);
+    return () => {
+      clearTimeout(timer);
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!categoryId && availableCategories.length)
+      setTimeout(() => setCategoryId(availableCategories[0].id), 0);
   }, [categoryId, availableCategories]);
 
   useEffect(() => {
     if (serviceOptions.length && !serviceOptions.some((service) => service.id === serviceTypeId)) {
-      setServiceTypeId(serviceOptions[0].id);
+      setTimeout(() => setServiceTypeId(serviceOptions[0].id), 0);
     }
   }, [serviceOptions, serviceTypeId]);
 
@@ -479,7 +490,9 @@ export default function ResidentDispatchCenter() {
 
   const renderJob = (job: JobRequest) => {
     const order = job.orderId ? orders.find((item) => item.id === job.orderId) : null;
-    const remainingMs = Math.max(0, new Date(job.expiresAt).getTime() - Date.now());
+    const remainingMs = currentTime
+      ? Math.max(0, new Date(job.expiresAt).getTime() - currentTime)
+      : 0;
     return (
       <article className="card" key={job.id} style={{ marginBottom: 14 }}>
         <div
@@ -923,7 +936,7 @@ export default function ResidentDispatchCenter() {
                         menu.isActive &&
                         menu.deliveryDate === localDate(0) &&
                         menu.societyIds.includes(selectedSociety.id) &&
-                        new Date(menu.cutoffAt).getTime() > Date.now(),
+                        (!currentTime || new Date(menu.cutoffAt).getTime() > currentTime),
                     )
                     .map((menu) => (
                       <article
@@ -967,7 +980,7 @@ export default function ResidentDispatchCenter() {
                       menu.isActive &&
                       menu.deliveryDate === localDate(0) &&
                       menu.societyIds.includes(selectedSociety.id) &&
-                      new Date(menu.cutoffAt).getTime() > Date.now(),
+                      (!currentTime || new Date(menu.cutoffAt).getTime() > currentTime),
                   ) && (
                     <div style={{ borderTop: '1px solid #e2e8f0', marginTop: 10, paddingTop: 10 }}>
                       <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -1000,7 +1013,7 @@ export default function ResidentDispatchCenter() {
                       menu.isActive &&
                       menu.deliveryDate === localDate(0) &&
                       menu.societyIds.includes(selectedSociety.id) &&
-                      new Date(menu.cutoffAt).getTime() > Date.now(),
+                      (!currentTime || new Date(menu.cutoffAt).getTime() > currentTime),
                   ) && <p>No menus currently available. Check back later.</p>}
                 </div>
               )}
@@ -1104,7 +1117,7 @@ export default function ResidentDispatchCenter() {
                     </button>
                   </div>
                 ))}
-              {leadFeedback && <p>{leadFeedback}</p>}
+              {message && <p>{message}</p>}
             </article>
           ))}
         </section>

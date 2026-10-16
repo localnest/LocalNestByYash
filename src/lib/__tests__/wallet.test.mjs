@@ -5,7 +5,6 @@ import {
   calculateMaxRedeemableCredits,
   isStreakBonusEligible,
 } from '../retentionUtils.ts';
-import { PLATFORM_CONFIG } from '../config.ts';
 
 test('Wallet: calculates 3% credits earned on subtotal', () => {
   // ₹1000 subtotal -> ₹30

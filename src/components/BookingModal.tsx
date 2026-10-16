@@ -6,6 +6,7 @@ import { Service, Provider } from '@/lib/types';
 import { PLATFORM_CONFIG } from '@/lib/config';
 import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
 import { useNotification } from '@/features/notifications/notificationContext';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 import {
   X,
   CheckCircle,
@@ -57,6 +58,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
     t,
   } = useMarketplace();
   const { notify } = useNotification();
+  useScrollLock(true, onClose);
   const [useWallet, setUseWallet] = useState<boolean>(false);
   const [showAllCoupons, setShowAllCoupons] = useState<boolean>(false);
 

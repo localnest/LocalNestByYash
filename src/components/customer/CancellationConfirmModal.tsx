@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { AlertTriangle, X, ShieldAlert } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { calculateCustomerCancellation } from '@/features/dispatch/cancellationEngine';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 
 interface CancellationConfirmModalProps {
   order: Order | null;
@@ -20,6 +21,8 @@ export default function CancellationConfirmModal({
 }: CancellationConfirmModalProps) {
   const [reason, setReason] = useState('Personal schedule changed');
   const [customReason, setCustomReason] = useState('');
+
+  useScrollLock(isOpen && order !== null, onClose);
 
   if (!isOpen || !order) return null;
 

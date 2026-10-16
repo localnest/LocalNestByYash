@@ -10,6 +10,7 @@ import {
   ShieldAlert,
   Loader2,
 } from 'lucide-react';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 
 export type ToastType = 'success' | 'error' | 'warning' | 'info';
 
@@ -142,6 +143,8 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
     setConfirmation(null);
     setIsConfirming(false);
   }, [confirmation]);
+
+  useScrollLock(confirmation !== null, closeConfirmDialog);
 
   const handleConfirmAction = async () => {
     if (!confirmation) return;

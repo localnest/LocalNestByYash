@@ -1,4 +1,4 @@
-import type { Society, Provider, ProviderLocation } from './types.ts';
+import type { Society, Provider } from './types.ts';
 
 export interface KnownLocality {
   label: string;
