@@ -864,3 +864,73 @@ a:focus-visible,
     background-position: -200% 0;
   }
 }
+
+/* ============================================================
+   RESPONSIVE LAYOUT & MOBILE OPTIMIZATIONS
+   ============================================================ */
+
+/* Booking Form Grid: Desktop 2-columns -> Mobile stacked 1-column */
+.dispatch-booking-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.25fr) minmax(280px, 0.75fr);
+  gap: 20px;
+  align-items: start;
+}
+
+@media (max-width: 860px) {
+  .dispatch-booking-layout {
+    grid-template-columns: 1fr !important;
+    gap: 16px !important;
+  }
+}
+
+/* Touch-friendly horizontal tab navigation without scrollbar clutter */
+.scrollable-tabs {
+  display: flex !important;
+  align-items: center !important;
+  gap: 8px !important;
+  overflow-x: auto !important;
+  white-space: nowrap !important;
+  -webkit-overflow-scrolling: touch !important;
+  scrollbar-width: none !important;
+  padding: 4px 2px !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+.scrollable-tabs::-webkit-scrollbar {
+  display: none !important;
+}
+.scrollable-tabs > * {
+  flex-shrink: 0 !important;
+}
+
+/* Responsive display helpers */
+@media (max-width: 768px) {
+  .desktop-only {
+    display: none !important;
+  }
+}
+
+@media (min-width: 769px) {
+  .mobile-only {
+    display: none !important;
+  }
+}
+
+/* Header container responsiveness */
+.header-content-wrap {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .header-content-wrap {
+    flex-wrap: nowrap;
+  }
+  .header-user-meta {
+    display: none !important;
+  }
+}

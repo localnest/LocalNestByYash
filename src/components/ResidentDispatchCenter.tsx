@@ -642,13 +642,7 @@ export default function ResidentDispatchCenter() {
       )}
 
       {mode === 'book' && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.15fr) minmax(280px, .85fr)',
-            gap: 18,
-          }}
-        >
+        <div className="dispatch-booking-layout">
           <section className="card">
             <h2 style={{ fontWeight: 800, marginBottom: 12 }}>What service do you need?</h2>
             <label className="form-label">Service category</label>

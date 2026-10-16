@@ -77,13 +77,12 @@ export default function AppHeader() {
         }}
       >
         <div
-          className="container"
+          className="container header-content-wrap"
           style={{
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: '12px',
+            gap: '10px',
           }}
         >
           {/* Logo & Society */}
@@ -348,6 +347,7 @@ export default function AppHeader() {
                     : currentUser.fullName}
                 </div>
                 <div
+                  className="header-user-meta"
                   style={{
                     fontSize: '0.66rem',
                     color: '#94a3b8',
@@ -364,9 +364,10 @@ export default function AppHeader() {
               </div>
             </div>
 
-            {/* Language Switcher — Only for Provider & Customer (Resident) */}
+            {/* Language Switcher — Only for Provider & Customer (Resident) - Desktop pill view */}
             {(currentUser.role === 'CUSTOMER' || currentUser.role === 'PROVIDER') && (
               <div
+                className="desktop-only"
                 style={{
                   display: 'flex',
                   alignItems: 'center',
