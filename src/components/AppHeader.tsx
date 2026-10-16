@@ -15,7 +15,9 @@ import {
   Globe,
   Moon,
   Sun,
+  Menu,
 } from 'lucide-react';
+import { useScrollLock } from '@/lib/hooks/useScrollLock';
 
 function useDarkMode(): [boolean, () => void] {
   const [dark, setDark] = useState<boolean>(() => {
@@ -59,6 +61,9 @@ export default function AppHeader() {
     setLanguage,
     t,
   } = useMarketplace();
+
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  useScrollLock(isMobileMenuOpen, () => setIsMobileMenuOpen(false));
 
   if (!currentUser) return null;
 
@@ -261,13 +266,36 @@ export default function AppHeader() {
             )}
           </div>
 
-          {/* User Session Info & Logout */}
+          {/* Mobile Hamburger Button */}
+          <button
+            onClick={() => setIsMobileMenuOpen(true)}
+            className="mobile-only btn btn-secondary btn-sm"
+            style={{
+              background: 'rgba(255,255,255,0.12)',
+              color: '#fff',
+              border: '1px solid rgba(255,255,255,0.2)',
+              borderRadius: '8px',
+              padding: '6px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              minHeight: '36px',
+              cursor: 'pointer',
+            }}
+            aria-label="Open mobile menu"
+          >
+            <Menu size={18} />
+            <span style={{ fontSize: '0.825rem', fontWeight: 600 }}>Menu</span>
+          </button>
+
+          {/* Desktop User Session Info & Controls */}
           <div
+            className="desktop-only"
             style={{
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              flexWrap: 'wrap',
+              flexWrap: 'nowrap',
               minWidth: 0,
               justifyContent: 'flex-end',
             }}
@@ -428,6 +456,205 @@ export default function AppHeader() {
           </div>
         </div>
       </header>
+
+      {/* Mobile Drawer (Sidebar) */}
+      {isMobileMenuOpen && (
+        <>
+          <div
+            className="mobile-drawer-backdrop"
+            onClick={() => setIsMobileMenuOpen(false)}
+            aria-hidden="true"
+          />
+          <aside className="mobile-drawer-panel" role="dialog" aria-modal="true" aria-label="Menu">
+            <div className="mobile-drawer-header">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, #0d9488, #14b8a6)',
+                    borderRadius: '6px',
+                    width: '28px',
+                    height: '28px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontWeight: 800,
+                    fontSize: '0.95rem',
+                    color: '#fff',
+                  }}
+                >
+                  L
+                </div>
+                <strong style={{ fontSize: '1.05rem', color: 'var(--text-main)' }}>
+                  LocalNest
+                </strong>
+              </div>
+              <button
+                onClick={() => setIsMobileMenuOpen(false)}
+                style={{
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-muted)',
+                  cursor: 'pointer',
+                  padding: '6px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  borderRadius: '6px',
+                }}
+                aria-label="Close menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mobile-drawer-body">
+              {/* User Profile Card */}
+              <div className="mobile-profile-card">
+                <div
+                  style={{
+                    width: '42px',
+                    height: '42px',
+                    borderRadius: '50%',
+                    background: 'var(--primary-light)',
+                    color: 'var(--primary)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                  }}
+                >
+                  {currentUser.role === 'CUSTOMER' && <User size={22} />}
+                  {currentUser.role === 'PROVIDER' && <Wrench size={22} />}
+                  {currentUser.role === 'ADMIN' && <ShieldCheck size={22} />}
+                </div>
+                <div style={{ minWidth: 0, overflow: 'hidden' }}>
+                  <div
+                    style={{
+                      fontWeight: 750,
+                      fontSize: '0.975rem',
+                      color: 'var(--text-main)',
+                      whiteSpace: 'nowrap',
+                      overflow: 'hidden',
+                      textOverflow: 'ellipsis',
+                    }}
+                  >
+                    {currentUser.role === 'PROVIDER' && activeProvider
+                      ? activeProvider.businessName
+                      : currentUser.fullName}
+                  </div>
+                  <div
+                    style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}
+                  >
+                    {currentUser.role === 'CUSTOMER' && (currentUser.flatNumber || 'Resident')}
+                    {currentUser.role === 'PROVIDER' &&
+                      (activeProvider?.status === 'VERIFIED' ? 'Verified Provider' : 'Provider')}
+                    {currentUser.role === 'ADMIN' && 'Administrator'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Society Section */}
+              <div className="mobile-drawer-section">
+                <span className="mobile-drawer-label">Society Location</span>
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    padding: '10px 14px',
+                    background: 'var(--bg-subtle)',
+                    borderRadius: 'var(--radius-md)',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    color: 'var(--text-main)',
+                  }}
+                >
+                  <MapPin size={16} color="var(--primary)" />
+                  <span>{selectedSociety.name}</span>
+                </div>
+              </div>
+
+              {/* Appearance Mode */}
+              <div className="mobile-drawer-section">
+                <span className="mobile-drawer-label">Theme Appearance</span>
+                <button
+                  onClick={toggle}
+                  className="btn btn-secondary btn-full"
+                  style={{
+                    justifyContent: 'space-between',
+                    padding: '10px 14px',
+                    minHeight: '44px',
+                  }}
+                >
+                  <span
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      fontSize: '0.875rem',
+                    }}
+                  >
+                    {dark ? <Sun size={17} /> : <Moon size={17} />}
+                    {dark ? 'Dark Mode' : 'Light Mode'}
+                  </span>
+                  <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                    Switch
+                  </span>
+                </button>
+              </div>
+
+              {/* Language Selector */}
+              <div className="mobile-drawer-section">
+                <span className="mobile-drawer-label">Language</span>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                  {(['en', 'hi', 'mr'] as const).map((lang) => {
+                    const isSelected = language === lang;
+                    const label = lang === 'en' ? 'English' : lang === 'hi' ? 'हिंदी' : 'मराठी';
+                    return (
+                      <button
+                        key={lang}
+                        onClick={() => setLanguage(lang)}
+                        className={`btn btn-sm ${isSelected ? 'btn-primary' : 'btn-secondary'}`}
+                        style={{
+                          fontSize: '0.825rem',
+                          fontWeight: isSelected ? 800 : 600,
+                          minHeight: '40px',
+                          justifyContent: 'center',
+                        }}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {/* Logout Footer */}
+            <div className="mobile-drawer-footer">
+              <button
+                onClick={() => {
+                  setIsMobileMenuOpen(false);
+                  logout();
+                }}
+                className="btn btn-full"
+                style={{
+                  background: '#fee2e2',
+                  color: '#dc2626',
+                  border: '1px solid #fca5a5',
+                  minHeight: '46px',
+                  fontWeight: 750,
+                  justifyContent: 'center',
+                  gap: '8px',
+                  fontSize: '0.9rem',
+                }}
+              >
+                <LogOut size={16} />
+                {t.signOut}
+              </button>
+            </div>
+          </aside>
+        </>
+      )}
 
       {/* Notification Toast Banner */}
       {notifications.length > 0 && (
