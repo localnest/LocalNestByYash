@@ -1,10 +1,9 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { getCoveredSocieties } from '@/lib/geo';
 import {
-  Building2,
   LogOut,
   MapPin,
   Bell,
@@ -12,12 +11,40 @@ import {
   ShieldCheck,
   User,
   Wrench,
-  ShieldAlert,
   Navigation,
   Globe,
+  Moon,
+  Sun,
 } from 'lucide-react';
 
+function useDarkMode(): [boolean, () => void] {
+  const [dark, setDark] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    try {
+      const stored = localStorage.getItem('hg_dark_mode');
+      if (stored !== null) return stored === 'true';
+    } catch {}
+    return false;
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (dark) {
+      root.setAttribute('data-theme', 'dark');
+    } else {
+      root.removeAttribute('data-theme');
+    }
+    try {
+      localStorage.setItem('hg_dark_mode', String(dark));
+    } catch {}
+  }, [dark]);
+
+  const toggle = () => setDark((prev) => !prev);
+  return [dark, toggle];
+}
+
 export default function AppHeader() {
+  const [dark, toggle] = useDarkMode();
   const {
     currentUser,
     selectedSociety,
@@ -246,6 +273,15 @@ export default function AppHeader() {
               justifyContent: 'flex-end',
             }}
           >
+            {/* Dark mode toggle */}
+            <button
+              onClick={toggle}
+              className="dark-mode-toggle"
+              title={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+              aria-label={dark ? 'Switch to Light Mode' : 'Switch to Dark Mode'}
+            >
+              {dark ? <Sun size={15} /> : <Moon size={15} />}
+            </button>
             <div
               style={{
                 display: 'flex',
