@@ -1669,3 +1669,166 @@ a:focus-visible,
 .booking-summary-metric-val.highlight {
   color: var(--primary);
 }
+
+/* ==========================================================================
+   Accessible & Newcomer-Friendly Scrollable Tab Navigation
+   ========================================================================== */
+
+.scrollable-nav-wrapper {
+  position: relative;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  margin-bottom: 18px;
+}
+
+.scrollable-nav-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+  scroll-snap-type: x proximity;
+  width: 100%;
+  padding: 4px 6px;
+}
+
+.scrollable-nav-track::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollable-nav-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 8px 16px;
+  border-radius: var(--radius-full);
+  font-size: 0.875rem;
+  font-weight: 600;
+  flex-shrink: 0;
+  scroll-snap-align: start;
+  border: 1.5px solid var(--border-light);
+  background: var(--bg-surface);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  user-select: none;
+  min-height: 38px;
+  line-height: 1;
+}
+
+.scrollable-nav-tab:hover {
+  background: var(--bg-hover);
+  border-color: rgba(13, 148, 136, 0.4);
+  transform: translateY(-1px);
+}
+
+.scrollable-nav-tab.active {
+  background: linear-gradient(135deg, #0d9488 0%, #0f766e 100%);
+  color: #ffffff;
+  border-color: #0d9488;
+  box-shadow: 0 2px 8px var(--primary-glow);
+  font-weight: 700;
+}
+
+.scrollable-nav-tab-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.scrollable-nav-tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 2px 7px;
+  border-radius: var(--radius-full);
+  font-size: 0.725rem;
+  font-weight: 700;
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  margin-left: 2px;
+}
+
+.scrollable-nav-tab.active .scrollable-nav-tab-badge {
+  background: rgba(255, 255, 255, 0.22);
+  color: #ffffff;
+}
+
+.scrollable-nav-edge {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  z-index: 5;
+  pointer-events: none;
+}
+
+.scrollable-nav-edge-left {
+  left: 0;
+  padding-right: 28px;
+  background: linear-gradient(to right, var(--bg-main) 40%, transparent);
+}
+
+.scrollable-nav-edge-right {
+  right: 0;
+  padding-left: 28px;
+  background: linear-gradient(to left, var(--bg-main) 40%, transparent);
+}
+
+.scrollable-nav-arrow-btn {
+  pointer-events: auto;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--bg-surface);
+  border: 1.5px solid var(--border-light);
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: var(--shadow-sm);
+  transition: all 0.15s ease;
+}
+
+.scrollable-nav-arrow-btn:hover {
+  background: var(--bg-hover);
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: scale(1.08);
+}
+
+.scrollable-nav-hint-pill {
+  pointer-events: auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: 0.725rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: var(--primary);
+  color: #ffffff;
+  margin-right: 6px;
+  box-shadow: 0 2px 6px var(--primary-glow);
+  animation: hintPulse 1.8s infinite;
+  cursor: pointer;
+}
+
+@keyframes hintPulse {
+  0%,
+  100% {
+    transform: translateX(0);
+    opacity: 0.95;
+  }
+  50% {
+    transform: translateX(3px);
+    opacity: 1;
+  }
+}

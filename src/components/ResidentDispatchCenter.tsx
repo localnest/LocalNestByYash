@@ -16,6 +16,7 @@ import {
   Sparkles,
   Star,
 } from 'lucide-react';
+import ScrollableNavTabs from '@/components/ScrollableNavTabs';
 import { useMarketplace } from '@/lib/store';
 import {
   anonymizeFeedbackComment,
@@ -622,28 +623,27 @@ export default function ResidentDispatchCenter() {
         </span>
       </section>
 
-      <nav
-        className="scrollable-tabs"
-        aria-label="Resident service tabs"
-        style={{ marginBottom: 18 }}
-      >
-        {(
-          [
-            ['book', 'Book service'],
-            ['requests', `Requests (${residentJobs.length})`],
-            ['recurring', `Recurring (${activeSchedules.length})`],
-            ['preferences', 'Home preferences'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            className={`btn btn-sm ${mode === id ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setMode(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <ScrollableNavTabs
+        activeId={mode}
+        onChange={(id) => setMode(id as typeof mode)}
+        ariaLabel="Resident service tabs"
+        tabs={[
+          { id: 'book', label: 'Book service', icon: <Sparkles size={15} /> },
+          {
+            id: 'requests',
+            label: 'Requests',
+            icon: <Clock3 size={15} />,
+            badge: residentJobs.length,
+          },
+          {
+            id: 'recurring',
+            label: 'Recurring',
+            icon: <Repeat size={15} />,
+            badge: activeSchedules.length,
+          },
+          { id: 'preferences', label: 'Home preferences', icon: <Home size={15} /> },
+        ]}
+      />
       {message && (
         <div className="booking-alert-banner booking-alert-success" role="status">
           <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
