@@ -1,6 +1,8 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { CreditCard, Inbox, Wrench } from 'lucide-react';
+import ScrollableNavTabs from '@/components/ScrollableNavTabs';
 import { useMarketplace } from '@/lib/store';
 
 function localDateTimeValue(hour: number): string {
@@ -133,26 +135,21 @@ export default function ProviderDispatchWorkspace() {
 
   return (
     <section className="container" style={{ paddingTop: 18, paddingBottom: 40 }}>
-      <nav className="scrollable-tabs" style={{ marginBottom: 14 }}>
-        <button
-          className={`btn btn-sm ${view === 'inbox' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setView('inbox')}
-        >
-          {t.providerInboxTitle} ({inbox.length})
-        </button>
-        <button
-          className={`btn btn-sm ${view === 'skills' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setView('skills')}
-        >
-          {t.providerSkillsTitle}
-        </button>
-        <button
-          className={`btn btn-sm ${view === 'billing' ? 'btn-primary' : 'btn-secondary'}`}
-          onClick={() => setView('billing')}
-        >
-          Membership billing
-        </button>
-      </nav>
+      <ScrollableNavTabs
+        activeId={view}
+        onChange={(id) => setView(id as typeof view)}
+        ariaLabel="Provider workspace tabs"
+        tabs={[
+          {
+            id: 'inbox',
+            label: t.providerInboxTitle,
+            icon: <Inbox size={15} />,
+            badge: inbox.length,
+          },
+          { id: 'skills', label: t.providerSkillsTitle, icon: <Wrench size={15} /> },
+          { id: 'billing', label: 'Membership billing', icon: <CreditCard size={15} /> },
+        ]}
+      />
       {feedback && (
         <p role="status" className="card" style={{ marginBottom: 12 }}>
           {feedback}

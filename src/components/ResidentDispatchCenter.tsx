@@ -1,7 +1,22 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { CalendarClock, CheckCircle2, CircleHelp, Clock3, ShieldCheck, Star } from 'lucide-react';
+import {
+  AlertCircle,
+  Calendar,
+  CalendarClock,
+  Check,
+  CheckCircle2,
+  CircleHelp,
+  Clock3,
+  Home,
+  Layers,
+  Repeat,
+  ShieldCheck,
+  Sparkles,
+  Star,
+} from 'lucide-react';
+import ScrollableNavTabs from '@/components/ScrollableNavTabs';
 import { useMarketplace } from '@/lib/store';
 import {
   anonymizeFeedbackComment,
@@ -608,140 +623,255 @@ export default function ResidentDispatchCenter() {
         </span>
       </section>
 
-      <nav
-        className="scrollable-tabs"
-        aria-label="Resident service tabs"
-        style={{ marginBottom: 18 }}
-      >
-        {(
-          [
-            ['book', 'Book service'],
-            ['requests', `Requests (${residentJobs.length})`],
-            ['recurring', `Recurring (${activeSchedules.length})`],
-            ['preferences', 'Home preferences'],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            className={`btn btn-sm ${mode === id ? 'btn-primary' : 'btn-secondary'}`}
-            onClick={() => setMode(id)}
-          >
-            {label}
-          </button>
-        ))}
-      </nav>
+      <ScrollableNavTabs
+        activeId={mode}
+        onChange={(id) => setMode(id as typeof mode)}
+        ariaLabel="Resident service tabs"
+        tabs={[
+          { id: 'book', label: 'Book service', icon: <Sparkles size={15} /> },
+          {
+            id: 'requests',
+            label: 'Requests',
+            icon: <Clock3 size={15} />,
+            badge: residentJobs.length,
+          },
+          {
+            id: 'recurring',
+            label: 'Recurring',
+            icon: <Repeat size={15} />,
+            badge: activeSchedules.length,
+          },
+          { id: 'preferences', label: 'Home preferences', icon: <Home size={15} /> },
+        ]}
+      />
       {message && (
-        <div className="card" role="status" style={{ marginBottom: 14, color: '#047857' }}>
-          {message}
+        <div className="booking-alert-banner booking-alert-success" role="status">
+          <CheckCircle2 size={18} style={{ flexShrink: 0 }} />
+          <span>{message}</span>
         </div>
       )}
       {error && (
-        <div className="card" role="alert" style={{ marginBottom: 14, color: '#be123c' }}>
-          {error}
+        <div className="booking-alert-banner booking-alert-error" role="alert">
+          <AlertCircle size={18} style={{ flexShrink: 0 }} />
+          <span>{error}</span>
         </div>
       )}
 
       {mode === 'book' && (
-        <div
-          style={{
-            display: 'grid',
-            gridTemplateColumns: 'minmax(0, 1.15fr) minmax(280px, .85fr)',
-            gap: 18,
-          }}
-        >
-          <section className="card">
-            <h2 style={{ fontWeight: 800, marginBottom: 12 }}>What service do you need?</h2>
-            <label className="form-label">Service category</label>
-            <select
-              className="form-input"
-              value={categoryId}
-              onChange={(event) => {
-                setCategoryId(event.target.value);
-                setSelectedTasks([]);
-                setSizeBand('');
+        <div className="dispatch-booking-layout">
+          <section className="booking-surface-card">
+            <div className="booking-header-wrap">
+              <div className="booking-header-icon-box">
+                <Sparkles size={22} />
+              </div>
+              <div>
+                <h2 className="booking-title">What service do you need?</h2>
+                <p className="booking-subtitle">
+                  Choose your tasks, pick your slot, and connect with verified society providers.
+                </p>
+              </div>
+            </div>
+
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
+                gap: 12,
+                marginBottom: 16,
               }}
             >
-              {availableCategories.map((category) => (
-                <option value={category.id} key={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-            <label className="form-label" style={{ marginTop: 12 }}>
-              Service
-            </label>
-            <select
-              className="form-input"
-              value={serviceTypeId}
-              onChange={(event) => {
-                setServiceTypeId(event.target.value);
-                setSelectedTasks([]);
-                setSizeBand('');
-              }}
-            >
-              {serviceOptions.map((service) => (
-                <option value={service.id} key={service.id}>
-                  {service.name}
-                </option>
-              ))}
-            </select>
-            {selectedCategory?.matching === 'LEAD_QUOTE' && (
-              <>
-                <label className="form-label" style={{ marginTop: 12 }}>
-                  Describe your project
+              <div>
+                <label className="booking-field-label" htmlFor="booking-category-select">
+                  <span>Service Category</span>
+                  <span style={{ fontSize: '0.75rem', fontWeight: 600, color: 'var(--primary)' }}>
+                    {availableCategories.length} available
+                  </span>
                 </label>
+                <div className="booking-input-wrap">
+                  <Layers size={16} className="input-prefix-icon" />
+                  <select
+                    id="booking-category-select"
+                    className="form-input"
+                    value={categoryId}
+                    onChange={(event) => {
+                      setCategoryId(event.target.value);
+                      setSelectedTasks([]);
+                      setSizeBand('');
+                    }}
+                  >
+                    {availableCategories.map((category) => (
+                      <option value={category.id} key={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div>
+                <label className="booking-field-label" htmlFor="booking-service-select">
+                  <span>Service Type</span>
+                  {selectedService?.tier && (
+                    <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
+                      {selectedService.tier}
+                    </span>
+                  )}
+                </label>
+                <div className="booking-input-wrap">
+                  <Sparkles size={16} className="input-prefix-icon" />
+                  <select
+                    id="booking-service-select"
+                    className="form-input"
+                    value={serviceTypeId}
+                    onChange={(event) => {
+                      setServiceTypeId(event.target.value);
+                      setSelectedTasks([]);
+                      setSizeBand('');
+                    }}
+                  >
+                    {serviceOptions.map((service) => (
+                      <option value={service.id} key={service.id}>
+                        {service.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {selectedCategory?.matching === 'LEAD_QUOTE' && (
+              <div style={{ marginTop: 14 }}>
+                <label className="booking-field-label">Describe your project</label>
                 <textarea
                   className="form-input"
                   rows={4}
                   value={leadNotes}
                   onChange={(event) => setLeadNotes(event.target.value)}
-                  placeholder="Rooms, measurements, materials and timing needs"
+                  placeholder="Rooms, measurements, materials and timing needs..."
                 />
-                <p style={{ fontSize: 13, marginTop: 8 }}>
+                <p style={{ fontSize: 13, marginTop: 8, color: 'var(--text-muted)' }}>
                   Up to three verified providers may quote. Select your preferred quote; payment is
                   held in mock milestone escrow.
                 </p>
-              </>
+              </div>
             )}
+
             {selectedService?.tier === 'BASIC' && (
-              <p style={{ fontSize: 13, marginTop: 8 }}>
+              <div
+                style={{
+                  fontSize: 13,
+                  marginTop: 6,
+                  marginBottom: 12,
+                  padding: '8px 12px',
+                  borderRadius: 'var(--radius-md)',
+                  background: 'var(--bg-subtle)',
+                  color: 'var(--text-muted)',
+                }}
+              >
                 Basic tier only. Ingredients are supplied by the resident.
-              </p>
+              </div>
             )}
+
             {selectedCategory?.matching !== 'LEAD_QUOTE' &&
               selectedCategory?.matching !== 'BROWSE_ORDER' &&
-              selectedService?.availableTasks.map((task) => (
-                <label
-                  key={task.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: 8,
-                    padding: '8px 0',
-                    borderBottom: '1px solid #e2e8f0',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedTasks.includes(task.id)}
-                    onChange={() => toggleTask(task.id)}
-                  />
-                  <span style={{ flex: 1 }}>{task.name}</span>
-                  <span>
-                    ₹{task.basePrice} · {task.estimatedMinutes}m
-                  </span>
-                </label>
-              ))}
+              selectedService?.availableTasks &&
+              selectedService.availableTasks.length > 0 && (
+                <div style={{ marginTop: 14 }}>
+                  <div className="booking-field-label">
+                    <span>Select Required Tasks</span>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: selectedTasks.length > 0 ? 'var(--primary)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {selectedTasks.length > 0
+                        ? `${selectedTasks.length} selected`
+                        : 'Tick what you need'}
+                    </span>
+                  </div>
+                  <div className="booking-tasks-container">
+                    {selectedService.availableTasks.map((task) => {
+                      const isChecked = selectedTasks.includes(task.id);
+                      return (
+                        <div
+                          key={task.id}
+                          className={`booking-task-card ${isChecked ? 'selected' : ''}`}
+                          onClick={() => toggleTask(task.id)}
+                          role="checkbox"
+                          aria-checked={isChecked}
+                          tabIndex={0}
+                          onKeyDown={(e) => {
+                            if (e.key === ' ' || e.key === 'Enter') {
+                              e.preventDefault();
+                              toggleTask(task.id);
+                            }
+                          }}
+                        >
+                          <div className="booking-task-left">
+                            <div className="booking-task-checkbox">
+                              {isChecked && <Check size={14} strokeWidth={3} />}
+                            </div>
+                            <span className="booking-task-name">{task.name}</span>
+                          </div>
+                          <div className="booking-task-pill">
+                            <span className="booking-task-price">₹{task.basePrice}</span>
+                            <span>·</span>
+                            <span className="booking-task-time">{task.estimatedMinutes}m</span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
             {selectedCategory?.matching !== 'LEAD_QUOTE' &&
               !!selectedService?.sizeBands?.length && (
-                <>
-                  <label className="form-label" style={{ marginTop: 12 }}>
-                    Household size
+                <div style={{ marginTop: 12 }}>
+                  <label className="booking-field-label" htmlFor="booking-size-select">
+                    <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                      <Home size={14} /> Household Size
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: sizeBand ? 'var(--primary)' : 'var(--text-muted)',
+                      }}
+                    >
+                      {sizeBand || 'Select size'}
+                    </span>
                   </label>
+                  <div className="size-band-chip-grid">
+                    {selectedService.sizeBands.map((band) => {
+                      const isActive = sizeBand === band.label;
+                      return (
+                        <button
+                          type="button"
+                          key={band.label}
+                          className={`size-band-chip ${isActive ? 'active' : ''}`}
+                          onClick={() => setSizeBand(isActive ? '' : band.label)}
+                        >
+                          <span className="size-band-label">{band.label}</span>
+                          <span className="size-band-price">₹{band.price}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
                   <select
-                    className="form-input"
+                    id="booking-size-select"
+                    aria-label="Household size"
                     value={sizeBand}
                     onChange={(event) => setSizeBand(event.target.value)}
+                    style={{
+                      position: 'absolute',
+                      opacity: 0,
+                      pointerEvents: 'none',
+                      width: 0,
+                      height: 0,
+                    }}
                   >
                     <option value="">Choose size</option>
                     {selectedService.sizeBands.map((band) => (
@@ -750,100 +880,228 @@ export default function ResidentDispatchCenter() {
                       </option>
                     ))}
                   </select>
-                </>
+                </div>
               )}
+
             {selectedCategory?.id === 'cat-cook' && (
-              <div style={{ marginTop: 12 }}>
-                <label className="form-label">Dish note / preferred meal</label>
+              <div
+                style={{
+                  marginTop: 14,
+                  padding: 14,
+                  borderRadius: 'var(--radius-lg)',
+                  background: 'var(--bg-subtle)',
+                  border: '1px solid var(--border-light)',
+                }}
+              >
+                <label className="booking-field-label">Dish note / preferred meal</label>
                 <input
                   className="form-input"
                   value={dishNotes}
                   onChange={(event) => setDishNotes(event.target.value)}
-                  placeholder="Roti, dal, rice and simple sabzi"
+                  placeholder="e.g. Roti, dal, rice and simple sabzi"
                 />
-                <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 10 }}>
+                <label
+                  style={{
+                    display: 'flex',
+                    gap: 10,
+                    alignItems: 'center',
+                    marginTop: 12,
+                    cursor: 'pointer',
+                    fontSize: '0.875rem',
+                  }}
+                >
                   <input
                     type="checkbox"
                     checked={kitchenReady}
                     onChange={(event) => setKitchenReady(event.target.checked)}
+                    style={{ width: 18, height: 18, accentColor: 'var(--primary)' }}
                   />
-                  Ingredients, gas and cookware will be ready
+                  <span>Ingredients, gas and cookware will be ready</span>
                 </label>
               </div>
             )}
+
             {selectedCategory?.id === 'cat-salon' && (
-              <div style={{ marginTop: 12 }}>
-                <label className="form-label">Stylist gender preference (optional)</label>
-                <select
-                  className="form-input"
-                  value={stylistGender}
-                  onChange={(event) => setStylistGender(event.target.value as typeof stylistGender)}
-                >
-                  <option value="ANY">No preference</option>
-                  <option value="FEMALE">Female stylist</option>
-                  <option value="MALE">Male stylist</option>
-                </select>
+              <div style={{ marginTop: 14 }}>
+                <label className="booking-field-label">Stylist gender preference</label>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  {(['ANY', 'FEMALE', 'MALE'] as const).map((gender) => (
+                    <button
+                      type="button"
+                      key={gender}
+                      className={`frequency-chip ${stylistGender === gender ? 'active' : ''}`}
+                      onClick={() => setStylistGender(gender)}
+                    >
+                      {gender === 'ANY'
+                        ? 'No preference'
+                        : gender === 'FEMALE'
+                          ? 'Female stylist'
+                          : 'Male stylist'}
+                    </button>
+                  ))}
+                </div>
               </div>
             )}
-            <div
-              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginTop: 14 }}
-            >
-              <label>
-                <span className="form-label">Date</span>
-                <input
-                  className="form-input"
-                  type="date"
-                  min={localDate()}
-                  value={scheduledDate}
-                  onChange={(event) => setScheduledDate(event.target.value)}
-                />
-              </label>
-              <label>
-                <span className="form-label">Start time</span>
-                <select
-                  className="form-input"
-                  value={scheduledSlot}
-                  onChange={(event) => setScheduledSlot(event.target.value)}
-                >
-                  {[
-                    '07:00 - 09:00',
-                    '09:00 - 11:00',
-                    '11:00 - 13:00',
-                    '13:00 - 15:00',
-                    '15:00 - 17:00',
-                    '17:00 - 19:00',
-                  ].map((slot) => (
-                    <option value={slot} key={slot}>
-                      {slot}
-                    </option>
-                  ))}
-                </select>
-              </label>
+
+            <div style={{ marginTop: 18 }}>
+              <div className="booking-field-label">
+                <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  <CalendarClock size={15} /> Schedule & Time Slot
+                </span>
+              </div>
+              <div
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gap: 10,
+                }}
+              >
+                <div>
+                  <label
+                    className="form-label"
+                    style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}
+                    htmlFor="booking-date-input"
+                  >
+                    Date
+                  </label>
+                  <div className="booking-input-wrap">
+                    <Calendar size={16} className="input-prefix-icon" />
+                    <input
+                      id="booking-date-input"
+                      className="form-input"
+                      type="date"
+                      min={localDate()}
+                      value={scheduledDate}
+                      onChange={(event) => setScheduledDate(event.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label
+                    className="form-label"
+                    style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}
+                    htmlFor="booking-slot-select"
+                  >
+                    Start time
+                  </label>
+                  <div className="booking-input-wrap">
+                    <Clock3 size={16} className="input-prefix-icon" />
+                    <select
+                      id="booking-slot-select"
+                      className="form-input"
+                      value={scheduledSlot}
+                      onChange={(event) => setScheduledSlot(event.target.value)}
+                    >
+                      {[
+                        '07:00 - 09:00',
+                        '09:00 - 11:00',
+                        '11:00 - 13:00',
+                        '13:00 - 15:00',
+                        '15:00 - 17:00',
+                        '17:00 - 19:00',
+                      ].map((slot) => (
+                        <option value={slot} key={slot}>
+                          {slot}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
             </div>
+
             {(selectedCategory?.matching === 'DISPATCH' ||
               selectedCategory?.supportsOneOffDispatch) && (
-              <label style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 14 }}>
-                <input
-                  type="checkbox"
-                  checked={makeRecurring}
-                  onChange={(event) => setMakeRecurring(event.target.checked)}
-                />{' '}
-                Make this a resident-owned recurring schedule
-              </label>
+              <div style={{ marginTop: 16 }}>
+                <div
+                  className={`recurring-toggle-box ${makeRecurring ? 'active' : ''}`}
+                  onClick={() => setMakeRecurring(!makeRecurring)}
+                  role="switch"
+                  aria-checked={makeRecurring}
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      setMakeRecurring(!makeRecurring);
+                    }
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                    <div className="recurring-box-icon">
+                      <Repeat size={18} />
+                    </div>
+                    <div>
+                      <div className="recurring-box-title">Resident-owned recurring schedule</div>
+                      <div className="recurring-box-desc">
+                        Lock in your preferred provider with automatic repeat visits
+                      </div>
+                    </div>
+                  </div>
+                  <div className={`modern-switch ${makeRecurring ? 'checked' : ''}`}>
+                    <div className="modern-switch-thumb" />
+                  </div>
+                </div>
+
+                {makeRecurring && (
+                  <div className="frequency-chip-group">
+                    <div
+                      style={{
+                        width: '100%',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        color: 'var(--text-muted)',
+                        textTransform: 'uppercase',
+                        marginBottom: 4,
+                      }}
+                    >
+                      Select Frequency
+                    </div>
+                    {[
+                      { id: 'DAILY', label: 'Daily' },
+                      { id: 'MON_TO_SAT', label: 'Mon to Sat' },
+                      { id: 'WEEKLY', label: 'Weekly' },
+                      { id: 'ALTERNATE_DAYS', label: 'Alternate Days' },
+                    ].map((item) => (
+                      <button
+                        type="button"
+                        key={item.id}
+                        className={`frequency-chip ${frequency === item.id ? 'active' : ''}`}
+                        onClick={() => setFrequency(item.id as typeof frequency)}
+                      >
+                        {item.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
-            {makeRecurring && (
-              <select
-                className="form-input"
-                style={{ marginTop: 8 }}
-                value={frequency}
-                onChange={(event) => setFrequency(event.target.value as typeof frequency)}
-              >
-                <option value="DAILY">Daily</option>
-                <option value="MON_TO_SAT">Monday to Saturday</option>
-                <option value="WEEKLY">Weekly</option>
-                <option value="ALTERNATE_DAYS">Alternate days</option>
-              </select>
-            )}
+
+            {selectedCategory?.matching !== 'LEAD_QUOTE' &&
+              selectedCategory?.matching !== 'BROWSE_ORDER' && (
+                <div className="booking-quick-summary-bar">
+                  <div className="booking-summary-metric">
+                    <span className="booking-summary-metric-label">Selected Tasks</span>
+                    <span className="booking-summary-metric-val">
+                      {selectedTasks.length} task{selectedTasks.length === 1 ? '' : 's'}
+                    </span>
+                  </div>
+
+                  <div className="booking-summary-metric">
+                    <span className="booking-summary-metric-label">Estimated Time</span>
+                    <span className="booking-summary-metric-val">
+                      {pricing.durationMinutes} mins
+                    </span>
+                  </div>
+
+                  <div className="booking-summary-metric">
+                    <span className="booking-summary-metric-label">Locked Subtotal</span>
+                    <span className="booking-summary-metric-val highlight">
+                      ₹{pricing.subtotal + platformFeeRules.oneTimeFee}
+                    </span>
+                  </div>
+                </div>
+              )}
           </section>
 
           <aside>
