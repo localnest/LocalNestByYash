@@ -137,6 +137,7 @@ export default function ProviderEarningsTab({
           style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
         >
           <table
+            className="pd-cards"
             style={{
               width: '100%',
               minWidth: '650px',
@@ -164,8 +165,11 @@ export default function ProviderEarningsTab({
             <tbody>
               {providerPayouts.map((pay) => (
                 <tr key={pay.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700 }}>{pay.referenceId}</td>
+                  <td data-label="Reference #" style={{ padding: '12px 16px', fontWeight: 700 }}>
+                    {pay.referenceId}
+                  </td>
                   <td
+                    data-label="Amount"
                     style={{
                       padding: '12px 16px',
                       fontWeight: 800,
@@ -174,20 +178,25 @@ export default function ProviderEarningsTab({
                   >
                     ₹{pay.amount.toLocaleString()}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td data-label="Method" style={{ padding: '12px 16px' }}>
                     <span className="badge badge-slate" style={{ fontSize: '0.7rem' }}>
                       {pay.method}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 16px' }}>{pay.accountDetails}</td>
-                  <td style={{ padding: '12px 16px', color: 'var(--text-muted)' }}>
+                  <td data-label="Account / UPI Details" style={{ padding: '12px 16px' }}>
+                    {pay.accountDetails}
+                  </td>
+                  <td
+                    data-label="Date"
+                    style={{ padding: '12px 16px', color: 'var(--text-muted)' }}
+                  >
                     {new Date(pay.requestedAt).toLocaleDateString('en-IN', {
                       day: 'numeric',
                       month: 'short',
                       year: 'numeric',
                     })}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td data-label="Status" style={{ padding: '12px 16px' }}>
                     <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
                       {pay.status === 'COMPLETED'
                         ? 'Settled to Account'
@@ -226,6 +235,7 @@ export default function ProviderEarningsTab({
           style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
         >
           <table
+            className="pd-cards"
             style={{
               width: '100%',
               minWidth: '650px',
@@ -253,15 +263,23 @@ export default function ProviderEarningsTab({
             <tbody>
               {completedOrders.map((order) => (
                 <tr key={order.id} style={{ borderBottom: '1px solid var(--border-light)' }}>
-                  <td style={{ padding: '12px 16px', fontWeight: 700 }}>{order.orderNumber}</td>
-                  <td style={{ padding: '12px 16px' }}>{order.customerFlat}</td>
-                  <td style={{ padding: '12px 16px', fontWeight: 600 }}>
+                  <td data-label="Order #" style={{ padding: '12px 16px', fontWeight: 700 }}>
+                    {order.orderNumber}
+                  </td>
+                  <td data-label="Resident Flat" style={{ padding: '12px 16px' }}>
+                    {order.customerFlat}
+                  </td>
+                  <td data-label="Gross GMV" style={{ padding: '12px 16px', fontWeight: 600 }}>
                     ₹{order.subtotal.toFixed(2)}
                   </td>
-                  <td style={{ padding: '12px 16px', color: 'var(--accent-amber)' }}>
+                  <td
+                    data-label="Platform Take Rate"
+                    style={{ padding: '12px 16px', color: 'var(--accent-amber)' }}
+                  >
                     {order.commissionPercentage}% (-₹{order.platformCommission.toFixed(2)})
                   </td>
                   <td
+                    data-label="Net Provider Payout"
                     style={{
                       padding: '12px 16px',
                       fontWeight: 800,
@@ -270,7 +288,7 @@ export default function ProviderEarningsTab({
                   >
                     ₹{order.providerEarnings.toFixed(2)}
                   </td>
-                  <td style={{ padding: '12px 16px' }}>
+                  <td data-label="Disbursement" style={{ padding: '12px 16px' }}>
                     <span className="badge badge-emerald" style={{ fontSize: '0.7rem' }}>
                       Settled in Escrow
                     </span>

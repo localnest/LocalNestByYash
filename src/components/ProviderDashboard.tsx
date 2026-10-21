@@ -19,6 +19,7 @@ import {
   Navigation,
 } from 'lucide-react';
 import ProviderDispatchWorkspace from './ProviderDispatchWorkspace';
+import ScrollableNavTabs from './ScrollableNavTabs';
 import {
   ProviderOverviewTab,
   ProviderOrdersTab,
@@ -292,7 +293,7 @@ export default function ProviderDashboard() {
   };
 
   return (
-    <div style={{ paddingBottom: '70px' }}>
+    <div className="pd-root" style={{ paddingBottom: '70px' }}>
       {/* Provider Header Banner */}
       <div
         style={{
@@ -311,16 +312,25 @@ export default function ProviderDashboard() {
             gap: '16px',
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '14px' }}>
+          <div
+            className="pd-head"
+            style={{ display: 'flex', alignItems: 'center', gap: '14px', minWidth: 0 }}
+          >
             <img
               src={
                 provider.avatarUrl ||
                 'https://images.unsplash.com/photo-1582735689369-4fe89db7114c?w=120'
               }
               alt={provider.businessName}
-              style={{ width: '56px', height: '56px', borderRadius: '12px', objectFit: 'cover' }}
+              style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '12px',
+                objectFit: 'cover',
+                flexShrink: 0,
+              }}
             />
-            <div>
+            <div style={{ minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
                 <h1 style={{ fontSize: '1.35rem', fontWeight: 800 }}>{provider.businessName}</h1>
                 <span
@@ -372,6 +382,7 @@ export default function ProviderDashboard() {
               </div>
 
               <div
+                className="pd-head-meta"
                 style={{
                   fontSize: '0.8rem',
                   color: 'var(--text-muted)',
@@ -383,7 +394,7 @@ export default function ProviderDashboard() {
                 }}
               >
                 <span>{provider.categoryName}</span>
-                <span>•</span>
+                <span className="pd-dot">•</span>
                 <span
                   style={{ display: 'flex', alignItems: 'center', gap: '3px', cursor: 'help' }}
                   title={
@@ -397,7 +408,7 @@ export default function ProviderDashboard() {
                     ? `Covers ${coveredSocietiesList.length} ${coveredSocietiesList.length === 1 ? 'society' : 'societies'}${provider.coverageMode === 'RADIUS' ? ` · ${provider.maxServiceDistanceKm ?? 8} km radius` : ''}`
                     : 'No societies covered'}
                 </span>
-                <span>•</span>
+                <span className="pd-dot">•</span>
                 <button
                   onClick={() => setShowAvailabilityModal(true)}
                   style={{
@@ -414,7 +425,7 @@ export default function ProviderDashboard() {
                 >
                   <Sliders size={13} /> Edit Hours & Vacation
                 </button>
-                <span>•</span>
+                <span className="pd-dot">•</span>
                 <button
                   onClick={() => setShowServiceAreaModal(true)}
                   style={{
@@ -436,8 +447,11 @@ export default function ProviderDashboard() {
           </div>
 
           {/* Navigation Tabs */}
-          <div className="scrollable-tabs" style={{ maxWidth: '100%', minWidth: 0 }}>
-            {[
+          <ScrollableNavTabs
+            activeId={activeTab}
+            onChange={(id) => setActiveTab(id as Parameters<typeof setActiveTab>[0])}
+            ariaLabel="Provider dashboard tabs"
+            tabs={[
               { id: 'overview', label: t.navOverview },
               {
                 id: 'orders',
@@ -446,7 +460,7 @@ export default function ProviderDashboard() {
               {
                 id: 'manifest',
                 label: `${t.navManifest} (${allManifestItems.length})`,
-                icon: FileSpreadsheet,
+                icon: <FileSpreadsheet size={13} />,
               },
               {
                 id: 'subscriptions',
@@ -457,30 +471,14 @@ export default function ProviderDashboard() {
                 id: 'earnings',
                 label: `${t.navEarnings} (₹${withdrawableBalance.toLocaleString()})`,
               },
-              { id: 'reviews', label: `${t.navProviderReviews} (${myReviews.length})`, icon: Star },
-              { id: 'dispatch', label: 'Job inbox & Billing', icon: Bell },
-            ].map((tab) => {
-              const isActive = activeTab === tab.id;
-              const TabIcon = tab.icon;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id as Parameters<typeof setActiveTab>[0])}
-                  className={`btn btn-sm ${isActive ? 'btn-primary' : 'btn-secondary'}`}
-                  style={{
-                    borderRadius: '8px',
-                    fontSize: '0.8rem',
-                    flexShrink: 0,
-                    whiteSpace: 'nowrap',
-                    minHeight: '36px',
-                  }}
-                >
-                  {TabIcon && <TabIcon size={13} />}
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+              {
+                id: 'reviews',
+                label: `${t.navProviderReviews} (${myReviews.length})`,
+                icon: <Star size={13} />,
+              },
+              { id: 'dispatch', label: 'Job inbox & Billing', icon: <Bell size={13} /> },
+            ]}
+          />
         </div>
       </div>
 
@@ -809,7 +807,7 @@ export default function ProviderDashboard() {
                 <div
                   style={{
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
                     gap: '12px',
                   }}
                 >
@@ -1111,7 +1109,7 @@ export default function ProviderDashboard() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
                   gap: '12px',
                 }}
               >
@@ -1195,7 +1193,7 @@ export default function ProviderDashboard() {
                   borderRadius: '16px',
                   width: '480px',
                   maxWidth: '95vw',
-                  maxHeight: '80vh',
+                  maxHeight: '80dvh',
                   display: 'flex',
                   flexDirection: 'column',
                   boxShadow: '0 24px 64px rgba(0,0,0,0.4)',
@@ -1218,12 +1216,15 @@ export default function ProviderDashboard() {
                   </div>
                   <button
                     onClick={() => setChatOrderId(null)}
+                    aria-label="Close chat"
                     style={{
                       background: 'none',
                       border: 'none',
                       fontSize: '1.4rem',
                       cursor: 'pointer',
                       color: 'var(--text-muted)',
+                      minWidth: '44px',
+                      minHeight: '44px',
                     }}
                   >
                     {'x'}
@@ -1331,16 +1332,19 @@ export default function ProviderDashboard() {
                       padding: '8px 12px',
                       background: 'var(--card-bg)',
                       color: 'var(--text-main)',
-                      fontSize: '0.87rem',
+                      fontSize: '16px',
+                      minWidth: 0,
                     }}
                   />
                   <button
                     onClick={handleSend}
+                    aria-label="Send message"
                     style={{
                       background: 'var(--primary)',
                       border: 'none',
                       borderRadius: '8px',
                       padding: '8px 14px',
+                      minHeight: '44px',
                       color: '#fff',
                       cursor: 'pointer',
                     }}
@@ -1769,7 +1773,8 @@ export default function ProviderDashboard() {
                                 style={{
                                   marginTop: '10px',
                                   display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
+                                  gridTemplateColumns:
+                                    'repeat(auto-fit, minmax(min(90px, 100%), 1fr))',
                                   gap: '8px',
                                 }}
                               >
@@ -1874,7 +1879,8 @@ export default function ProviderDashboard() {
                                 style={{
                                   marginTop: '10px',
                                   display: 'grid',
-                                  gridTemplateColumns: 'repeat(auto-fit, minmax(90px, 1fr))',
+                                  gridTemplateColumns:
+                                    'repeat(auto-fit, minmax(min(90px, 100%), 1fr))',
                                   gap: '8px',
                                 }}
                               >

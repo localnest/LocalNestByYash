@@ -193,6 +193,7 @@ export default function ProviderOnboarding() {
       >
         {/* Step Indicator Header */}
         <div
+          className="po-head"
           style={{
             display: 'flex',
             justifyContent: 'space-between',
@@ -242,7 +243,10 @@ export default function ProviderOnboarding() {
               societies:
             </p>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div
+              className="po-cols"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
+            >
               <div>
                 <label className="form-label">Business / Brand Name</label>
                 <input
@@ -270,7 +274,10 @@ export default function ProviderOnboarding() {
               </div>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div
+              className="po-cols"
+              style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}
+            >
               <div>
                 <label className="form-label">Contact Phone (For orders & alerts)</label>
                 <input
@@ -394,6 +401,7 @@ export default function ProviderOnboarding() {
               </div>
 
               <div
+                className="po-cols"
                 style={{
                   display: 'grid',
                   gridTemplateColumns: '2fr 1fr',
@@ -431,7 +439,7 @@ export default function ProviderOnboarding() {
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(180px, 100%), 1fr))',
                   gap: '10px',
                 }}
               >
@@ -746,7 +754,7 @@ export default function ProviderOnboarding() {
                   style={{
                     marginTop: '12px',
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))',
+                    gridTemplateColumns: 'repeat(auto-fit, minmax(min(160px, 100%), 1fr))',
                     gap: '10px',
                   }}
                 >

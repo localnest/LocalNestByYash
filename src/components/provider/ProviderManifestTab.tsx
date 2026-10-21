@@ -93,6 +93,7 @@ export default function ProviderManifestTab({
         style={{ padding: 0, overflowX: 'auto', minWidth: 0, maxWidth: '100%' }}
       >
         <table
+          className="pd-cards"
           style={{
             width: '100%',
             minWidth: '650px',
@@ -129,7 +130,7 @@ export default function ProviderManifestTab({
                     transition: 'background 0.2s ease',
                   }}
                 >
-                  <td style={{ padding: '12px 14px', minWidth: '48px' }}>
+                  <td data-label="Done" style={{ padding: '12px 14px', minWidth: '48px' }}>
                     <input
                       type="checkbox"
                       checked={isDone}
@@ -144,23 +145,29 @@ export default function ProviderManifestTab({
                       }}
                     />
                   </td>
-                  <td style={{ padding: '12px 14px', fontWeight: 800, color: 'var(--primary)' }}>
+                  <td
+                    data-label="Flat / Tower"
+                    style={{ padding: '12px 14px', fontWeight: 800, color: 'var(--primary)' }}
+                  >
                     {item.customerFlat}
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+                  <td data-label="Resident Name" style={{ padding: '12px 14px' }}>
                     <div style={{ fontWeight: 600 }}>{item.customerName}</div>
                     <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)' }}>
                       Use in-app chat
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px' }}>
+                  <td data-label="Service &amp; Plan" style={{ padding: '12px 14px' }}>
                     <div>{item.serviceName}</div>
                     <span className="badge badge-slate" style={{ fontSize: '0.62rem' }}>
                       {item.type}
                     </span>
                   </td>
-                  <td style={{ padding: '12px 14px', fontWeight: 600 }}>{item.slot}</td>
+                  <td data-label="Preferred Slot" style={{ padding: '12px 14px', fontWeight: 600 }}>
+                    {item.slot}
+                  </td>
                   <td
+                    data-label="Delivery Instructions"
                     style={{ padding: '12px 14px', fontSize: '0.8rem', color: 'var(--text-muted)' }}
                   >
                     {item.specialInstructions || 'Direct doorstep handover'}

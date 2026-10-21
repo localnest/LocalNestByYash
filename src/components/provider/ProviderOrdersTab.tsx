@@ -90,7 +90,7 @@ export default function ProviderOrdersTab({
                 </div>
               </div>
 
-              <div style={{ textAlign: 'right' }}>
+              <div className="pd-end" style={{ textAlign: 'right' }}>
                 <div style={{ fontSize: '1.15rem', fontWeight: 800, color: 'var(--primary)' }}>
                   Total: ₹{order.totalAmount}
                 </div>
@@ -135,6 +135,7 @@ export default function ProviderOrdersTab({
             )}
 
             <div
+              className="pd-actions"
               style={{
                 display: 'flex',
                 justifyContent: 'flex-end',

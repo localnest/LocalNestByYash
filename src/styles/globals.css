@@ -1832,3 +1832,137 @@ a:focus-visible,
     opacity: 1;
   }
 }
+
+/* =====================================================================
+   Responsive: provider section (task R01)
+   Provider screens are built with inline styles, which cannot hold media
+   queries. The rules below hook into small classes (pd-*, po-*) added in
+   the provider components. !important is used only where it has to beat
+   an inline style. Customer section: add your own block below this one.
+   ===================================================================== */
+
+/* Aliases for variables used by the chat panels but never defined
+   (the panels rendered with a transparent background) */
+:root {
+  --card-bg: var(--bg-surface);
+  --border: var(--border-light);
+}
+
+.pd-root {
+  overflow-x: clip;
+}
+
+@media (max-width: 600px) {
+  /* Header banner: avatar stays at the top-left, meta items stack */
+  .pd-head {
+    align-items: flex-start !important;
+    gap: 12px !important;
+    width: 100%;
+  }
+  .pd-head img {
+    width: 44px !important;
+    height: 44px !important;
+  }
+  .pd-head h1 {
+    font-size: 1.15rem !important;
+    overflow-wrap: anywhere;
+  }
+  .pd-head-meta {
+    flex-direction: column;
+    align-items: flex-start !important;
+    gap: 8px !important;
+  }
+  .pd-dot {
+    display: none;
+  }
+  .pd-head-meta button {
+    min-height: 32px;
+  }
+
+  /* Touch targets */
+  .pd-root .btn,
+  .pd-root .btn-sm {
+    min-height: 44px;
+  }
+  /* Badges keep their words together (no "ORD / ER") */
+  .pd-root .badge {
+    flex-shrink: 0;
+    max-width: 100%;
+  }
+
+  /* Inline "space-between" rows: allow wrapping so left and right blocks
+     stack instead of crushing each other */
+  .pd-root [style*='space-between'] {
+    flex-wrap: wrap;
+  }
+  .pd-root [style*='space-between'] > * {
+    min-width: 0;
+  }
+  /* ...but modal headers and toggle rows keep title and control on one line */
+  .pd-root .modal-content [style*='space-between'],
+  .pd-root [style*='position: fixed'] [style*='space-between'] {
+    flex-wrap: nowrap;
+  }
+
+  .pd-end {
+    text-align: left !important;
+    width: 100%;
+  }
+  .pd-actions {
+    justify-content: stretch !important;
+  }
+  .pd-actions > * {
+    flex: 1 1 140px;
+    justify-content: center;
+  }
+
+  /* Provider tables become stacked cards (cells carry data-label) */
+  .pd-root table.pd-cards {
+    min-width: 0 !important;
+  }
+  .pd-cards thead {
+    display: none;
+  }
+  .pd-cards,
+  .pd-cards tbody,
+  .pd-cards tr {
+    display: block;
+    width: 100%;
+  }
+  .pd-cards tr {
+    padding: 10px 14px;
+  }
+  .pd-cards td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 6px 0 !important;
+    text-align: right;
+    overflow-wrap: anywhere;
+  }
+  .pd-cards td::before {
+    content: attr(data-label);
+    flex: 0 1 40%;
+    min-width: 0;
+    text-align: left;
+    color: var(--text-muted);
+    font-size: 0.75rem;
+    font-weight: 600;
+  }
+  .pd-cards td[colspan] {
+    display: block;
+    text-align: center;
+  }
+  .pd-cards td[colspan]::before {
+    content: none;
+  }
+
+  /* Provider onboarding: single-column forms and a wrapping header */
+  .po-cols {
+    grid-template-columns: 1fr !important;
+  }
+  .po-head {
+    flex-wrap: wrap;
+  }
+}
