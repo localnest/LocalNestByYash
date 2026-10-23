@@ -7,6 +7,7 @@ import { PLATFORM_CONFIG } from '@/lib/config';
 import { isSocietyCovered, calculateTravelCharge } from '@/lib/geo';
 import { useNotification } from '@/features/notifications/notificationContext';
 import { useScrollLock } from '@/lib/hooks/useScrollLock';
+import AppDatePicker from '@/components/ui/AppDatePicker';
 import {
   X,
   CheckCircle,
@@ -339,7 +340,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay customer-modal" onClick={onClose}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -768,7 +769,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
               <div
                 style={{
                   display: 'grid',
-                  gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))',
+                  gridTemplateColumns: 'repeat(auto-fit, minmax(min(220px, 100%), 1fr))',
                   gap: '12px',
                 }}
               >
@@ -779,12 +780,11 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                   >
                     <Calendar size={14} /> Service Date
                   </label>
-                  <input
-                    type="date"
+                  <AppDatePicker
+                    label="Service date"
                     value={scheduledDate}
                     min={new Date().toISOString().split('T')[0]}
-                    onChange={(e) => setScheduledDate(e.target.value)}
-                    className="form-input"
+                    onChange={setScheduledDate}
                     style={{ padding: '8px 12px' }}
                   />
                 </div>
@@ -1292,7 +1292,7 @@ export default function BookingModal({ service, provider, onClose, onSuccess }: 
                 (service.pricingModel !== 'CUSTOM_QUOTATION' && subtotal <= 0)
               }
               onClick={handleProcessOrder}
-              className="btn btn-primary btn-lg btn-full"
+              className="btn btn-primary btn-lg btn-full customer-modal-cta"
               style={{
                 marginTop: '8px',
                 opacity: provider.isVacationMode ? 0.6 : 1,

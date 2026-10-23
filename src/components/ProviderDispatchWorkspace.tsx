@@ -4,6 +4,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { CreditCard, Inbox, Wrench } from 'lucide-react';
 import ScrollableNavTabs from '@/components/ScrollableNavTabs';
 import { useMarketplace } from '@/lib/store';
+import AppDatePicker from '@/components/ui/AppDatePicker';
+import AppDateTimePicker from '@/components/ui/AppDateTimePicker';
 
 function localDateTimeValue(hour: number): string {
   const now = new Date();
@@ -582,21 +584,19 @@ export default function ProviderDispatchWorkspace() {
                 </label>
                 <label>
                   Delivery date
-                  <input
-                    className="form-input"
-                    type="date"
+                  <AppDatePicker
+                    label="Delivery date"
                     min={localDateValue()}
                     value={menuDeliveryDate}
-                    onChange={(event) => setMenuDeliveryDate(event.target.value)}
+                    onChange={setMenuDeliveryDate}
                   />
                 </label>
-                <label>
+                <label style={{ gridColumn: '1 / -1' }}>
                   Order cutoff
-                  <input
-                    className="form-input"
-                    type="datetime-local"
+                  <AppDateTimePicker
+                    label="Order cutoff"
                     value={menuCutoff}
-                    onChange={(event) => setMenuCutoff(event.target.value)}
+                    onChange={setMenuCutoff}
                   />
                 </label>
               </div>

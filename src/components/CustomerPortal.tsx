@@ -221,7 +221,7 @@ export default function CustomerPortal() {
   };
 
   return (
-    <div style={{ paddingBottom: '90px', minHeight: '100vh' }}>
+    <div className="customer-portal" style={{ paddingBottom: '90px', minHeight: '100dvh' }}>
       {/* Customer Header */}
       <div
         style={{
@@ -1942,7 +1942,7 @@ export default function CustomerPortal() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(340px, 100%), 1fr))',
                 gap: '16px',
               }}
             >
@@ -2101,7 +2101,7 @@ export default function CustomerPortal() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(300px, 100%), 1fr))',
                 gap: '16px',
               }}
             >
@@ -2197,7 +2197,7 @@ export default function CustomerPortal() {
             <div
               style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(min(320px, 100%), 1fr))',
                 gap: '16px',
               }}
             >
@@ -2337,7 +2337,7 @@ export default function CustomerPortal() {
             .slice(0, 4);
 
           return (
-            <div className="modal-overlay" onClick={() => setViewingProvider(null)}>
+            <div className="modal-overlay customer-modal" onClick={() => setViewingProvider(null)}>
               <div
                 className="modal-content"
                 onClick={(e) => e.stopPropagation()}

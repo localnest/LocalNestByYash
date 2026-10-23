@@ -5,6 +5,7 @@ import { AlertTriangle, X, ShieldAlert } from 'lucide-react';
 import type { Order } from '@/lib/types';
 import { calculateCustomerCancellation } from '@/features/dispatch/cancellationEngine';
 import { useScrollLock } from '@/lib/hooks/useScrollLock';
+import AppSelect from '@/components/ui/AppSelect';
 
 interface CancellationConfirmModalProps {
   order: Order | null;
@@ -46,7 +47,7 @@ export default function CancellationConfirmModal({
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose} style={{ zIndex: 10000 }}>
+    <div className="modal-overlay customer-modal" onClick={onClose} style={{ zIndex: 10000 }}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -178,18 +179,18 @@ export default function CancellationConfirmModal({
           >
             Reason for Cancellation:
           </label>
-          <select
+          <AppSelect
+            label="Reason for cancellation"
             value={reason}
-            onChange={(e) => setReason(e.target.value)}
-            className="form-input"
-            style={{ width: '100%', boxSizing: 'border-box' }}
-          >
-            <option value="Personal schedule changed">Personal schedule changed</option>
-            <option value="Found alternative solution">Found alternative solution</option>
-            <option value="Booked wrong date/slot">Booked wrong date/slot</option>
-            <option value="Provider requested reschedule">Provider requested reschedule</option>
-            <option value="Other">Other reason...</option>
-          </select>
+            onChange={setReason}
+            options={[
+              { value: 'Personal schedule changed', label: 'Personal schedule changed' },
+              { value: 'Found alternative solution', label: 'Found alternative solution' },
+              { value: 'Booked wrong date/slot', label: 'Booked wrong date/slot' },
+              { value: 'Provider requested reschedule', label: 'Provider requested reschedule' },
+              { value: 'Other', label: 'Other reason...' },
+            ]}
+          />
         </div>
 
         {reason === 'Other' && (

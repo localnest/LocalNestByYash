@@ -2,6 +2,7 @@
 
 import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
+import AppSelect from '@/components/ui/AppSelect';
 import { Building2, ShieldCheck, Tag, ArrowRight, Sparkles } from 'lucide-react';
 
 export default function ResidentOnboarding() {
@@ -36,8 +37,9 @@ export default function ResidentOnboarding() {
 
   return (
     <div
+      className="resident-onboarding"
       style={{
-        minHeight: '100vh',
+        minHeight: '100dvh',
         background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         display: 'flex',
         flexDirection: 'column',
@@ -68,6 +70,7 @@ export default function ResidentOnboarding() {
             borderBottom: '1px solid var(--border-light)',
             paddingBottom: '14px',
             gap: '8px',
+            flexWrap: 'wrap',
           }}
         >
           <div>
@@ -85,7 +88,7 @@ export default function ResidentOnboarding() {
               fontSize: '0.75rem',
               color: 'var(--text-muted)',
               textDecoration: 'underline',
-              minHeight: '36px',
+              minHeight: '44px',
               minWidth: '44px',
               display: 'flex',
               alignItems: 'center',
@@ -133,17 +136,16 @@ export default function ResidentOnboarding() {
 
             <div>
               <label className="form-label">Select Your Residential Society</label>
-              <select
+              <AppSelect
+                label="Residential society"
                 value={societyId}
-                onChange={(e) => setSocietyId(e.target.value)}
-                className="form-input"
-              >
-                {societies.map((soc) => (
-                  <option key={soc.id} value={soc.id}>
-                    {soc.name} ({soc.totalFlats.toLocaleString()} flats) — {soc.addressLine}
-                  </option>
-                ))}
-              </select>
+                onChange={setSocietyId}
+                options={societies.map((soc) => ({
+                  value: soc.id,
+                  label: soc.name,
+                  hint: `${soc.totalFlats.toLocaleString()} flats — ${soc.addressLine}`,
+                }))}
+              />
             </div>
 
             <div
@@ -155,17 +157,18 @@ export default function ResidentOnboarding() {
             >
               <div>
                 <label className="form-label">Tower / Wing / Block</label>
-                <select
+                <AppSelect
+                  label="Tower / wing / block"
                   value={towerWing}
-                  onChange={(e) => setTowerWing(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="Tower A">Tower A (Oak Block)</option>
-                  <option value="Tower B">Tower B (Pine Block)</option>
-                  <option value="Tower C">Tower C (Maple Block)</option>
-                  <option value="Tower D">Tower D (Cedar Block)</option>
-                  <option value="Row House / Villa">Row House / Villa</option>
-                </select>
+                  onChange={setTowerWing}
+                  options={[
+                    { value: 'Tower A', label: 'Tower A (Oak Block)' },
+                    { value: 'Tower B', label: 'Tower B (Pine Block)' },
+                    { value: 'Tower C', label: 'Tower C (Maple Block)' },
+                    { value: 'Tower D', label: 'Tower D (Cedar Block)' },
+                    { value: 'Row House / Villa', label: 'Row House / Villa' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="form-label">Flat / Unit Number</label>
@@ -351,20 +354,18 @@ export default function ResidentOnboarding() {
               </span>
             </label>
 
-            <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
+            <div className="resident-onboarding-actions">
               <button
                 type="button"
                 onClick={() => setStep(1)}
-                className="btn btn-secondary"
-                style={{ flex: 1 }}
+                className="btn btn-secondary resident-onboarding-back"
               >
                 Back
               </button>
               <button
                 type="submit"
                 disabled={!acceptedGuidelines}
-                className="btn btn-primary btn-lg"
-                style={{ flex: 2 }}
+                className="btn btn-primary btn-lg resident-onboarding-next"
               >
                 Enter Society Marketplace <ArrowRight size={16} />
               </button>

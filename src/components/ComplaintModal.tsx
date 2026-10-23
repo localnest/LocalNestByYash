@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { Order } from '@/lib/types';
 import { X, AlertTriangle, CheckCircle, ShieldAlert } from 'lucide-react';
+import AppSelect from '@/components/ui/AppSelect';
 
 interface ComplaintModalProps {
   order: Order;
@@ -30,7 +31,7 @@ export default function ComplaintModal({ order, onClose }: ComplaintModalProps) 
   };
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay customer-modal" onClick={onClose}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -102,20 +103,22 @@ export default function ComplaintModal({ order, onClose }: ComplaintModalProps) 
 
             <div>
               <label className="form-label">Nature of Complaint</label>
-              <select
+              <AppSelect
+                label="Nature of complaint"
                 value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                className="form-input"
-              >
-                <option value="Service Quality Issue">Service Quality Not As Described</option>
-                <option value="Unpunctual / No-Show">Provider Late or No-Show</option>
-                <option value="Missing or Damaged Item">Missing or Damaged Clothes/Item</option>
-                <option value="Overcharging / Payment Issue">
-                  Incorrect Billing / Payment Issue
-                </option>
-                <option value="Unprofessional Behavior">Unprofessional Conduct</option>
-                <option value="Refund Request">Direct Refund Request</option>
-              </select>
+                onChange={setCategory}
+                options={[
+                  { value: 'Service Quality Issue', label: 'Service Quality Not As Described' },
+                  { value: 'Unpunctual / No-Show', label: 'Provider Late or No-Show' },
+                  { value: 'Missing or Damaged Item', label: 'Missing or Damaged Clothes/Item' },
+                  {
+                    value: 'Overcharging / Payment Issue',
+                    label: 'Incorrect Billing / Payment Issue',
+                  },
+                  { value: 'Unprofessional Behavior', label: 'Unprofessional Conduct' },
+                  { value: 'Refund Request', label: 'Direct Refund Request' },
+                ]}
+              />
             </div>
 
             <div>
@@ -147,7 +150,7 @@ export default function ComplaintModal({ order, onClose }: ComplaintModalProps) 
               </div>
             </div>
 
-            <button type="submit" className="btn btn-dark btn-full">
+            <button type="submit" className="btn btn-dark btn-full customer-modal-cta">
               Submit Dispute Ticket
             </button>
           </form>

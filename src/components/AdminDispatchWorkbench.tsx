@@ -4,6 +4,7 @@ import React, { useMemo, useState } from 'react';
 import { useMarketplace } from '@/lib/store';
 import { anonymizeFeedbackComment } from '@/lib/dispatchUtils';
 import type { Category, CategoryMatching } from '@/lib/types';
+import AppSelect from '@/components/ui/AppSelect';
 
 export default function AdminDispatchWorkbench() {
   const {
@@ -184,32 +185,34 @@ export default function AdminDispatchWorkbench() {
             >
               <label className="form-label">
                 Monetization
-                <select
-                  className="form-input"
+                <AppSelect
+                  label="Monetization"
                   value={editingCategory.monetization}
-                  onChange={(event) =>
+                  onChange={(next) =>
                     setEditingCategory({
                       ...editingCategory,
-                      monetization: event.target.value as Category['monetization'],
+                      monetization: next as Category['monetization'],
                     })
                   }
-                >
-                  <option value="COMMISSION">Commission</option>
-                  <option value="MEMBERSHIP">Membership</option>
-                </select>
+                  options={[
+                    { value: 'COMMISSION', label: 'Commission' },
+                    { value: 'MEMBERSHIP', label: 'Membership' },
+                  ]}
+                />
               </label>
               <label className="form-label">
                 Matching
-                <select
-                  className="form-input"
+                <AppSelect
+                  label="Matching mode"
                   value={editingCategory.matching}
-                  onChange={(event) => patchMatching(event.target.value)}
-                >
-                  <option value="DISPATCH">Dispatch</option>
-                  <option value="LEAD_QUOTE">Lead / quote</option>
-                  <option value="BROWSE_ORDER">Browse / order</option>
-                  <option value="SUBSCRIPTION">Subscription</option>
-                </select>
+                  onChange={patchMatching}
+                  options={[
+                    { value: 'DISPATCH', label: 'Dispatch' },
+                    { value: 'LEAD_QUOTE', label: 'Lead / quote' },
+                    { value: 'BROWSE_ORDER', label: 'Browse / order' },
+                    { value: 'SUBSCRIPTION', label: 'Subscription' },
+                  ]}
+                />
               </label>
               {editingCategory.monetization === 'COMMISSION' ? (
                 <label className="form-label">
@@ -307,18 +310,16 @@ export default function AdminDispatchWorkbench() {
             value={newServiceName}
             onChange={(event) => setNewServiceName(event.target.value)}
           />
-          <select
-            className="form-input"
+          <AppSelect
+            label="Category"
+            placeholder="Choose category"
             value={newServiceCategory}
-            onChange={(event) => setNewServiceCategory(event.target.value)}
-          >
-            <option value="">Choose category</option>
-            {categories.map((category) => (
-              <option key={category.id} value={category.id}>
-                {category.name}
-              </option>
-            ))}
-          </select>
+            onChange={setNewServiceCategory}
+            options={[
+              { value: '', label: 'Choose category' },
+              ...categories.map((category) => ({ value: category.id, label: category.name })),
+            ]}
+          />
           <button className="btn btn-primary btn-sm" onClick={addCatalogType}>
             Add catalog entry
           </button>

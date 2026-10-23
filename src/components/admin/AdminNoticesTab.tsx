@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { Megaphone, Bell, CheckCircle2, Eye, EyeOff } from 'lucide-react';
 import type { SocietyNotice, Society, NoticeType, NoticePriority } from '@/lib/types';
+import AppSelect from '@/components/ui/AppSelect';
 
 interface Props {
   notices: SocietyNotice[];
@@ -256,44 +257,43 @@ export default function AdminNoticesTab({
           >
             <div>
               <label className="form-label">Target Society</label>
-              <select
+              <AppSelect
+                label="Target society"
                 value={noticeSocietyId}
-                onChange={(e) => setNoticeSocietyId(e.target.value)}
-                className="form-input"
-              >
-                <option value="ALL">📢 All Societies (Platform-wide)</option>
-                {societies.map((soc) => (
-                  <option key={soc.id} value={soc.id}>
-                    📍 {soc.name}
-                  </option>
-                ))}
-              </select>
+                onChange={setNoticeSocietyId}
+                options={[
+                  { value: 'ALL', label: '📢 All Societies (Platform-wide)' },
+                  ...societies.map((soc) => ({ value: soc.id, label: `📍 ${soc.name}` })),
+                ]}
+              />
             </div>
 
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '10px' }}>
               <div>
                 <label className="form-label">Notice Type</label>
-                <select
+                <AppSelect
+                  label="Notice type"
                   value={noticeType}
-                  onChange={(e) => setNoticeType(e.target.value as NoticeType)}
-                  className="form-input"
-                >
-                  <option value="ANNOUNCEMENT">📢 Announcement</option>
-                  <option value="MAINTENANCE">🔧 Maintenance</option>
-                  <option value="ALERT">🚨 Alert</option>
-                  <option value="SERVICE_UPDATE">🔄 Service Update</option>
-                </select>
+                  onChange={(next) => setNoticeType(next as NoticeType)}
+                  options={[
+                    { value: 'ANNOUNCEMENT', label: '📢 Announcement' },
+                    { value: 'MAINTENANCE', label: '🔧 Maintenance' },
+                    { value: 'ALERT', label: '🚨 Alert' },
+                    { value: 'SERVICE_UPDATE', label: '🔄 Service Update' },
+                  ]}
+                />
               </div>
               <div>
                 <label className="form-label">Priority</label>
-                <select
+                <AppSelect
+                  label="Priority"
                   value={noticePriority}
-                  onChange={(e) => setNoticePriority(e.target.value as NoticePriority)}
-                  className="form-input"
-                >
-                  <option value="NORMAL">Normal</option>
-                  <option value="URGENT">🔴 Urgent</option>
-                </select>
+                  onChange={(next) => setNoticePriority(next as NoticePriority)}
+                  options={[
+                    { value: 'NORMAL', label: 'Normal' },
+                    { value: 'URGENT', label: '🔴 Urgent' },
+                  ]}
+                />
               </div>
             </div>
 

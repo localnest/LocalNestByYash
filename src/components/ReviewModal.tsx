@@ -89,7 +89,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
   const ratingInfo = RATING_LABELS[activeRating] || RATING_LABELS[5];
 
   return (
-    <div className="modal-overlay" onClick={onClose}>
+    <div className="modal-overlay customer-modal" onClick={onClose}>
       <div
         className="modal-content"
         onClick={(e) => e.stopPropagation()}
@@ -447,7 +447,7 @@ export default function ReviewModal({ order, onClose }: ReviewModalProps) {
 
             <button
               type="submit"
-              className="btn btn-primary btn-full"
+              className="btn btn-primary btn-full customer-modal-cta"
               style={{ padding: '11px', fontSize: '0.92rem', fontWeight: 700 }}
             >
               {t.publishReview}

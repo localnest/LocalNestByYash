@@ -18,6 +18,7 @@ import {
   Menu,
 } from 'lucide-react';
 import { useScrollLock } from '@/lib/hooks/useScrollLock';
+import AppSelect from '@/components/ui/AppSelect';
 
 function useDarkMode(): [boolean, () => void] {
   const [dark, setDark] = useState<boolean>(() => {
@@ -113,44 +114,34 @@ export default function AppHeader() {
                     display: 'flex',
                     alignItems: 'center',
                     gap: '6px',
-                    background: 'rgba(255,255,255,0.1)',
-                    padding: '4px 8px',
+                    background: 'var(--bg-subtle)',
+                    padding: '4px 10px',
                     borderRadius: '20px',
                     maxWidth: '180px',
                     minWidth: 0,
                   }}
                 >
                   <MapPin size={13} color="#14b8a6" style={{ flexShrink: 0 }} />
-                  <select
+                  <AppSelect
+                    bare
+                    label="Society"
                     value={selectedSociety.id}
-                    onChange={(e) => {
-                      const s = societies.find((soc) => soc.id === e.target.value);
+                    onChange={(next) => {
+                      const s = societies.find((soc) => soc.id === next);
                       if (s) setSelectedSociety(s);
                     }}
+                    options={societies.map((soc) => ({
+                      value: soc.id,
+                      label: `${soc.name} (${soc.totalFlats.toLocaleString()} flats)`,
+                    }))}
                     style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#fff',
+                      color: 'var(--text-main)',
                       fontSize: '0.76rem',
                       fontWeight: 600,
-                      outline: 'none',
-                      cursor: 'pointer',
-                      maxWidth: '140px',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                      overflow: 'hidden',
+                      maxWidth: '160px',
+                      gap: 4,
                     }}
-                  >
-                    {societies.map((soc) => (
-                      <option
-                        key={soc.id}
-                        value={soc.id}
-                        style={{ color: '#0f172a', background: '#fff' }}
-                      >
-                        {soc.name} ({soc.totalFlats.toLocaleString()} flats)
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               ) : currentUser.role === 'PROVIDER' && activeProvider ? (
                 /* Provider: show their actual service coverage footprint */
@@ -237,6 +228,7 @@ export default function AppHeader() {
               borderRadius: '9999px',
               padding: '6px 14px',
               gap: '6px',
+              minHeight: '44px',
             }}
             aria-label="Open mobile menu"
           >
@@ -274,22 +266,22 @@ export default function AppHeader() {
             </button>
 
             {/* Language Selector */}
-            <select
+            <AppSelect
+              bare
+              label="Select language"
               value={language}
-              onChange={(e) => setLanguage(e.target.value as 'en' | 'hi' | 'mr')}
+              onChange={(next) => setLanguage(next as 'en' | 'hi' | 'mr')}
+              options={[
+                { value: 'en', label: 'English' },
+                { value: 'hi', label: 'हिंदी' },
+                { value: 'mr', label: 'मराठी' },
+              ]}
               className="header-btn-sleek"
               style={{
                 padding: '4px 8px',
                 fontSize: '0.75rem',
-                cursor: 'pointer',
               }}
-              title="Select Language"
-              aria-label="Select Language"
-            >
-              <option value="en">English</option>
-              <option value="hi">हिंदी</option>
-              <option value="mr">मराठी</option>
-            </select>
+            />
 
             <div className="header-user-card">
               {/* Role specific icon */}
@@ -437,6 +429,9 @@ export default function AppHeader() {
                   padding: '6px',
                   display: 'flex',
                   alignItems: 'center',
+                  justifyContent: 'center',
+                  minWidth: '44px',
+                  minHeight: '44px',
                   borderRadius: '6px',
                 }}
                 aria-label="Close menu"
@@ -509,28 +504,27 @@ export default function AppHeader() {
                     }}
                   >
                     <MapPin size={16} color="var(--primary)" style={{ flexShrink: 0 }} />
-                    <select
+                    <AppSelect
+                      bare
+                      label="Society"
                       value={selectedSociety.id}
-                      onChange={(e) => {
-                        const s = societies.find((soc) => soc.id === e.target.value);
+                      onChange={(next) => {
+                        const s = societies.find((soc) => soc.id === next);
                         if (s) setSelectedSociety(s);
                       }}
-                      className="form-input"
+                      options={societies.map((soc) => ({
+                        value: soc.id,
+                        label: soc.name,
+                        hint: `${soc.totalFlats.toLocaleString()} flats`,
+                      }))}
                       style={{
                         padding: '4px 6px',
                         fontSize: '0.85rem',
                         fontWeight: 600,
-                        border: 'none',
-                        background: 'transparent',
-                        minHeight: 'auto',
+                        width: '100%',
+                        minHeight: 44,
                       }}
-                    >
-                      {societies.map((soc) => (
-                        <option key={soc.id} value={soc.id}>
-                          {soc.name} ({soc.totalFlats.toLocaleString()} flats)
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 ) : currentUser.role === 'PROVIDER' && activeProvider ? (
                   (() => {
@@ -641,7 +635,7 @@ export default function AppHeader() {
                         style={{
                           fontSize: '0.825rem',
                           fontWeight: isSelected ? 800 : 600,
-                          minHeight: '40px',
+                          minHeight: '44px',
                           justifyContent: 'center',
                         }}
                       >
@@ -710,11 +704,11 @@ export default function AppHeader() {
                 display: 'flex',
                 alignItems: 'center',
                 flexShrink: 0,
-                minHeight: '28px',
-                minWidth: '28px',
+                minHeight: '44px',
+                minWidth: '44px',
                 justifyContent: 'center',
                 cursor: 'pointer',
-                background: 'rgba(255, 255, 255, 0.18)',
+                background: 'transparent',
                 border: 'none',
                 borderRadius: '50%',
               }}

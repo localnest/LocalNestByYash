@@ -28,6 +28,7 @@ import {
   ProviderEarningsTab,
   ProviderReviewsTab,
 } from './provider';
+import AppSelect from '@/components/ui/AppSelect';
 
 export default function ProviderDashboard() {
   const {
@@ -623,26 +624,20 @@ export default function ProviderDashboard() {
             >
               <div>
                 <label className="form-label">Select Reason for Declining</label>
-                <select
+                <AppSelect
+                  label="Reason for declining"
                   value={rejectionReasonOption}
-                  onChange={(e) => setRejectionReasonOption(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="Capacity full / high booking volume today">
-                    Capacity full / high booking volume today
-                  </option>
-                  <option value="Equipment or machinery under scheduled maintenance">
-                    Equipment or machinery under scheduled maintenance
-                  </option>
-                  <option value="Requested time slot is outside our operational hours">
-                    Requested time slot is outside our operational hours
-                  </option>
-                  <option value="Resident flat address inaccessible or outside service wing">
-                    Resident flat address inaccessible or outside service wing
-                  </option>
-                  <option value="On emergency leave / holiday">On emergency leave / holiday</option>
-                  <option value="Other">Other reason (describe below)...</option>
-                </select>
+                  onChange={setRejectionReasonOption}
+                  options={[
+                    'Capacity full / high booking volume today',
+                    'Equipment or machinery under scheduled maintenance',
+                    'Requested time slot is outside our operational hours',
+                    'Resident flat address inaccessible or outside service wing',
+                    'On emergency leave / holiday',
+                  ]
+                    .map((reason) => ({ value: reason, label: reason }))
+                    .concat({ value: 'Other', label: 'Other reason (describe below)...' })}
+                />
               </div>
 
               {rejectionReasonOption === 'Other' && (
@@ -815,31 +810,29 @@ export default function ProviderDashboard() {
                 >
                   <div>
                     <label className="form-label">Opening Time</label>
-                    <select
+                    <AppSelect
+                      label="Work start time"
                       value={workStart}
-                      onChange={(e) => setWorkStart(e.target.value)}
-                      className="form-input"
-                    >
-                      <option value="06:00 AM">06:00 AM (Early)</option>
-                      <option value="07:00 AM">07:00 AM</option>
-                      <option value="08:00 AM">08:00 AM</option>
-                      <option value="09:00 AM">09:00 AM</option>
-                      <option value="10:00 AM">10:00 AM</option>
-                    </select>
+                      onChange={setWorkStart}
+                      options={[
+                        { value: '06:00 AM', label: '06:00 AM (Early)' },
+                        { value: '07:00 AM', label: '07:00 AM' },
+                        { value: '08:00 AM', label: '08:00 AM' },
+                        { value: '09:00 AM', label: '09:00 AM' },
+                        { value: '10:00 AM', label: '10:00 AM' },
+                      ]}
+                    />
                   </div>
                   <div>
                     <label className="form-label">Closing Time</label>
-                    <select
+                    <AppSelect
+                      label="Work end time"
                       value={workEnd}
-                      onChange={(e) => setWorkEnd(e.target.value)}
-                      className="form-input"
-                    >
-                      <option value="06:00 PM">06:00 PM</option>
-                      <option value="07:00 PM">07:00 PM</option>
-                      <option value="08:00 PM">08:00 PM</option>
-                      <option value="09:00 PM">09:00 PM</option>
-                      <option value="10:00 PM">10:00 PM</option>
-                    </select>
+                      onChange={setWorkEnd}
+                      options={['06:00 PM', '07:00 PM', '08:00 PM', '09:00 PM', '10:00 PM'].map(
+                        (time) => ({ value: time, label: time }),
+                      )}
+                    />
                   </div>
                 </div>
               </div>
@@ -1092,20 +1085,22 @@ export default function ProviderDashboard() {
 
               <div>
                 <label className="form-label">Pricing Model</label>
-                <select
+                <AppSelect
+                  label="Pricing model"
                   value={newPricingModel}
-                  onChange={(e) => setNewPricingModel(e.target.value as PricingModel)}
-                  className="form-input"
-                >
-                  <option value="FIXED">Fixed Price (e.g. ₹500/cleaning)</option>
-                  <option value="HOURLY">Hourly Rate (e.g. ₹300/hr)</option>
-                  <option value="PER_ITEM">Per Item (e.g. ₹40/shirt)</option>
-                  <option value="SUBSCRIPTION">Monthly Subscription (e.g. ₹3,000/mo)</option>
-                  <option value="INSPECTION_VARIABLE">
-                    Inspection + Variable (e.g. ₹299 checkup)
-                  </option>
-                  <option value="CUSTOM_QUOTATION">Custom Free Quotation</option>
-                </select>
+                  onChange={(next) => setNewPricingModel(next as PricingModel)}
+                  options={[
+                    { value: 'FIXED', label: 'Fixed Price (e.g. ₹500/cleaning)' },
+                    { value: 'HOURLY', label: 'Hourly Rate (e.g. ₹300/hr)' },
+                    { value: 'PER_ITEM', label: 'Per Item (e.g. ₹40/shirt)' },
+                    { value: 'SUBSCRIPTION', label: 'Monthly Subscription (e.g. ₹3,000/mo)' },
+                    {
+                      value: 'INSPECTION_VARIABLE',
+                      label: 'Inspection + Variable (e.g. ₹299 checkup)',
+                    },
+                    { value: 'CUSTOM_QUOTATION', label: 'Custom Free Quotation' },
+                  ]}
+                />
               </div>
 
               <div
@@ -1579,17 +1574,15 @@ export default function ProviderDashboard() {
                             *
                           </span>
                         </label>
-                        <select
-                          value={areaLocalityIdx}
-                          onChange={(e) => setAreaLocalityIdx(Number(e.target.value))}
-                          className="form-input"
-                        >
-                          {BENGALURU_LOCALITIES.map((loc, idx) => (
-                            <option key={loc.label} value={idx}>
-                              {loc.label} · PIN {loc.pincode}
-                            </option>
-                          ))}
-                        </select>
+                        <AppSelect
+                          label="Locality"
+                          value={String(areaLocalityIdx)}
+                          onChange={(next) => setAreaLocalityIdx(Number(next))}
+                          options={BENGALURU_LOCALITIES.map((loc, idx) => ({
+                            value: String(idx),
+                            label: `${loc.label} · PIN ${loc.pincode}`,
+                          }))}
+                        />
                         <div
                           style={{
                             fontSize: '0.71rem',

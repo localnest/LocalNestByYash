@@ -20,6 +20,7 @@ import {
   Upload,
   X,
 } from 'lucide-react';
+import AppSelect from '@/components/ui/AppSelect';
 
 export default function ProviderOnboarding() {
   const { currentUser, categories, societies, completeProviderOnboarding, logout } =
@@ -256,17 +257,12 @@ export default function ProviderOnboarding() {
               </div>
               <div>
                 <label className="form-label">Primary Service Category</label>
-                <select
+                <AppSelect
+                  label="Service category"
                   value={categoryId}
-                  onChange={(e) => setCategoryId(e.target.value)}
-                  className="form-input"
-                >
-                  {categories.map((cat) => (
-                    <option key={cat.id} value={cat.id}>
-                      {cat.name}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setCategoryId}
+                  options={categories.map((cat) => ({ value: cat.id, label: cat.name }))}
+                />
               </div>
             </div>
 
@@ -284,16 +280,17 @@ export default function ProviderOnboarding() {
               </div>
               <div>
                 <label className="form-label">ID / Document Proof Type</label>
-                <select
+                <AppSelect
+                  label="Document type"
                   value={documentType}
-                  onChange={(e) => setDocumentType(e.target.value)}
-                  className="form-input"
-                >
-                  <option value="Aadhaar / National ID">Aadhaar / National ID</option>
-                  <option value="Trade License">Trade License / GSTIN</option>
-                  <option value="FSSAI Food License">FSSAI Food License (For Tiffins)</option>
-                  <option value="Society Vendor Gate Pass">Society Vendor Gate Pass</option>
-                </select>
+                  onChange={setDocumentType}
+                  options={[
+                    { value: 'Aadhaar / National ID', label: 'Aadhaar / National ID' },
+                    { value: 'Trade License', label: 'Trade License / GSTIN' },
+                    { value: 'FSSAI Food License', label: 'FSSAI Food License (For Tiffins)' },
+                    { value: 'Society Vendor Gate Pass', label: 'Society Vendor Gate Pass' },
+                  ]}
+                />
 
                 <div style={{ marginTop: '10px' }}>
                   <label className="form-label" style={{ fontSize: '0.8rem' }}>
@@ -414,17 +411,18 @@ export default function ProviderOnboarding() {
                 </div>
                 <div>
                   <label className="form-label">Pricing Model</label>
-                  <select
+                  <AppSelect
+                    label="Pricing model"
                     value={pricingModel}
-                    onChange={(e) => setPricingModel(e.target.value as PricingModel)}
-                    className="form-input"
-                  >
-                    <option value="FIXED">Fixed (e.g. ₹499/flat)</option>
-                    <option value="HOURLY">Hourly (e.g. ₹300/hr)</option>
-                    <option value="PER_ITEM">Per Item (e.g. ₹40/pc)</option>
-                    <option value="SUBSCRIPTION">Monthly (e.g. ₹3,000/mo)</option>
-                    <option value="INSPECTION_VARIABLE">Inspection (e.g. ₹299)</option>
-                  </select>
+                    onChange={(next) => setPricingModel(next as PricingModel)}
+                    options={[
+                      { value: 'FIXED', label: 'Fixed (e.g. ₹499/flat)' },
+                      { value: 'HOURLY', label: 'Hourly (e.g. ₹300/hr)' },
+                      { value: 'PER_ITEM', label: 'Per Item (e.g. ₹40/pc)' },
+                      { value: 'SUBSCRIPTION', label: 'Monthly (e.g. ₹3,000/mo)' },
+                      { value: 'INSPECTION_VARIABLE', label: 'Inspection (e.g. ₹299)' },
+                    ]}
+                  />
                 </div>
               </div>
 
@@ -506,17 +504,15 @@ export default function ProviderOnboarding() {
               >
                 <Navigation size={15} color="var(--primary)" /> Base Operating Locality / Hub:
               </label>
-              <select
-                value={selectedLocalityIdx}
-                onChange={(e) => setSelectedLocalityIdx(Number(e.target.value))}
-                className="form-input"
-              >
-                {BENGALURU_LOCALITIES.map((loc, idx) => (
-                  <option key={loc.label} value={idx}>
-                    {loc.label} (PIN: {loc.pincode})
-                  </option>
-                ))}
-              </select>
+              <AppSelect
+                label="Locality"
+                value={String(selectedLocalityIdx)}
+                onChange={(next) => setSelectedLocalityIdx(Number(next))}
+                options={BENGALURU_LOCALITIES.map((loc, idx) => ({
+                  value: String(idx),
+                  label: `${loc.label} (PIN: ${loc.pincode})`,
+                }))}
+              />
               <div style={{ fontSize: '0.72rem', color: 'var(--text-muted)', marginTop: '4px' }}>
                 Coordinates: {currentLocality.latitude.toFixed(4)}° N,{' '}
                 {currentLocality.longitude.toFixed(4)}° E

@@ -28,6 +28,7 @@ import {
   AdminLeakageTab,
   AdminCoverageTab,
 } from './admin';
+import AppSelect from '@/components/ui/AppSelect';
 
 export default function AdminPanel() {
   const {
@@ -480,14 +481,15 @@ export default function AdminPanel() {
             >
               <div>
                 <label className="form-label">Coverage Mode</label>
-                <select
+                <AppSelect
+                  label="Coverage mode"
                   value={overrideMode}
-                  onChange={(e) => setOverrideMode(e.target.value as CoverageMode)}
-                  className="form-input"
-                >
-                  <option value="RADIUS">Radius Mode</option>
-                  <option value="SELECTED_SOCIETIES">Manual Selected Societies Mode</option>
-                </select>
+                  onChange={(next) => setOverrideMode(next as CoverageMode)}
+                  options={[
+                    { value: 'RADIUS', label: 'Radius Mode' },
+                    { value: 'SELECTED_SOCIETIES', label: 'Manual Selected Societies Mode' },
+                  ]}
+                />
               </div>
 
               <div>
@@ -613,16 +615,17 @@ export default function AdminPanel() {
               >
                 <div>
                   <label className="form-label">Discount Type</label>
-                  <select
+                  <AppSelect
+                    label="Discount type"
                     value={discountType}
-                    onChange={(e) => setDiscountType(e.target.value as DiscountType)}
-                    className="form-input"
-                  >
-                    <option value="FLAT">Flat ₹ Discount</option>
-                    <option value="PERCENTAGE">Percentage (%)</option>
-                    <option value="FIRST_ORDER">First Order Only</option>
-                    <option value="SUBSCRIPTION">Monthly Subscription Discount</option>
-                  </select>
+                    onChange={(next) => setDiscountType(next as DiscountType)}
+                    options={[
+                      { value: 'FLAT', label: 'Flat ₹ Discount' },
+                      { value: 'PERCENTAGE', label: 'Percentage (%)' },
+                      { value: 'FIRST_ORDER', label: 'First Order Only' },
+                      { value: 'SUBSCRIPTION', label: 'Monthly Subscription Discount' },
+                    ]}
+                  />
                 </div>
                 <div>
                   <label className="form-label">Discount Value</label>

@@ -17,6 +17,8 @@ import {
   Star,
 } from 'lucide-react';
 import ScrollableNavTabs from '@/components/ScrollableNavTabs';
+import AppDatePicker from '@/components/ui/AppDatePicker';
+import AppSelect from '@/components/ui/AppSelect';
 import { useMarketplace } from '@/lib/store';
 import {
   anonymizeFeedbackComment,
@@ -24,6 +26,15 @@ import {
   computeAnonymousPoolStats,
 } from '@/lib/dispatchUtils';
 import type { JobRequest, RecurringSchedule } from '@/lib/types';
+
+const TIME_SLOTS = [
+  '07:00 - 09:00',
+  '09:00 - 11:00',
+  '11:00 - 13:00',
+  '13:00 - 15:00',
+  '15:00 - 17:00',
+  '17:00 - 19:00',
+];
 
 function localDate(daysAhead = 1): string {
   const date = new Date();
@@ -601,7 +612,7 @@ export default function ResidentDispatchCenter() {
   };
 
   return (
-    <main className="container" style={{ paddingTop: 22, paddingBottom: 100 }}>
+    <main className="container resident-portal" style={{ paddingTop: 22, paddingBottom: 100 }}>
       <section
         style={{
           display: 'flex',
@@ -689,22 +700,20 @@ export default function ResidentDispatchCenter() {
                 </label>
                 <div className="booking-input-wrap">
                   <Layers size={16} className="input-prefix-icon" />
-                  <select
+                  <AppSelect
                     id="booking-category-select"
-                    className="form-input"
+                    label="Service category"
                     value={categoryId}
-                    onChange={(event) => {
-                      setCategoryId(event.target.value);
+                    options={availableCategories.map((category) => ({
+                      value: category.id,
+                      label: category.name,
+                    }))}
+                    onChange={(next) => {
+                      setCategoryId(next);
                       setSelectedTasks([]);
                       setSizeBand('');
                     }}
-                  >
-                    {availableCategories.map((category) => (
-                      <option value={category.id} key={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
 
@@ -719,22 +728,20 @@ export default function ResidentDispatchCenter() {
                 </label>
                 <div className="booking-input-wrap">
                   <Sparkles size={16} className="input-prefix-icon" />
-                  <select
+                  <AppSelect
                     id="booking-service-select"
-                    className="form-input"
+                    label="Service type"
                     value={serviceTypeId}
-                    onChange={(event) => {
-                      setServiceTypeId(event.target.value);
+                    options={serviceOptions.map((service) => ({
+                      value: service.id,
+                      label: service.name,
+                    }))}
+                    onChange={(next) => {
+                      setServiceTypeId(next);
                       setSelectedTasks([]);
                       setSizeBand('');
                     }}
-                  >
-                    {serviceOptions.map((service) => (
-                      <option value={service.id} key={service.id}>
-                        {service.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
             </div>
@@ -966,13 +973,12 @@ export default function ResidentDispatchCenter() {
                   </label>
                   <div className="booking-input-wrap">
                     <Calendar size={16} className="input-prefix-icon" />
-                    <input
+                    <AppDatePicker
                       id="booking-date-input"
-                      className="form-input"
-                      type="date"
+                      label="Service date"
                       min={localDate()}
                       value={scheduledDate}
-                      onChange={(event) => setScheduledDate(event.target.value)}
+                      onChange={setScheduledDate}
                     />
                   </div>
                 </div>
@@ -987,25 +993,13 @@ export default function ResidentDispatchCenter() {
                   </label>
                   <div className="booking-input-wrap">
                     <Clock3 size={16} className="input-prefix-icon" />
-                    <select
+                    <AppSelect
                       id="booking-slot-select"
-                      className="form-input"
+                      label="Start time"
                       value={scheduledSlot}
-                      onChange={(event) => setScheduledSlot(event.target.value)}
-                    >
-                      {[
-                        '07:00 - 09:00',
-                        '09:00 - 11:00',
-                        '11:00 - 13:00',
-                        '13:00 - 15:00',
-                        '15:00 - 17:00',
-                        '17:00 - 19:00',
-                      ].map((slot) => (
-                        <option value={slot} key={slot}>
-                          {slot}
-                        </option>
-                      ))}
-                    </select>
+                      options={TIME_SLOTS.map((slot) => ({ value: slot, label: slot }))}
+                      onChange={setScheduledSlot}
+                    />
                   </div>
                 </div>
               </div>
@@ -1250,19 +1244,20 @@ export default function ResidentDispatchCenter() {
                         Start a resident-owned subscription and rotate kitchens
                       </label>
                       {subscribeToTiffin && (
-                        <select
-                          className="form-input"
+                        <AppSelect
+                          label="Repeat frequency"
                           style={{ marginTop: 8 }}
                           value={tiffinFrequency}
-                          onChange={(event) =>
-                            setTiffinFrequency(event.target.value as RecurringSchedule['frequency'])
+                          options={[
+                            { value: 'DAILY', label: 'Daily' },
+                            { value: 'MON_TO_SAT', label: 'Monday to Saturday' },
+                            { value: 'WEEKLY', label: 'Weekly' },
+                            { value: 'ALTERNATE_DAYS', label: 'Alternate days' },
+                          ]}
+                          onChange={(next) =>
+                            setTiffinFrequency(next as RecurringSchedule['frequency'])
                           }
-                        >
-                          <option value="DAILY">Daily</option>
-                          <option value="MON_TO_SAT">Monday to Saturday</option>
-                          <option value="WEEKLY">Weekly</option>
-                          <option value="ALTERNATE_DAYS">Alternate days</option>
-                        </select>
+                        />
                       )}
                     </div>
                   )}
@@ -1416,16 +1411,17 @@ export default function ResidentDispatchCenter() {
         <section className="card" style={{ maxWidth: 680 }}>
           <h2 style={{ fontWeight: 800, marginBottom: 12 }}>{t.householdPreferencesTitle}</h2>
           <label className="form-label">Diet</label>
-          <select
-            className="form-input"
+          <AppSelect
+            label="Diet"
             value={diet}
-            onChange={(event) => setDiet(event.target.value as typeof diet)}
-          >
-            <option value="VEG">Vegetarian</option>
-            <option value="NON_VEG">Non-vegetarian</option>
-            <option value="JAIN">Jain</option>
-            <option value="VEGAN">Vegan</option>
-          </select>
+            options={[
+              { value: 'VEG', label: 'Vegetarian' },
+              { value: 'NON_VEG', label: 'Non-vegetarian' },
+              { value: 'JAIN', label: 'Jain' },
+              { value: 'VEGAN', label: 'Vegan' },
+            ]}
+            onChange={(next) => setDiet(next as typeof diet)}
+          />
           <label className="form-label" style={{ marginTop: 10 }}>
             Allergies (comma-separated)
           </label>
